@@ -4,9 +4,9 @@ import { START_POINTS } from './route.js';
 
 // 圖片尺寸（src/assets/img/fran-city.jpg）
 const IMG_W = 960, IMG_H = 685;
-// 座標對應（由站長實際量的四個地標校正：東門口 281,88、西門口 22,88、南門口 153,241、里堡南 153,100）
+// 座標對應（由站長實際量的四個地標校正：芙蕾雅東門 281,88、西門 22,88、南門 153,241（都在城外橋另一端的小島上）、里堡南 153,100）
 // 遊戲地圖是斜 45° 的菱形：東往右上、南往右下 → px 只跟 (x+y) 有關、py 只跟 (y−x) 有關
-const OX = -24.1, OY = 407.7, U = 2.025, V = 1.516;
+const OX = -176.9, OY = 431.5, U = 2.613, V = 1.904;
 export const toPx = (x, y) => ({ px: OX + U * (x + y), py: OY + V * (y - x) });
 export const toGame = (px, py) => {
   const s = (px - OX) / U, d = (py - OY) / V;     // s = x+y, d = y−x
