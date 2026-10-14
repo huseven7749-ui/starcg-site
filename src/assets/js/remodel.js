@@ -1,7 +1,7 @@
 // 寵物改造圖成本計算
 import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, toast, parseAmount, debounce, emptyState } from './core.js';
 import { LAYERS, expected, simulate, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven } from './farmcalc.js';
-import { TIERS, REMODEL, expectedTries } from './petcalc.js';
+import { TIERS, REMODEL, expectedTries , remodelPoints } from './petcalc.js';
 
 const KEY = 'sc.remodel.v2';
 const ids = ['f-runs', 'f-cost', 'f-per', 'f-target', 'p-n', 'p-s', 'p-g', 'c-ns', 'c-nsf', 'c-sg', 'c-sgf', 'c-set', 'c-letters', 't-tier', 't-from', 't-to', 't-pay', 't-set', 's-runs', 's-target', 's-p2', 's-p3', 's-link', 's-fee', 's-value', 's-stonefee', 'cp-gset'];
@@ -193,7 +193,7 @@ function renderTries() {
       <td class="num" data-label="${L('rm.worst')}">${esc(fmtWan(worst))}</td></tr>`);
   }
   $('#t-table').innerHTML = `<thead><tr><th>${L('rm.stage')}</th><th class="num">${L('rm.rate')}</th><th class="num">${L('rm.pity')}</th><th class="num">${L('rm.eTries')}</th><th class="num">${L('rm.eCost')}</th><th class="num">${L('rm.worst')}</th></tr></thead><tbody>${rows.join('')}</tbody>`;
-  const bp = TIERS[tier].remodelBp * (to - from);
+  const bp = remodelPoints(tier, to) - remodelPoints(tier, from);
   const r = rates.get();
   const tile = (label, body, sub = '', hl = false) => `<div class="stat-tile${hl ? ' hl' : ''}"><span>${esc(label)}</span><b>${body}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
   $('#t-kv').innerHTML =

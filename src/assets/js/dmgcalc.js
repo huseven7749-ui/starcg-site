@@ -24,6 +24,7 @@ export const PET_REMODEL = [                                                  //
   { normal: 0.12, silver: 0.17, gold: 0.23 },
   { normal: 0.16, silver: 0.22, gold: 0.29 },
   { normal: 0.20, silver: 0.27, gold: 0.35 },
+  { normal: 0.25, silver: 0.33, gold: 0.42 },   // 第 6 次：金卡 42% 為遊戲內數值；普、銀依前五次的級距推估
 ];
 
 export const effective = v => (v <= SOFT_CAP ? v : SOFT_CAP + SOFT_RATE * (v - SOFT_CAP));

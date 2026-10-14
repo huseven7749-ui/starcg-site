@@ -84,9 +84,11 @@ t('改造期望次數（含保底）', () => {
   near(expectedTries(0.5, 5), 1.9375);
   near(expectedTries(0.25, 9), 3.6997, 0.001);
   near(expectedTries(0.15, 13), 5.8607, 0.001);
-  const total = REMODEL.reduce((a, r) => a + expectedTries(r.rate, r.pity), 0);
-  near(total, 13.8106, 0.001);
-  assert.equal(TIERS['金'].fee.coin * 31, 27125000); // 最壞 31 次
+  const total5 = REMODEL.slice(0, 5).reduce((a, r) => a + expectedTries(r.rate, r.pity), 0);
+  near(total5, 13.8106, 0.001);
+  assert.deepEqual(REMODEL[5], { rate: 0.10, pity: 15, lv: 130 });   // 第 6 次（遊戲內：130 級、10%、失敗 14 次後必成）
+  near(expectedTries(0.10, 15), 7.9411, 0.001);                       // Σ k·0.1·0.9^(k−1)（k=1…14）＋ 15·0.9^14 ≈ 7.94
+  assert.equal(TIERS['金'].fee.coin * 31, 27125000); // 1～5 次最壞 31 次
 });
 
 t('刷圖期望值：100 場、第三層、目標金卡', () => {

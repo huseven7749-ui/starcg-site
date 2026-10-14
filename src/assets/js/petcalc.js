@@ -28,15 +28,16 @@ export const TIERS = {
   '銀': { key: 'silver', base: 102, target: 127, remodelBp: 7, fullBonus: 80, fee: { coin: 175000, crystal: 1000 }, fixCap: 15 },
   '普': { key: 'normal', base: 100, target: 125, remodelBp: 6, fullBonus: 60, fee: { coin: 35000, crystal: 200 }, fixCap: 10 },
 };
-// 改造：第 1～5 次的成功率、保底次數、等級需求
+// 改造：第 1～6 次的成功率、保底次數（失敗 N−1 次後第 N 次必成）、等級需求
 export const REMODEL = [
   { rate: 1.0, pity: 1, lv: 80 },
   { rate: 0.75, pity: 3, lv: 90 },
   { rate: 0.5, pity: 5, lv: 100 },
   { rate: 0.25, pity: 9, lv: 110 },
   { rate: 0.15, pity: 13, lv: 120 },
+  { rate: 0.10, pity: 15, lv: 130 },
 ];
-// 第 6 次改造：各卡等固定 +8 BP（成功率與保底未公布，改造期望花費仍以 1～5 次計算）
+// 第 6 次改造：各卡等固定 +8 BP
 export const REMODEL_MAX = 6;
 export const REMODEL_BP6 = 8;
 export const remodelLv = n => (REMODEL[Math.min(n, REMODEL.length) - 1] || REMODEL[REMODEL.length - 1]).lv;
@@ -44,7 +45,7 @@ export const remodelLv = n => (REMODEL[Math.min(n, REMODEL.length) - 1] || REMOD
 export function remodelPoints(tier, remodelCount) {
   const t = TIERS[tier];
   const n = Math.max(0, Math.min(REMODEL_MAX, remodelCount | 0));
-  return (t ? t.remodelBp * Math.min(n, REMODEL.length) : 0) + (n > REMODEL.length ? REMODEL_BP6 * (n - REMODEL.length) : 0);
+  return (t ? t.remodelBp * Math.min(n, 5) : 0) + (n > 5 ? REMODEL_BP6 * (n - 5) : 0);
 }
 export const SKILL_WEIGHT = { 6: 10, 7: 30, 8: 60, 9: 100, 10: 150 };
 export const PET_ALLOC_POWERS = [64 ** 4, 64 ** 3, 64 ** 2, 64, 1];
