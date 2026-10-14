@@ -22,10 +22,11 @@ const BUILD_DATE = new Date().toISOString().slice(0, 10);
 const REGISTER_URL = 'https://member.starcg.net/register.php?ref=Hsu12rDUCzP.PwC3';
 const GOOGLE_VERIFY = args.google || '';      // Search Console 驗證碼（可留空，改用 DNS 驗證）
 const NAVER_VERIFY = args.naver || '';        // Naver Search Advisor 驗證碼
-// 教學影片（中／韓各一支）：新手彈窗內嵌播放，首頁「贊助站長」也連到同一支（按「超級感謝」小額贊助）
+// 教學影片（中／韓各一支）：新手彈窗內嵌播放，贊助彈窗也會請大家到影片下留言
 // 可用 --video=網址 --video-ko=網址 --sponsor=網址 --sponsor-ko=網址 覆蓋；留空就用下面的預設
 const VIDEO = { zh: args.video || 'https://youtu.be/2dk9OO-lSmw?si=jf8WyNkAkoCsPtGg', ko: args['video-ko'] || 'https://youtu.be/vv5wRaEuV-Y?si=rjLWOqEwNbzLjZGu' };
-const SPONSOR = { zh: args.sponsor || VIDEO.zh, ko: args['sponsor-ko'] || VIDEO.ko };
+// 贊助站長：BobaBoba 贊助頁（彈窗先請大家到影片下留言，想贊助再點）
+const SPONSOR = { zh: args.sponsor || 'https://hoshino77.bobaboba.me/', ko: args['sponsor-ko'] || 'https://hoshino77.bobaboba.me/' };
 
 const LANGS = {
   zh: { prefix: '', dict: (await import('./src/i18n/zh.mjs')).default },
@@ -360,6 +361,7 @@ function buildPages() {
         preview: PREVIEW ? '1' : '',
         registerUrl: REGISTER_URL,
         sponsorUrl: SPONSOR[lang] || '#',
+        videoUrl: VIDEO[lang],
         welcomeVideo: esc(VIDEO[lang]),
         buildDate: BUILD_DATE,
         verify: (GOOGLE_VERIFY ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFY)}">` : '') +
