@@ -1,0 +1,20 @@
+{
+  "kanji": { "0": "日", "1": "月", "2": "火", "3": "水", "4": "木", "5": "金", "6": "土" },
+  "days": {
+    "0": [],
+    "1": [ { "id": "peak", "icon": "sword", "start": "21:00", "end": "22:00" } ],
+    "2": [ { "id": "peak", "icon": "sword", "start": "21:00", "end": "22:00" },
+           { "id": "tower", "icon": "tower", "allDay": true } ],
+    "3": [ { "id": "peak", "icon": "sword", "start": "21:00", "end": "22:00" },
+           { "id": "invade", "icon": "monster", "start": "19:00", "end": "20:00" },
+           { "id": "maze", "icon": "chest", "allDay": true } ],
+    "4": [ { "id": "peak", "icon": "sword", "start": "21:00", "end": "22:00" },
+           { "id": "invade", "icon": "monster", "start": "19:00", "end": "20:00" },
+           { "id": "maze", "icon": "chest", "allDay": true },
+           { "id": "tower", "icon": "tower", "allDay": true } ],
+    "5": [ { "id": "peak", "icon": "sword", "start": "21:00", "end": "22:00" } ],
+    "6": [ { "id": "peakFinal", "icon": "sword", "start": "21:00", "end": "22:00", "entry": "20:30", "hideEnd": true, "note": "ev.finalEntry" },
+           { "id": "boss", "icon": "boss", "start": "19:00", "end": "24:00" },
+           { "id": "tower", "icon": "tower", "allDay": true } ]
+  }
+}

@@ -1,0 +1,142 @@
+# 魔力寶貝小工具（starcg.online）
+
+星詠魔力玩家專用小幫手：市場查價、魔幣魔晶台幣匯率比價、寵物圖鑑與成長模擬、改造圖與技能突破石試算、站內傷害計算機、迷宮找樓梯與每週活動表，整合在同一個網站。
+繁體中文（`/`）與韓文（`/ko/`）各有獨立網址與 SEO 設定。
+
+---
+
+## 一、資料夾說明
+
+| 位置 | 內容 |
+|---|---|
+| `upload_to_public_html/` | **直接上傳到 SiteGround 的 `public_html`**（已用 starcg.online 建置好） |
+| `src/` | 原始碼：頁面樣板、樣式、腳本、繁中與韓文文字（`src/i18n/`）、每週活動（`src/data/schedule.json`）、心得文章（`src/posts/`） |
+| `static/` | 後端 PHP（`api/`）、排程（`cron/`）、`.htaccess`、寵物圖鑑、裝備目錄與懸賞任務資料（`data/`） |
+| `build.mjs` | 建置腳本（需要 Node.js 18 以上，無其他套件） |
+| `tools/` | 字型子集、圖示與分享圖產生器、裝備／懸賞目錄產生器（`build-catalogs.py`）、本機測試用的假官方 API |
+| `tests/` | 公式單元測試、畫面與 SEO 檢查 |
+| `old-site-redirect.htaccess` | 舊站 cg-hoshino.online 的 301 轉址設定（保留舊站排名） |
+
+## 二、部署到 SiteGround
+
+1. **網域**：在 SiteGround「Site Tools」新增網站並使用 `starcg.online`。網域若在別家註冊，把 Nameserver 改成 SiteGround 提供的 `ns1/ns2.siteground.net`，或把 A 紀錄指到 SiteGround 給的 IP。
+2. **SSL**：Site Tools → Security → SSL Manager 申請 Let's Encrypt，並開啟「HTTPS Enforce」。
+3. **PHP 版本**：Site Tools → Devs → PHP Manager 選 **8.1 以上**（建議 8.2/8.3）。需要 curl 與 intl，SiteGround 預設都有。
+4. **上傳**：Site Tools → Site → File Manager，進入 `public_html`，把 `upload_to_public_html` 裡的**所有檔案**（包含隱藏的 `.htaccess`）上傳。最簡單的方法是先壓成 zip 上傳，再在 File Manager 裡解壓。
+5. **權限**：確認 `cache/`、`img/pets/`、`data/` 三個資料夾權限是 755（PHP 要能寫入快取、寵物圖片與每日圖鑑）。
+6. **快取設定**：Site Tools → Speed → Caching → Dynamic Cache，把 `/api/*` 加進排除清單（API 自己會控制快取）。
+7. **排程（Cron Jobs）**：Site Tools → Devs → Cron Jobs 新增（路徑依你的帳號調整）：
+   - 每日同步寵物圖鑑（必要）：`10 5 * * *` → `php /home/customer/www/starcg.online/public_html/cron/sync-pets.php`
+   - 收集成交紀錄、產生「每日市場動態」（建議）：`*/10 * * * *` → `php /home/customer/www/starcg.online/public_html/cron/ingest.php`（每次只抓新增的 1～幾頁；沒設也能用，會在有人看每日動態時順便補抓，最多每 10 分鐘一次）
+   - 預熱熱門搜尋（選用）：`*/5 * * * *` → `php /home/customer/www/starcg.online/public_html/cron/warm.php`
+8. **上線檢查**：
+   - 開 `https://starcg.online/` 與 `https://starcg.online/ko/`
+   - 開 `https://starcg.online/api/market.php?q=水晶`，應回傳 JSON（`"ok":true`）
+   - 市場查價頁搜尋任一商品，第二次查同一個應該幾乎瞬間出現
+   - 開 `https://starcg.online/img/pets/104956.gif`，第一次會從攻略網抓回並存在本站
+
+## 三、市場查價怎麼做到「快、省、準」
+
+- **只有伺服器去抓官方**：瀏覽器只呼叫本站 `/api/market.php` 一次，伺服器並行抓官方各頁（最多 6 條連線）、整理成精簡格式後一次回傳，不再經過第三方 CORS 代理。
+- **快取 60 秒**：同一個關鍵字 60 秒內直接回快取（約 10 ms）；成交紀錄快取 3 分鐘。
+- **合併重複請求**：很多人同時查同一個商品時，只會有一個請求去抓官方，其他人等它寫好快取。
+- **保護官方網站**：每個 IP 每分鐘最多觸發 20 次實際抓取，全站每分鐘最多抓 240 頁，單次查詢最多 25 頁（約 500 攤）。
+- **正確性**：翻頁期間有人上下架時，依攤位 cdkey 與道具唯一碼去重；已過期攤位不列出；有頁面抓不到會標示「結果可能不完整」；官方暫時掛掉時回傳 1 小時內的舊資料並明確標示。
+- **分類瀏覽／批次採購**：一次查多個商品走 `/api/batch.php`（每次最多 30 個名稱），每個名稱各自用 60 秒快取，只算一次頻率限制；寵物瀏覽使用 5 分鐘的寵物攤位快照，很多人同時瀏覽也只抓一次。
+- **每日市場動態**：`/api/daily.php` 讀取伺服器累積的成交紀錄（`cache/records/日期.ndjson`，保留 120 天），統計當日熱門、漲跌幅（今日中位數 vs 前 7 天中位數）。
+- 參數都在 `api/config.php`，可依流量調整。
+
+### 市場查價頁的功能
+
+| 分頁 | 功能 |
+|---|---|
+| 市價比較 | 關鍵字查詢；裝備依分類／等級瀏覽、寵物依種族／檔次／懸賞任務瀏覽；分流、幣別、排序、只看最低價、只看可滿足需求數量的攤位；寵物篩滿星／滿檔／滿技／技能欄／等級；我的最愛與最近搜尋 |
+| 近期成交 | 7／30／90 天或全部、依數量加權均價、中位數、最低／最高、每日走勢圖、匯出 CSV；可切換用「匯入資料」當來源 |
+| 擺攤定價 | 參考中位數與常見區間（25%～75%），輸入售價試算扣手續費（魔幣 10%、魔晶 6%）後實收、與中位數相比、在目前攤位的排名 |
+| 追蹤清單 | 一鍵重新整理全部追蹤商品（批次查詢） |
+| 每日市場動態 | 今日／昨日的成交筆數、成交額、熱門商品、漲幅與跌幅 |
+| 批次採購 | 選商品與數量（預設懸賞任務寵物，也可選裝備分類、水晶、自訂），依分流×幣別規劃要跑的攤位與走法（路程優先／少跑攤位／價格優先），起點可選城門或自訂並儲存 |
+| 資料管理 | 匯入自己的成交紀錄（CSV／JSON）、匯出、備份與還原本站存在瀏覽器的所有設定 |
+
+> 村莊商店（NPC 販賣）比價：程式已預留，資料檔 `static/data/village-shops.json` 目前是空的，所以這個選項不會顯示。有正確的村莊商店資料後填進去即可自動出現。
+
+## 四、SEO 已完成項目
+
+- 每頁獨立標題、描述、canonical、Open Graph／Twitter 分享圖（每頁每語言一張）
+- 繁中與韓文互相標示 `hreflang`（含 `x-default`），sitemap 內也有對應關係
+- 結構化資料：WebSite（含站內搜尋框）、Organization、BreadcrumbList、WebApplication、FAQPage
+- `robots.txt`、`sitemap.xml`、語意化標題層級、圖片 alt、行動版友善、PWA
+- 靜態頁面＋雜湊檔名長期快取、字型子集化（介面中文約 160 KB、韓文約 55 KB；寵物／裝備名稱用字另成一個補充檔，只有頁面用到時才下載）、無外部框架
+
+**上線後請做：**
+1. **Google Search Console**：新增「網域」資源 `starcg.online`，用 DNS TXT 驗證，接著提交 `https://starcg.online/sitemap.xml`。
+2. **Naver Search Advisor**（韓國搜尋）：新增網站後選「HTML 태그」驗證，把驗證碼給我（或自行執行 `node build.mjs --naver=驗證碼`）重新建置，再提交 sitemap。
+3. **Bing Webmaster Tools**：可直接從 Search Console 匯入。
+4. **舊站轉址**：把 `old-site-redirect.htaccess` 的內容放到 cg-hoshino.online 的 `.htaccess`，舊網址會 301 轉到新站對應頁面，保留原本的搜尋排名。
+
+## 五、日常維護
+
+- **改文字**：繁中 `src/i18n/zh.mjs`、韓文 `src/i18n/ko.mjs`（兩邊的鍵要一致）。
+- **改每週活動**：`src/data/schedule.json`。
+- **說明文字**：頁面上只放最必要的字，補充說明用 `{{tip:字串鍵}}`（ⓘ 圖示，點了才展開）；長的使用方式、公式都收在可展開的區塊裡。
+- **角色圖**：放在 `src/assets/img/sprites/`（GIF 動畫＋同名 `-still.png` 靜態第一格，給設定「減少動態效果」的使用者）。新角色要在 `build.mjs` 的 `SPRITES` 登記；頁面樣板用 `{{pic:名稱 class}}`，腳本用 `spriteImg('名稱')`。目前的安排：鼠王＝各頁引導與官方市場卡；五色小鼠＝首頁各工具卡（顏色對應工具色）；冒險者＝坐著（還沒有資料／等待）、四處張望（找不到、404）、奔跑（搜尋中、規劃路線中）、歡呼（註冊好禮、最划算方案、魔法結果）、攻擊（物理傷害結果）。
+- **重新建置**：`node build.mjs`（輸出到 `dist/`，再上傳）。換網域：`node build.mjs --site=https://新網域`。
+- **贊助站長連結**：`node build.mjs --sponsor=https://你的贊助頁`（首頁「贊助站長」卡片會連過去；沒給時連結是 `#`）。
+- **新手彈窗的教學影片**：`node build.mjs --video=YouTube網址或mp4網址`。第一次來的人會看到歡迎彈窗（依裝置顯示加到我的最愛／加到主畫面的步驟），影片放在彈窗上方；沒給時顯示「教學影片準備中」。看過會記在瀏覽器裡不再跳出，設定面板有「再看一次新手教學」。
+- **新增大量新文字後**：先 `node build.mjs`，再重新產生字型子集 `python3 tools/subset-fonts.py dist <粉圓.ttf> <GowunDodum.ttf>`，然後再建置一次（會一併收錄腳本字典與 `data/` 內的名稱；沒做也能正常顯示，只是新字會改用系統字型）。字型原檔：jf open 粉圓 GitHub releases、Gowun Dodum（yangheeryu/Gowun-Dodum）。
+- **官方市場格式若改版**：只需調整 `static/api/_market.php` 的整理邏輯。
+
+## 五之一、心得分享（寫文章）
+
+- 文章放在 `src/posts/`，一篇一個 `.md` 檔，**檔名就是網址**（英文小寫、數字、連字號），例如 `pet-leveling.md` → `https://starcg.online/posts/pet-leveling/`。
+- 開頭填文章資訊（照 `src/posts/_範本.md` 複製最快；底線開頭的檔案不會發佈）：
+
+  ```
+  ---
+  title: 文章標題
+  date: 2026-10-20
+  desc: 一句話摘要（顯示在列表與 Google 搜尋結果）
+  tags: 新手, 賺錢
+  ---
+  ```
+- 內文用簡單的 Markdown：`## 小標題`、`**粗體**`、`- 清單`、`1. 編號`、`> 提醒`、`[連結](網址)`、表格；圖片放 `src/posts/img/`，文中寫 `![說明](img/檔名.png)`。
+- 韓文版：同名加 `.ko.md`（例如 `pet-leveling.ko.md`），兩篇會自動互相連結並標示 hreflang；只有中文的文章也會出現在韓文列表（標示語言）。
+- 想先存草稿：開頭加 `draft: yes`。
+- 建置時會自動產生：文章列表、首頁「最新心得」、上一篇／下一篇、麵包屑、BlogPosting 結構化資料、sitemap。
+- 文章修改後可加 `updated: 2026-10-25`，搜尋引擎會看到更新日期。
+
+## 六、測試
+
+```bash
+node tests/unit.mjs                       # 公式單元測試
+php -S 127.0.0.1:8091 -t tools/mock &     # 假官方 API
+tools/dev-rebuild.sh                      # 建置並接上假 API
+php -S 127.0.0.1:8090 -t dist tools/router.php &
+python3 tests/e2e.py http://127.0.0.1:8090 shots    # 電腦／手機、日／夜、中／韓 截圖與錯誤檢查
+python3 tests/market_features.py http://127.0.0.1:8090 shots  # 市場頁各功能實際操作
+python3 tests/mobile_overflow.py http://127.0.0.1:8090 shots  # 手機版文字是否超出底色框（含說明彈出框、心得頁、迷宮頁）
+python3 tests/maze_e2e.py http://127.0.0.1:8090 shots         # 迷宮找樓梯：用假的遊戲資料夾測試自動讀取、換層、這趟探索
+python3 tests/seo_check.py dist https://starcg.online
+```
+
+## 六之一、迷宮找樓梯（/maze/）
+
+- 純前端，沒有後端：用瀏覽器的 File System Access API（電腦版 Chrome／Edge）讀取遊戲 `StarCG_Data\map\<分流>\*.dat`，資料夾權限存在 IndexedDB，之後開頁面直接接上（瀏覽器可能再問一次「允許」，選「每次造訪都允許」就不會再問）。其他瀏覽器只能手動選檔或拖曳。
+- 地圖檔格式（`src/assets/js/mazedat.js`）：20 bytes 檔頭（第 12、16 byte 起為寬、高 int32 小端序），接著三層 uint16：地面、物件、標記，索引＝南×寬＋東。標記 `0xC003` 為出入口；物件編號決定種類（12000/12001、13268+偶數…為上樓梯，12002/12003、13268+奇數…為下樓梯，物件 0 為水晶，14676 為傳送點）。地面 0 或 100 代表尚未探索。
+- 「目前樓層」＝分流資料夾裡最後修改的 .dat；「新的一趟」會把當時所有 .dat 內容存進 IndexedDB 當基準，之後與基準不同的格子才算這趟新探索（舊記錄畫淡、樓梯標「舊記錄」），並依出現順序編第 1、2、3 層。
+- 不會寫入、刪除遊戲檔案。示範模式用 `demoMaze()` 產生隨機迷宮，與真實遊戲無關。
+
+## 七、計算依據與假設
+
+- 寵物能力：魔力寶貝原廠公式（1 等 BP＝（檔次＋隨機檔）×0.2、每級＋檔次÷24、BP→能力係數矩陣），與星詠魔力 gamerch 攻略「寵物須知」公布的係數一致；評分為攻略公布公式的估算。
+- 改造：成功率 100/75/50/25/15%、保底 1/3/5/9/13 次、手續費與 BP 加成取自 gamerch「寵物洗檔、升星、改造」。
+- 改造圖：掉落率、每場成本與合成比例沿用舊站設定，可在頁面上修改；A～D 編號假設均等掉落；改造失敗一定會消耗改造圖，每次嘗試都算一套。
+- 魔幣魔晶台幣匯率預設 1 台幣＝40 魔晶、3,000 魔晶＝100 萬魔幣，使用者可自行修改並存在瀏覽器。
+- 魔物幻境：第一層 100% 普卡、第二層 普 80%／銀 20%、第三層 普 60%／銀 32%／金 8%；改造圖可在休息室替換同級其他種族或字母，因此預設「同級 4 張＝1 套」。
+- 技能突破石：第二層、第三層首領各自獨立判定，掉率 5%、15%；打到第三層＝兩次機會，100 場平均 20 顆。
+- 傷害計算機為站內原生實作：攻擊／防禦超過 240 的部分以 30% 計算、基礎傷害＝攻²×3÷(攻＋防×3)、亂數 90%～110%、必殺追加＝防×攻方等級÷(防方等級×2)；魔法需求精神、精神差距與法杖魔攻倍率依 gamerch「魔法精神理論」，魔法基礎傷害與技能倍率取自玩家社群實測資料。
+
+## 八、授權
+
+- 圓體字型子集：jf open 粉圓（SIL OFL 1.1）、Gowun Dodum（SIL OFL 1.1），依授權改名為 StarRound／StarRoundKO，授權全文在 `src/assets/fonts/`。
+- 寵物圖片與圖鑑資料來自星詠攻略網；本站為非官方玩家工具站。

@@ -1,0 +1,104 @@
+<header class="page-head ph-pets">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg></span>
+  <div><h1>{{t:page.pets.h1}}</h1><p>{{t:page.pets.lead}}</p></div>
+  <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}" loading="lazy"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.pets}}</p></div>
+</header>
+
+<div class="tabs" role="tablist" id="pet-tabs">
+  <button type="button" role="tab" id="tab-dex" aria-controls="pane-dex" aria-selected="true" data-tab="dex"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:pet.tab.dex}}<span class="count" id="dex-count" hidden></span></button>
+  <button type="button" role="tab" id="tab-sim" aria-controls="pane-sim" aria-selected="false" data-tab="sim"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg>{{t:pet.tab.sim}}</button>
+  <button type="button" role="tab" id="tab-cmp" aria-controls="pane-cmp" aria-selected="false" data-tab="cmp"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:pet.tab.cmp}}<span class="count" id="cmp-count" hidden></span></button>
+</div>
+
+<section id="pane-dex" role="tabpanel" aria-labelledby="tab-dex">
+  <div class="card" style="margin-bottom:14px">
+    <div class="pet-filters">
+      <label class="field"><span class="sr-only">{{t:common.search}}</span><div class="input-wrap"><svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg><input class="input" id="f-q" type="search" placeholder="{{t:pet.searchPh}}" autocomplete="off"></div></label>
+      <label class="field"><span class="sr-only">{{t:pet.race}}</span><select class="input" id="f-race"><option value="">{{t:js.race.all}}</option></select></label>
+      <label class="field"><span class="sr-only">{{t:pet.tier}}</span><select class="input" id="f-tier"><option value="">{{t:pet.tierAll}}</option><option value="金">{{t:js.card.gold}}</option><option value="銀">{{t:js.card.silver}}</option><option value="普">{{t:js.card.normal}}</option></select></label>
+      <label class="field"><span class="sr-only">{{t:pet.element}}</span><select class="input" id="f-el"><option value="">{{t:pet.elAll}}</option><option value="earth">{{t:pet.el.earth}}</option><option value="water">{{t:pet.el.water}}</option><option value="fire">{{t:pet.el.fire}}</option><option value="wind">{{t:pet.el.wind}}</option></select></label>
+      <label class="field"><span class="sr-only">{{t:market.sort}}</span><select class="input" id="f-sort">
+        <option value="total">{{t:pet.sort.total}}</option><option value="0">{{t:js.bp.0}}</option><option value="1">{{t:js.bp.1}}</option><option value="2">{{t:js.bp.2}}</option><option value="3">{{t:js.bp.3}}</option><option value="4">{{t:js.bp.4}}</option><option value="slots">{{t:pet.sort.slots}}</option><option value="wash">{{t:pet.sort.wash}}</option><option value="id">{{t:pet.sort.id}}</option>
+      </select></label>
+    </div>
+    <p class="muted small" style="margin:0" id="dex-info">{{t:common.loading}}</p>
+  </div>
+  <div class="pet-grid" id="dex"></div>
+</section>
+
+<section id="pane-sim" role="tabpanel" aria-labelledby="tab-sim" hidden>
+  <div class="split">
+    <div class="stack">
+      <section class="card">
+        <label class="field"><span>{{t:pet.pick}}</span>
+          <div class="input-wrap"><svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg><input class="input" id="s-pet" list="pet-names" placeholder="{{t:pet.pickPh}}" autocomplete="off"></div>
+          <datalist id="pet-names"></datalist>
+        </label>
+        <div class="sim-head" id="sim-head" style="margin-top:14px"></div>
+      </section>
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>{{t:pet.settings}}</h2>
+        <div class="grid g4">
+          <label class="field"><span>{{t:common.lv}}</span><input class="input" id="s-lv" type="number" min="1" max="200" value="1" inputmode="numeric"></label>
+          <label class="field"><span>{{t:pet.tier}}</span><select class="input" id="s-tier"><option value="">{{t:pet.tierNone}}</option><option value="普">{{t:js.card.normal}}</option><option value="銀">{{t:js.card.silver}}</option><option value="金">{{t:js.card.gold}}</option></select></label>
+          <label class="field"><span>{{t:pet.remodel}}</span><select class="input" id="s-rm"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+          <label class="field"><span>{{t:pet.slots}}</span><select class="input" id="s-slots"><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></label>
+        </div>
+        <div class="row" style="margin-top:12px;gap:18px">
+          <label class="switch"><input type="checkbox" id="s-star"><span>{{t:pet.maxStar}}</span></label>
+          <label class="switch"><input type="checkbox" id="s-full"><span>{{t:pet.fullSlot}}</span></label>
+        </div>
+      </section>
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg>{{t:pet.grades}}<span class="sub" id="grade-warn"></span></h2>
+        <div style="overflow-x:auto"><table class="bp-table" id="bp-table">
+          <thead><tr><th></th><th>{{t:pet.col.base}}</th><th>{{t:pet.col.star}}</th><th>{{t:pet.col.drop}}</th><th>{{t:pet.col.rand}}</th><th>{{t:pet.col.real}}</th><th>{{t:pet.col.manual}}</th><th>{{t:pet.col.extra}}</th><th>BP</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="points-bar" id="points" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:10px" id="quick-fill">
+          <span class="small muted">{{t:pet.fill}}</span>
+          <button class="btn sm" type="button" data-fill="0">{{t:js.bp.0}}</button><button class="btn sm" type="button" data-fill="1">{{t:js.bp.1}}</button><button class="btn sm" type="button" data-fill="2">{{t:js.bp.2}}</button><button class="btn sm" type="button" data-fill="3">{{t:js.bp.3}}</button><button class="btn sm" type="button" data-fill="4">{{t:js.bp.4}}</button><button class="btn sm ghost" type="button" data-fill="clear">{{t:common.reset}}</button>
+        </div>
+      </section>
+    </div>
+    <div class="stack">
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:pet.result}}<span class="sub" id="score-sub"></span></h2>
+        <div class="result-grid" id="result"></div>
+        <div class="row end" style="margin-top:12px">
+          <button class="btn sm ghost" type="button" id="share"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>{{t:pet.share}}</button>
+          <button class="btn sm primary" type="button" id="add-cmp"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>{{t:pet.addCmp}}</button>
+        </div>
+      </section>
+      <section class="card grow">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg>{{t:pet.lvTable}}
+          <span class="sub"><select class="input sm" id="lv-strategy" aria-label="{{t:pet.strategy}}">
+            <option value="ratio">{{t:pet.st.ratio}}</option><option value="0">{{t:pet.st.all}}{{t:js.bp.0}}</option><option value="1">{{t:pet.st.all}}{{t:js.bp.1}}</option><option value="2">{{t:pet.st.all}}{{t:js.bp.2}}</option><option value="3">{{t:pet.st.all}}{{t:js.bp.3}}</option><option value="4">{{t:pet.st.all}}{{t:js.bp.4}}</option><option value="none">{{t:pet.st.none}}</option>
+          </select></span></h2>
+        <div class="tbl-wrap"><table class="tbl" id="lv-table"></table></div>
+      </section>
+      <section class="card fold-card">
+        <details class="fold"><summary class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:pet.formulaTitle}}</summary>
+        <ul class="howto small">{{t:pet.formula_html}}</ul></details>
+      </section>
+    </div>
+  </div>
+</section>
+
+<section id="pane-cmp" role="tabpanel" aria-labelledby="tab-cmp" hidden>
+  <div class="tbl-wrap cardify"><table class="tbl" id="cmp-table"></table></div>
+  <div class="row end" style="margin-top:10px">
+    <button class="btn sm ghost" type="button" id="cmp-csv"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:js.csv}}</button>
+    <button class="btn sm ghost" type="button" id="cmp-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>{{t:common.clear}}</button>
+  </div>
+</section>
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details class="howto-d"><summary>{{t:common.howto}}</summary><ul class="howto">{{t:pet.howto_html}}</ul></details>
+  <details><summary>{{t:pets.faq.q1}}</summary><p>{{t:pets.faq.a1}}</p></details>
+    <details><summary>{{t:pets.faq.q2}}</summary><p>{{t:pets.faq.a2}}</p></details>
+    <details><summary>{{t:pets.faq.q3}}</summary><p>{{t:pets.faq.a3}}</p></details>
+    <details><summary>{{t:pets.faq.q4}}</summary><p>{{t:pets.faq.a4}}</p></details>
+</section>

@@ -1,0 +1,39 @@
+# 自動部署：推到 main 分支 → 建置 → 測試 → 用 SSH 把 dist/ 同步到 SiteGround 的 public_html
+# 需要在 GitHub 倉庫 Settings → Secrets and variables → Actions 設定：
+#   SG_HOST  SiteGround SSH 主機（例如 ssgxx.siteground.biz 或 Site Tools 顯示的主機名）
+#   SG_USER  SSH 使用者（例如 u1234-abcdefg）
+#   SG_PORT  SSH 連接埠（SiteGround 預設 18765）
+#   SG_KEY   SSH 私鑰全文（從 Site Tools → Devs → SSH Keys Manager 產生後「Private Key」的內容）
+#   SG_PATH  網站根目錄（例如 /home/customer/www/starcg.online/public_html）
+name: Deploy to SiteGround
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency: { group: deploy, cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: 單元測試
+        run: node tests/unit.mjs
+      - name: 建置
+        run: node build.mjs --sponsor="${{ vars.SPONSOR_URL }}" --video="${{ vars.WELCOME_VIDEO }}" --naver="${{ vars.NAVER_VERIFY }}" --google="${{ vars.GOOGLE_VERIFY }}"
+      - name: 設定 SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.SG_KEY }}" > ~/.ssh/id_sg && chmod 600 ~/.ssh/id_sg
+          ssh-keyscan -p "${{ secrets.SG_PORT }}" -H "${{ secrets.SG_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: 上傳到 public_html
+        run: |
+          rsync -az --delete \
+            --exclude 'cache/' --exclude 'img/pets/' --exclude 'api/config.local.php' --exclude '.well-known/' \
+            -e "ssh -i ~/.ssh/id_sg -p ${{ secrets.SG_PORT }}" \
+            dist/ "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}:${{ secrets.SG_PATH }}/"
+      - name: 上線檢查
+        run: |
+          sleep 5
+          curl -sfo /dev/null https://starcg.online/ && curl -sfo /dev/null https://starcg.online/ko/ && echo OK

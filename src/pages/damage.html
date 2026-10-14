@@ -1,0 +1,131 @@
+<header class="page-head ph-damage">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-damage"/></svg></span>
+  <div><h1>{{t:page.damage.h1}}</h1><p>{{t:page.damage.lead}}</p></div>
+  <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}" loading="lazy"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.damage}}</p></div>
+</header>
+
+<div class="tabs" role="tablist" id="dmg-tabs">
+  <button type="button" role="tab" id="tab-phys" aria-controls="pane-phys" aria-selected="true" data-tab="phys"><svg class="ic" aria-hidden="true"><use href="#i-damage"/></svg>{{t:dmg.tab.phys}}</button>
+  <button type="button" role="tab" id="tab-magic" aria-controls="pane-magic" aria-selected="false" data-tab="magic"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:dmg.tab.magic}}</button>
+</div>
+
+<section id="pane-phys" role="tabpanel" aria-labelledby="tab-phys">
+  <div class="grid g3 dmg-inputs">
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-damage"/></svg>{{t:dmg.attacker}}</h2>
+        <div class="grid g2 keep2">
+          <label class="field"><span>{{t:dmg.atkVal}}</span><input class="input" id="p-atk" type="number" min="0" value="500" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.atkLv}}</span><input class="input" id="p-alv" type="number" min="1" max="200" value="120" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.weapon}}</span><select class="input" id="p-weapon"><option value="weapon">{{t:dmg.weapon.has}}</option><option value="none">{{t:dmg.weapon.none}}</option></select></label>
+          <label class="field"><span>{{t:dmg.skill}}</span><input class="input" id="p-skill" type="number" min="0" max="1000" value="100" inputmode="numeric"></label>
+        </div>
+        <div class="hr"></div>
+        <div class="field"><span>{{t:dmg.skillPreset}}</span>
+          <div class="row">
+            <select class="input sm" id="sk-type" style="width:auto"><option value="attack">{{t:dmg.sk.attack}}</option><option value="qiankun">{{t:dmg.sk.qiankun}}</option><option value="huixuan">{{t:dmg.sk.huixuan}}</option><option value="zhuiyue">{{t:dmg.sk.zhuiyue}}</option></select>
+            <select class="input sm" id="sk-lv" style="width:auto" aria-label="Lv"></select>
+            <select class="input sm" id="sk-hit" style="width:auto" aria-label="hit" hidden></select>
+            <label class="switch" id="sk-pve-wrap" hidden><input type="checkbox" id="sk-pve" checked><span>{{t:dmg.sk.pve}}</span></label>
+          </div>
+        </div>
+      </section>
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-ev-monster"/></svg>{{t:dmg.defender}}</h2>
+        <div class="grid g2 keep2">
+          <label class="field"><span>{{t:dmg.defVal}}</span><input class="input" id="p-def" type="number" min="0" value="300" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.defLv}}</span><input class="input" id="p-dlv" type="number" min="1" max="200" value="100" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.crystal}}</span><select class="input" id="p-crystal"><option value="full">{{t:dmg.c.full}}</option><option value="half">{{t:dmg.c.half}}</option><option value="all2">{{t:dmg.c.all2}}</option><option value="none" selected>{{t:dmg.c.none}}</option><option value="all3">{{t:dmg.c.all3}}</option><option value="halfRev">{{t:dmg.c.halfRev}}</option><option value="all4">{{t:dmg.c.all4}}</option><option value="fullRev">{{t:dmg.c.fullRev}}</option><option value="all5">{{t:dmg.c.all5}}</option></select></label>
+          <label class="field"><span>{{t:dmg.raceSel}}</span><select class="input" id="p-race"><option value="full">{{t:dmg.r.full}}</option><option value="half">{{t:dmg.r.half}}</option><option value="none" selected>{{t:dmg.r.none}}</option><option value="halfRev">{{t:dmg.r.halfRev}}</option><option value="fullRev">{{t:dmg.r.fullRev}}</option></select></label>
+        </div>
+      </section>
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg>{{t:dmg.petTitle}}</h2>
+        <label class="switch"><input type="checkbox" id="p-pet"><span>{{t:dmg.petOn}}</span></label>
+        <div class="grid g2 keep2" id="p-petbox" style="margin-top:12px">
+          <label class="field"><span>{{t:dmg.petTier}}</span><select class="input" id="p-tier"><option value="gold">{{t:js.card.gold}}</option><option value="silver">{{t:js.card.silver}}</option><option value="normal">{{t:js.card.normal}}</option></select></label>
+          <label class="field"><span>{{t:dmg.petRemodel}}</span><select class="input" id="p-rm"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+          <label class="switch"><input type="checkbox" id="p-full"><span>{{t:dmg.petFull}}</span></label>
+          <label class="switch"><input type="checkbox" id="p-beast"><span>{{t:dmg.petBeast}}</span></label>
+        </div>
+      </section>
+  </div>
+  <section class="card dmg-result">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:dmg.result}}{{tip:dmg.rangeHint}}{{pic:adv-attack card-sprite}}</h2>
+        <div class="kv" id="p-kv"></div>
+        <div class="tbl-wrap" style="margin-top:12px"><table class="tbl dmg-tbl" id="p-table"></table></div>
+      </section>
+  <section class="card fold-card">
+        <details class="fold"><summary class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:dmg.formulaTitle}}</summary>
+        <ul class="howto small">{{t:dmg.formula_html}}</ul></details>
+      </section>
+</section>
+
+<section id="pane-magic" role="tabpanel" aria-labelledby="tab-magic" hidden>
+  <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:dmg.caster}}</h2>
+        <div class="seg" id="m-caster" role="group"><button type="button" value="char" aria-pressed="true">{{t:dmg.caster.char}}</button><button type="button" value="pet" aria-pressed="false">{{t:dmg.caster.pet}}</button></div>
+        <div class="grid g4" style="margin-top:12px">
+          <label class="field"><span>{{t:dmg.mType}}</span><select class="input" id="m-type"><option value="single">{{t:dmg.m.single}}</option><option value="strong">{{t:dmg.m.strong}}</option><option value="super">{{t:dmg.m.super}}</option><option value="drain">{{t:dmg.m.drain}}</option></select></label>
+          <label class="field"><span>{{t:dmg.mLevel}}</span><select class="input" id="m-lv"></select></label>
+          <label class="field"><span>{{t:dmg.mSpirit}}</span><input class="input" id="m-spirit" type="number" min="0" value="320" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.mTarget}}</span><input class="input" id="m-target" type="number" min="0" value="200" inputmode="numeric"></label>
+          <label class="field" id="m-staff-wrap"><span>{{t:dmg.mStaff}}</span><input class="input" id="m-staff" type="number" min="0" value="320" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.mInsight}}</span><input class="input" id="m-insight" type="number" min="0" max="100" value="0" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.crystal}}</span><select class="input" id="m-crystal"><option value="full">{{t:dmg.c.full}}</option><option value="half">{{t:dmg.c.half}}</option><option value="all2">{{t:dmg.c.all2}}</option><option value="none" selected>{{t:dmg.c.none}}</option><option value="all3">{{t:dmg.c.all3}}</option><option value="halfRev">{{t:dmg.c.halfRev}}</option><option value="all4">{{t:dmg.c.all4}}</option><option value="fullRev">{{t:dmg.c.fullRev}}</option><option value="all5">{{t:dmg.c.all5}}</option></select></label>
+          <label class="field"><span>{{t:dmg.raceSel}}</span><select class="input" id="m-race"><option value="full">{{t:dmg.r.full}}</option><option value="half">{{t:dmg.r.half}}</option><option value="none" selected>{{t:dmg.r.none}}</option><option value="halfRev">{{t:dmg.r.halfRev}}</option><option value="fullRev">{{t:dmg.r.fullRev}}</option></select></label>
+        </div>
+        <label class="switch" id="m-pve-wrap" style="margin-top:12px" hidden><input type="checkbox" id="m-pve" checked><span>{{t:dmg.mPve}}</span></label>
+      </section>
+  <div id="m-petcard" hidden><section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg>{{t:dmg.petTitle}}</h2>
+        <label class="switch"><input type="checkbox" id="m-pet"><span>{{t:dmg.petOn}}</span></label>
+        <div class="grid g2 keep2" id="m-petbox" style="margin-top:12px">
+          <label class="field"><span>{{t:dmg.petTier}}</span><select class="input" id="m-tier"><option value="gold">{{t:js.card.gold}}</option><option value="silver">{{t:js.card.silver}}</option><option value="normal">{{t:js.card.normal}}</option></select></label>
+          <label class="field"><span>{{t:dmg.petRemodel}}</span><select class="input" id="m-rm"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+          <label class="switch"><input type="checkbox" id="m-full"><span>{{t:dmg.petFull}}</span></label>
+          <label class="switch"><input type="checkbox" id="m-beast"><span>{{t:dmg.petBeast}}</span></label>
+        </div>
+      </section></div>
+  <section class="card dmg-result">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:dmg.result}}{{tip:dmg.rangeHint}}{{pic:adv-cheer card-sprite}}</h2>
+        <div class="kv" id="m-kv"></div>
+        <div class="tbl-wrap" style="margin-top:12px"><table class="tbl dmg-tbl" id="m-table"></table></div>
+      </section>
+</section>
+
+<h2 class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:dmg.refTitle}}</h2>
+<div class="grid g3">
+  <section class="card">
+    <h3 class="card-title">{{t:dmg.raceTitle}}</h3>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th class="num">{{t:dmg.atk}}</th><th class="num">{{t:dmg.red}}</th></tr></thead><tbody>
+      <tr><td>{{t:dmg.full}}</td><td class="num">+20%</td><td class="num">+20%</td></tr>
+      <tr><td>{{t:dmg.half}}</td><td class="num">+10%</td><td class="num">+10%</td></tr>
+      <tr><td>{{t:dmg.fullRev}}</td><td class="num">−20%</td><td class="num">−20%</td></tr>
+      <tr><td>{{t:dmg.halfRev}}</td><td class="num">−10%</td><td class="num">−10%</td></tr>
+      <tr><td>{{t:dmg.evil}}</td><td class="num">+20%</td><td class="num">+10%</td></tr>
+    </tbody></table></div>
+  </section>
+  <section class="card">
+    <h3 class="card-title">{{t:dmg.fullTitle}}{{tip:dmg.fullNote}}</h3>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th class="num">{{t:dmg.pveAtk}}</th><th class="num">{{t:dmg.pveRed}}</th></tr></thead><tbody>
+      <tr><td><span class="badge b-normal">{{t:js.card.normal}}</span></td><td class="num">+10%</td><td class="num">+3%</td></tr>
+      <tr><td><span class="badge b-silver">{{t:js.card.silver}}</span></td><td class="num">+15%</td><td class="num">+6%</td></tr>
+      <tr><td><span class="badge b-gold">{{t:js.card.gold}}</span></td><td class="num">+20%</td><td class="num">+9%</td></tr>
+    </tbody></table></div>
+  </section>
+  <section class="card">
+    <h3 class="card-title">{{t:dmg.rmTitle}}{{tip:dmg.rmNote}}</h3>
+    <div class="tbl-wrap"><table class="tbl ref-tbl"><thead><tr><th></th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th></tr></thead><tbody>
+      <tr><td><span class="badge b-normal">{{t:js.card.normal}}</span></td><td class="num">106%</td><td class="num">109%</td><td class="num">112%</td><td class="num">116%</td><td class="num">120%</td></tr>
+      <tr><td><span class="badge b-silver">{{t:js.card.silver}}</span></td><td class="num">109%</td><td class="num">113%</td><td class="num">117%</td><td class="num">122%</td><td class="num">127%</td></tr>
+      <tr><td><span class="badge b-gold">{{t:js.card.gold}}</span></td><td class="num">113%</td><td class="num">118%</td><td class="num">123%</td><td class="num">129%</td><td class="num">135%</td></tr>
+    </tbody></table></div>
+  </section>
+</div>
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details><summary>{{t:damage.faq.q1}}</summary><p>{{t:damage.faq.a1}}</p></details>
+  <details><summary>{{t:damage.faq.q2}}</summary><p>{{t:damage.faq.a2}}</p></details>
+  <details><summary>{{t:damage.faq.q3}}</summary><p>{{t:damage.faq.a3}}</p></details>
+</section>

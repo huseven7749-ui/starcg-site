@@ -1,0 +1,110 @@
+<header class="page-head ph-maze">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-maze"/></svg></span>
+  <div><h1>{{t:page.maze.h1}}</h1><p>{{t:page.maze.lead}}</p></div>
+  <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}" loading="lazy"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.maze}}</p></div>
+</header>
+
+<!-- 開始：連結遊戲資料夾 -->
+<section class="card mz-start" id="mz-start">
+  <div class="mz-start-main">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:mz.startTitle}}</h2>
+    <ol class="mz-steps">
+      <li><b>1</b><span>{{t:mz.step1_html}}</span></li>
+      <li><b>2</b><span>{{t:mz.step2}}</span></li>
+      <li><b>3</b><span>{{t:mz.step3}}</span></li>
+    </ol>
+    <div class="mz-actions">
+      <button class="btn primary" type="button" id="mz-link"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg><span>{{t:mz.link}}</span></button>
+      <button class="btn sky" type="button" id="mz-resume" hidden><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg><span></span></button>
+      <label class="btn" for="mz-file"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span>{{t:mz.pickFile}}</span></label>
+      <button class="btn ghost" type="button" id="mz-demo"><svg class="ic" aria-hidden="true"><use href="#i-maze"/></svg><span>{{t:mz.demo}}</span></button>
+      <input type="file" id="mz-file" accept=".dat" multiple hidden>
+    </div>
+    <p class="notice" id="mz-unsupported" hidden><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>{{t:mz.unsupported}}</span></p>
+    <p class="mz-privacy"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>{{t:mz.privacy}} {{t:mz.dropHint}}</span></p>
+  </div>
+  <div class="mz-start-art" aria-hidden="true">
+    <svg class="mz-mini" viewBox="0 0 160 160"><g transform="translate(80 80) rotate(-45) translate(-54 -54)"><g class="mz-mini-floor"><rect x="0.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="12.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="24.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="24.3" y="36.3" width="11.4" height="11.4" rx="1.6"/><rect x="24.3" y="48.3" width="11.4" height="11.4" rx="1.6"/><rect x="24.3" y="60.3" width="11.4" height="11.4" rx="1.6"/><rect x="24.3" y="72.3" width="11.4" height="11.4" rx="1.6"/><rect x="36.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="36.3" y="36.3" width="11.4" height="11.4" rx="1.6"/><rect x="36.3" y="72.3" width="11.4" height="11.4" rx="1.6"/><rect x="48.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="48.3" y="36.3" width="11.4" height="11.4" rx="1.6"/><rect x="48.3" y="72.3" width="11.4" height="11.4" rx="1.6"/><rect x="48.3" y="84.3" width="11.4" height="11.4" rx="1.6"/><rect x="48.3" y="96.3" width="11.4" height="11.4" rx="1.6"/><rect x="60.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="60.3" y="24.3" width="11.4" height="11.4" rx="1.6"/><rect x="60.3" y="36.3" width="11.4" height="11.4" rx="1.6"/><rect x="60.3" y="72.3" width="11.4" height="11.4" rx="1.6"/><rect x="72.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="72.3" y="72.3" width="11.4" height="11.4" rx="1.6"/><rect x="72.3" y="84.3" width="11.4" height="11.4" rx="1.6"/><rect x="84.3" y="12.3" width="11.4" height="11.4" rx="1.6"/><rect x="84.3" y="24.3" width="11.4" height="11.4" rx="1.6"/><rect x="84.3" y="36.3" width="11.4" height="11.4" rx="1.6"/><rect x="84.3" y="84.3" width="11.4" height="11.4" rx="1.6"/></g><circle cx="6" cy="18" r="7.5" class="mz-mini-up"/><circle cx="90" cy="90" r="7.5" class="mz-mini-down"/><circle cx="90" cy="42" r="6" class="mz-mini-crystal"/></g></svg>
+    {{pic:adv-look mz-start-sp @2}}
+  </div>
+</section>
+
+<!-- 即時地圖 -->
+<section id="mz-live" class="mz-live" hidden>
+  <div class="card mz-bar">
+    <div class="mz-status"><i class="mz-dot" id="mz-dot"></i><b id="mz-state"></b><small id="mz-src"></small></div>
+    <div class="mz-tools">
+      <label class="switch"><input type="checkbox" id="mz-follow" checked><span>{{t:mz.follow}}</span></label>
+      <button class="btn sm ghost" type="button" id="mz-unlink"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg><span>{{t:mz.unlink}}</span></button>
+    </div>
+    <details class="mz-diag" id="mz-diag"><summary>{{t:mz.d.title}}</summary><pre></pre><button type="button" class="btn sm" id="mz-diag-copy">{{t:mz.d.copy}}</button></details>
+    <p class="mz-tripline" id="mz-runline" hidden><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg><span></span><button type="button" class="btn sm" id="mz-runend"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg>{{t:mz.runEnd}}</button></p>
+  </div>
+
+  <div class="mz-main">
+    <section class="card mz-mapcard">
+      <div class="mz-maphead">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-maze"/></svg><span id="mz-title"></span></h2>
+        <div class="mz-mark" id="mz-mark" role="group" aria-label="{{t:mz.markTitle}}" hidden><span class="mz-mark-label">{{t:mz.markTitle}}</span>
+          <button type="button" class="chip" data-type="chest" aria-pressed="false"><i class="mzk mzk-chest"></i>{{t:mz.k.chest}}</button>
+          <button type="button" class="chip" data-type="mob" aria-pressed="false"><i class="mzk mzk-mob"></i>{{t:mz.k.mob}}</button>
+          <button type="button" class="chip" data-type="note" aria-pressed="false"><i class="mzk mzk-note"></i>{{t:mz.k.note}}</button>{{tip:mz.markTip}}</div>
+        <div class="seg seg-sm" id="mz-view" role="group" aria-label="{{t:mz.view}}"><button type="button" value="iso" aria-pressed="true">{{t:mz.view.iso}}</button><button type="button" value="grid" aria-pressed="false">{{t:mz.view.grid}}</button></div>
+      </div>
+      <div class="mz-begin" id="mz-begin" hidden>
+        {{pic:adv-look mz-begin-sp}}
+        <div class="mz-begin-body">
+          <h3>{{t:mz.b.title}}</h3>
+          <p>{{t:mz.b.desc}}</p>
+          <div class="mz-begin-opts">
+            <button class="btn primary" type="button" id="mz-begin-fresh"><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg><span>{{t:mz.b.fresh}}</span></button>
+            <div class="mz-begin-mid"><span>{{t:mz.b.midLabel}}</span><label class="mz-begin-n">{{t:mz.b.floorPre}}<input class="input sm" id="mz-begin-n" type="number" min="1" max="200" value="1" inputmode="numeric">{{t:mz.b.floorPost}}</label><button class="btn sky" type="button" id="mz-begin-mid"><span>{{t:mz.b.mid}}</span></button></div>
+          </div>
+          <p class="mz-begin-note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>{{t:mz.b.note}}</span></p>
+        </div>
+      </div>
+      <div class="mz-floorbar">
+        <span class="mz-floorbar-label"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:mz.floors}}</span>
+        <div class="mz-floors" id="mz-floors" role="group" aria-label="{{t:mz.floors}}"></div>
+      </div>
+      <div class="mz-stage" id="mz-stage">
+        <canvas id="mz-canvas" role="img" aria-label="{{t:page.maze.h1}}"></canvas>
+        <div class="mz-coord" id="mz-coord" aria-live="polite" hidden></div>
+        <div class="mz-compass" id="mz-compass" aria-hidden="true"><span class="n">{{t:mz.n}}</span><span class="e">{{t:mz.e}}</span><span class="s">{{t:mz.s}}</span><span class="w">{{t:mz.w}}</span></div>
+        <div class="mz-zoom" role="group">
+          <button type="button" data-z="in" title="{{t:mz.zoomIn}}" aria-label="{{t:mz.zoomIn}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          <button type="button" data-z="out" title="{{t:mz.zoomOut}}" aria-label="{{t:mz.zoomOut}}"><svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg></button>
+          <button type="button" data-z="fit" title="{{t:mz.fit}}" aria-label="{{t:mz.fit}}"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></button>
+          <button type="button" data-z="pip" title="{{t:mz.pip}}" aria-label="{{t:mz.pip}}" hidden><svg class="ic" aria-hidden="true"><use href="#i-pip"/></svg></button>
+          <button type="button" data-z="full" title="{{t:mz.full}}" aria-label="{{t:mz.full}}"><svg class="ic" aria-hidden="true"><use href="#i-expand"/></svg></button>
+        </div>
+        <div class="mz-wait" id="mz-wait" hidden>{{pic:mouse-blue}}<b></b><span></span></div>
+      </div>
+      <div class="mz-legend" id="mz-legend">
+        <span><i class="mzk mzk-up"></i>{{t:mz.k.up}}</span><span><i class="mzk mzk-down"></i>{{t:mz.k.down}}</span><span><i class="mzk mzk-crystal"></i>{{t:mz.k.crystal}}</span><span><i class="mzk mzk-warp"></i>{{t:mz.k.warp}}</span><span><i class="mzk mzk-other"></i>{{t:mz.k.other}}</span><span><i class="mzk mzk-poi"></i>{{t:mz.k.poi}}</span><span><i class="mzk mzk-chest"></i>{{t:mz.k.chest}}</span><span><i class="mzk mzk-mob"></i>{{t:mz.k.mob}}</span>
+        <span class="mz-legend-old" hidden><i class="mz-old-swatch"></i>{{t:mz.legendOld}}</span>
+      </div>
+    </section>
+    <aside class="mz-side">
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>{{t:mz.exits}}{{pic:mouse-yellow card-sprite}}</h2>
+        <div class="mz-exits" id="mz-exits"></div>
+      </section>
+      <section class="card">
+        <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>{{t:mz.info}}</h2>
+        <div class="kv mz-info" id="mz-info"></div>
+      </section>
+    </aside>
+  </div>
+</section>
+
+<div class="mz-drop" id="mz-drop" hidden><div>{{pic:adv-cheer @2}}<b>{{t:mz.dropNow}}</b></div></div>
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details><summary>{{t:maze.faq.q1}}</summary><p>{{t:maze.faq.a1}}</p></details>
+  <details><summary>{{t:maze.faq.q2}}</summary><p>{{t:maze.faq.a2}}</p></details>
+  <details><summary>{{t:maze.faq.q3}}</summary><p>{{t:maze.faq.a3}}</p></details>
+  <details><summary>{{t:maze.faq.q4}}</summary><p>{{t:maze.faq.a4}}</p></details>
+  <details><summary>{{t:maze.faq.q5}}</summary><p>{{t:maze.faq.a5}}</p></details>
+</section>

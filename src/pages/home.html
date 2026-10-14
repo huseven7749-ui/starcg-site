@@ -1,0 +1,59 @@
+<section class="hero" aria-labelledby="hero-title">
+  <div>
+    <h1 id="hero-title">{{t:page.home.h1}} <span class="twinkle" aria-hidden="true">✦</span></h1>
+    <p class="lead">{{t:page.home.lead}}</p>
+    <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.home}}</p></div>
+    <form class="searchbar" action="{{href:/market/}}" method="get" role="search">
+      <label class="sr-only" for="home-q">{{t:home.searchLabel}}</label>
+      <div class="input-wrap">
+        <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+        <input class="input" id="home-q" name="q" type="search" placeholder="{{t:home.searchPh}}" autocomplete="off" enterkeyhint="search" required>
+      </div>
+      <button class="btn primary" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>{{t:common.search}}</span></button>
+    </form>
+    <div class="hot" id="hot" hidden><span>{{t:home.hot}}</span><div class="chips"></div></div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <img class="diva" src="{{asset:img/sprites/diva.gif}}" width="250" height="390" alt="" fetchpriority="high">
+  </div>
+</section>
+
+<h2 class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:home.toolsTitle}}</h2>
+<div class="tools">
+  <a class="tool t-market" href="{{href:/market/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-market"/></svg></span><b>{{t:nav.market}}</b><p>{{t:home.tool.market}}</p>{{pic:mouse-blue t-mouse}}</a>
+  <a class="tool t-exchange" href="{{href:/exchange/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-exchange"/></svg></span><b>{{t:nav.exchange}}</b><p>{{t:home.tool.exchange}}</p>{{pic:mouse-yellow t-mouse}}</a>
+  <a class="tool t-pets" href="{{href:/pets/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg></span><b>{{t:nav.pets}}</b><p>{{t:home.tool.pets}}</p>{{pic:mouse-green t-mouse}}</a>
+  <a class="tool t-remodel" href="{{href:/remodel/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-remodel"/></svg></span><b>{{t:nav.remodel}}</b><p>{{t:home.tool.remodel}}</p>{{pic:mouse-lav t-mouse}}</a>
+  <a class="tool t-maze" href="{{href:/maze/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-maze"/></svg></span><b>{{t:nav.maze}}</b><p>{{t:home.tool.maze}}</p>{{pic:mouse-crown t-mouse}}</a>
+  <a class="tool t-damage" href="{{href:/damage/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-damage"/></svg></span><b>{{t:nav.damage}}</b><p>{{t:home.tool.damage}}</p>{{pic:mouse-red t-mouse}}</a>
+  <a class="tool t-posts" href="{{href:/posts/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg></span><b>{{t:nav.posts}}</b><p>{{t:home.tool.posts}}</p>{{pic:mouse-love t-mouse}}</a>
+  <a class="tool t-sponsor" href="{{sponsorUrl}}" target="_blank" rel="noopener"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg></span><b>{{t:nav.sponsor}}</b><p>{{t:home.tool.sponsor}}</p>{{pic:adv-cheer t-mouse}}</a>
+</div>
+
+<h2 class="section-title" id="schedule"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg>{{t:home.scheduleTitle}}<small>{{t:home.scheduleNote}}</small></h2>
+{{scheduleHtml}}
+<p class="next-ev" id="next-ev" hidden><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span></span></p>
+
+<aside class="reg-banner">
+  {{pic:adv-cheer reg-sp}}
+  <div><b>{{t:cta.registerLong}}</b><p class="gift">{{t:cta.registerSub}}</p></div>
+  <a class="cta-reg cta-reg-lg" href="{{registerUrl}}" target="_blank" rel="sponsored noopener"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><span>{{t:cta.register}}</span></a>
+</aside>
+
+{{latestPosts}}
+
+<div class="grid g2 home-bottom">
+  <section class="card">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:home.logTitle}}</h2>
+    <ul class="log">
+      <li><time datetime="{{t:home.log1Date}}">{{t:home.log1Date}}</time><p>{{t:home.log1_html}}</p></li>
+      <li><time datetime="{{t:home.log2Date}}">{{t:home.log2Date}}</time><p>{{t:home.log2_html}}</p></li>
+    </ul>
+  </section>
+  <section class="card faq">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:common.faq}}</h2>
+    <details><summary>{{t:home.faq.q1}}</summary><p>{{t:home.faq.a1}}</p></details>
+    <details><summary>{{t:home.faq.q2}}</summary><p>{{t:home.faq.a2}}</p></details>
+    <details><summary>{{t:home.faq.q3}}</summary><p>{{t:home.faq.a3}}</p></details>
+  </section>
+</div>

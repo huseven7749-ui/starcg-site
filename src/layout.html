@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="{{htmlLang}}" data-theme="light" data-view="desktop" data-base="{{base}}" data-lang="{{lang}}" data-preview="{{preview}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" id="vp" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>(function(){var d=document.documentElement,s=null;try{s=window.localStorage}catch(e){}function g(k,v){var r=null;try{r=s&&s.getItem(k)}catch(e){}if(r==null){try{var n=window.name;if(n.indexOf('sc-prefs:')===0)r=JSON.parse(n.slice(9))[k]}catch(e){}}return r||v}var th=g('sc.theme','auto'),ly=g('sc.layout','auto'),mq=function(q){return window.matchMedia&&matchMedia(q).matches};d.dataset.theme=(th==='dark'||(th==='auto'&&mq('(prefers-color-scheme: dark)')))?'dark':'light';d.dataset.themePref=th;d.dataset.layoutPref=ly;var small=Math.min(screen.width,window.innerWidth||screen.width)<=820;d.dataset.view=(ly==='mobile'||(ly==='auto'&&small))?'mobile':'desktop';if(ly==='desktop'&&screen.width<820){document.getElementById('vp').setAttribute('content','width=1200')}if(ly==='mobile'&&!small)d.dataset.frame='1';if(mq('(display-mode: standalone)')||navigator.standalone)d.dataset.standalone='1'})();</script>
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="keywords" content="{{keywords}}">
+<meta name="robots" content="{{robots}}">
+<link rel="canonical" href="{{canonical}}">
+{{alternates}}
+<meta property="og:type" content="{{ogType}}">
+{{articleMeta}}
+<meta property="og:site_name" content="{{t:site.name}}">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{ogImage}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{title}}">
+<meta property="og:locale" content="{{ogLocale}}">
+<meta property="og:locale:alternate" content="{{ogLocaleAlt}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{title}}">
+<meta name="twitter:description" content="{{description}}">
+<meta name="twitter:image" content="{{ogImage}}">
+<meta name="theme-color" content="#F1E4C8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1B2030" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="{{t:site.short}}">
+<meta name="format-detection" content="telephone=no">
+{{verify}}
+{{manifest}}
+<link rel="icon" href="{{root:/icons/favicon-32.png}}" sizes="32x32" type="image/png">
+<link rel="icon" href="{{root:/icons/icon.svg}}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{root:/icons/apple-touch-icon.png}}">
+<link rel="preload" href="{{fontHref}}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{asset:css/app.css}}">
+<script type="application/ld+json">{{jsonld}}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="page-{{pageId}}" data-sprites="{{spritesJson}}">
+<a class="skip" href="#main">{{t:a11y.skip}}</a>
+{{sprite}}
+<div class="sky" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="{{href:/}}" aria-label="{{t:site.name}}">
+      <img src="{{asset:img/sprites/ratking-face.png}}" width="51" height="54" alt="">
+      <span class="brand-txt"><b class="bn-full">{{t:site.name}}</b><b class="bn-short">{{t:site.short}}</b><small>{{t:site.tagline}}</small></span>
+    </a>
+    <nav class="mainnav" aria-label="{{t:a11y.mainnav}}">{{mainnav}}</nav>
+    <div class="top-actions">
+      <a class="cta-reg" href="{{registerUrl}}" target="_blank" rel="sponsored noopener" title="{{t:cta.registerHint}}">
+        <svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><span class="cta-full">{{t:cta.register}}</span><span class="cta-short">{{t:cta.registerShort}}</span>
+      </a>
+      <a class="icon-btn lang-btn" href="{{otherLangHref}}" hreflang="{{otherLangCode}}" lang="{{otherLangCode}}" data-act="lang" data-lang="{{otherLangCode}}" title="{{otherLangName}}">{{otherLangShort}}</a>
+      <button class="icon-btn" type="button" data-act="theme" aria-label="{{t:a11y.theme}}">
+        <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+      </button>
+      <button class="icon-btn" type="button" data-act="settings" aria-label="{{t:a11y.settings}}"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
+    </div>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+{{breadcrumb}}
+{{body}}
+</main>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="{{asset:img/sprites/ratking-face.png}}" width="51" height="54" alt="" loading="lazy">
+      <p><b>{{t:site.name}}</b><br>{{t:site.tagline}}</p>
+      <p class="small" style="color:var(--pink-d);font-weight:700;margin:0 0 6px">{{t:cta.registerSub}}</p>
+      <a class="cta-reg cta-reg-lg" href="{{registerUrl}}" target="_blank" rel="sponsored noopener"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><span>{{t:cta.registerLong}}</span></a>
+    </div>
+    <div><h2>{{t:footer.tools}}</h2><ul>{{footerTools}}</ul></div>
+    <div><h2>{{t:footer.links}}</h2><ul>
+      <li><a href="https://www.starcg.net/" target="_blank" rel="noopener">{{t:nav.official}}</a></li>
+      <li><a href="https://member.starcg.net/market.php" target="_blank" rel="noopener">{{t:nav.officialMarket}}</a></li>
+      <li><a href="https://guide.starcg.net/" target="_blank" rel="noopener">{{t:nav.guide}}</a></li>
+      <li><a href="{{zhHref}}" hreflang="zh-TW" lang="zh-Hant">繁體中文</a> · <a href="{{koHref}}" hreflang="ko" lang="ko">한국어</a></li>
+    </ul></div>
+    <div class="foot-about"><h2>{{t:footer.about}}</h2><p>{{t:footer.aboutText}}</p><p class="muted">{{t:site.disclaimer}}</p><p class="muted">{{t:footer.updated}} {{buildDate}}</p></div>
+  </div>
+</footer>
+<nav class="tabbar" aria-label="{{t:a11y.tabbar}}">{{tabbar}}</nav>
+<dialog class="sheet" id="sheet-more">
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sheet-links">{{moreLinks}}
+    <a class="sheet-link" href="https://member.starcg.net/market.php" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg><span>{{t:nav.officialMarket}}</span></a>
+    <a class="sheet-link" href="https://guide.starcg.net/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>{{t:nav.guide}}</span></a>
+  </div>
+  <p class="small" style="margin:0 0 8px;text-align:center;color:var(--pink-d);font-weight:700">{{t:cta.registerSub}}</p>
+  <a class="cta-reg cta-reg-lg" href="{{registerUrl}}" target="_blank" rel="sponsored noopener"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><span>{{t:cta.registerLong}}</span></a>
+  <button type="button" class="btn ghost wide" data-act="settings">{{t:settings.title}}</button>
+</dialog>
+<dialog class="sheet" id="sheet-settings" aria-labelledby="set-title">
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <h2 id="set-title">{{t:settings.title}}</h2>
+  <fieldset class="seg-field"><legend>{{t:settings.lang}}</legend>
+    <div class="seg"><a href="{{zhHref}}" data-act="lang" data-lang="zh" hreflang="zh-TW" lang="zh-Hant">繁體中文</a><a href="{{koHref}}" data-act="lang" data-lang="ko" hreflang="ko" lang="ko">한국어</a></div>
+  </fieldset>
+  <fieldset class="seg-field"><legend>{{t:settings.theme}}</legend>
+    <div class="seg" data-pref="theme"><button type="button" value="auto">{{t:settings.themeAuto}}</button><button type="button" value="light">{{t:settings.themeLight}}</button><button type="button" value="dark">{{t:settings.themeDark}}</button></div>
+  </fieldset>
+  <fieldset class="seg-field"><legend>{{t:settings.layout}}</legend>
+    <div class="seg" data-pref="layout"><button type="button" value="auto">{{t:settings.layoutAuto}}</button><button type="button" value="mobile">{{t:settings.layoutMobile}}</button><button type="button" value="desktop">{{t:settings.layoutDesktop}}</button></div>
+  </fieldset>
+  <div class="install" hidden><p>{{t:settings.installHint}}</p><button type="button" class="btn primary wide" data-act="install">{{t:settings.install}}</button></div>
+  <button type="button" class="btn wide" data-act="welcome"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:wel.again}}</button>
+  <button type="button" class="btn ghost wide" data-act="close">{{t:a11y.close}}</button>
+</dialog>
+<dialog class="sheet welcome" id="sheet-welcome" aria-labelledby="wel-title">
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="wel-head">{{pic:ratking wel-sp}}<div><h2 id="wel-title">{{t:wel.title}}</h2><p>{{t:wel.lead}}</p></div></div>
+  <div class="wel-video" id="wel-video" data-src="{{welcomeVideo}}"><div class="wel-video-ph">{{pic:adv-sit}}<span>{{t:wel.videoSoon}}</span></div></div>
+  <div class="wel-steps">
+    <section class="wel-step" data-os="ios"><h3><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>{{t:wel.ios.title}}</h3><ol><li>{{t:wel.ios.s1_html}}</li><li>{{t:wel.ios.s2_html}}</li><li>{{t:wel.ios.s3}}</li></ol></section>
+    <section class="wel-step" data-os="android"><h3><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>{{t:wel.android.title}}</h3><ol><li>{{t:wel.android.s1_html}}</li><li>{{t:wel.android.s2_html}}</li><li>{{t:wel.android.s3}}</li></ol><div class="install" hidden><button type="button" class="btn primary wide" data-act="install">{{t:settings.install}}</button></div></section>
+    <section class="wel-step" data-os="desktop"><h3><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:wel.desktop.title}}</h3><ol><li>{{t:wel.desktop.s1_html}}</li><li>{{t:wel.desktop.s2}}</li></ol><div class="install" hidden><p>{{t:wel.desktop.installHint}}</p><button type="button" class="btn primary wide" data-act="install">{{t:wel.desktop.install}}</button></div></section>
+    <button type="button" class="chip wel-other" data-act="wel-other">{{t:wel.other}}</button>
+  </div>
+  <div class="row wel-foot"><button type="button" class="btn primary wide" data-act="wel-done">{{t:wel.done}}</button></div>
+</dialog>
+<div class="toast" role="status" aria-live="polite"></div>
+<script type="application/json" id="i18n">{{i18nJson}}</script>
+<script type="module" src="{{asset:js/core.js}}"></script>
+{{pageScript}}
+</body>
+</html>

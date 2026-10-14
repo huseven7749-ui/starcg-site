@@ -1,0 +1,236 @@
+<header class="page-head ph-market">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-market"/></svg></span>
+  <div><h1>{{t:page.market.h1}}</h1><p>{{t:page.market.lead}}</p></div>
+  <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}" loading="lazy"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.market}}</p></div>
+</header>
+
+<div class="tabs main-tabs" role="tablist" id="mk-main">
+  <button type="button" role="tab" id="tab-main-cmp" aria-controls="main-cmp" aria-selected="true" data-main="cmp"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>{{t:mk.main.cmp}}</button>
+  <button type="button" role="tab" id="tab-main-bulk" aria-controls="main-bulk" aria-selected="false" data-main="bulk"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>{{t:mk.main.bulk}}<span class="count" hidden></span></button>
+  <button type="button" role="tab" id="tab-main-data" aria-controls="main-data" aria-selected="false" data-main="data"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:mk.main.data}}</button>
+</div>
+
+<!-- ═══════════ 市價比較 ═══════════ -->
+<section id="main-cmp" role="tabpanel" aria-labelledby="tab-main-cmp">
+  <section class="card mk-search" aria-label="{{t:common.search}}">
+    <form class="mk-searchrow" id="mk-form" role="search" action="" method="get">
+      <label class="sr-only" for="mk-q">{{t:market.searchPh}}</label>
+      <div class="input-wrap">
+        <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+        <input class="input" id="mk-q" name="q" type="search" placeholder="{{t:market.searchPh}}" autocomplete="off" enterkeyhint="search" list="mk-suggest" maxlength="40">
+        <datalist id="mk-suggest"></datalist>
+      </div>
+      <button class="btn primary" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>{{t:mk.query}}</span></button>
+      <button class="btn icon" type="button" id="mk-fav" aria-pressed="false" title="{{t:mk.favAdd}}" aria-label="{{t:mk.favAdd}}"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></button>
+      <button class="btn ghost" type="button" id="mk-clear"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg><span>{{t:common.clear}}</span></button>
+    </form>
+
+    <div class="mk-kind-row">
+      <div class="seg" id="mk-kind" role="group" aria-label="{{t:mk.kind}}">
+        <button type="button" value="all" aria-pressed="true">{{t:mk.kind.all}}</button>
+        <button type="button" value="equip" aria-pressed="false">{{t:mk.kind.equip}}</button>
+        <button type="button" value="item" aria-pressed="false">{{t:mk.kind.item}}</button>
+        <button type="button" value="pet" aria-pressed="false">{{t:mk.kind.pet}}</button>
+      </div>
+      <label class="switch"><input type="checkbox" id="mk-exact"><span>{{t:mk.exact}}</span></label>
+    </div>
+
+    <div class="mk-sub" id="mk-equip" hidden>
+      <div class="grid g3">
+        <label class="field"><span>{{t:mk.eq.cat}}</span><select class="input" id="eq-cat"></select></label>
+        <label class="field"><span>{{t:mk.eq.lv}}</span><select class="input" id="eq-lv"></select></label>
+        <label class="field"><span>{{t:mk.eq.name}}</span><select class="input" id="eq-name"></select></label>
+      </div>
+      <div class="mk-hint">{{tipl:mk.eq.hint}}</div>
+    </div>
+
+    <div class="mk-sub" id="mk-petsel" hidden>
+      <div class="seg" id="pet-list" role="group">
+        <button type="button" value="dex" aria-pressed="true">{{t:mk.pet.dex}}</button>
+        <button type="button" value="bounty" aria-pressed="false">{{t:mk.pet.bounty}}</button>
+      </div>
+      <div class="grid g2 mk-petgrid">
+        <label class="field"><span>{{t:pet.race}}</span><select class="input" id="pet-race"></select></label>
+        <label class="field"><span>{{t:pet.tier}}</span><select class="input" id="pet-tier"><option value="">{{t:pet.tierAll}}</option><option value="金">{{t:js.card.gold}}</option><option value="銀">{{t:js.card.silver}}</option><option value="普">{{t:js.card.normal}}</option></select></label>
+        <label class="field"><span>{{t:mk.pet.quick}}</span><input class="input" id="pet-quick" type="search" placeholder="{{t:mk.pet.quickPh}}" autocomplete="off"></label>
+        <label class="field"><span>{{t:mk.pet.name}}</span><select class="input" id="pet-name"></select></label>
+      </div>
+      <div class="mk-hint">{{tipl:mk.pet.hint}}</div>
+    </div>
+
+    <div class="chip-row" id="mk-favs" hidden><span class="chip-row-label"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:mk.favs}}</span><div class="chips"></div></div>
+    <div class="chip-row" id="mk-recent" hidden><span class="chip-row-label">{{t:js.recent}}</span><div class="chips"></div></div>
+
+    <details class="mk-adv" id="mk-adv">
+      <summary><svg class="ic" aria-hidden="true"><use href="#i-filter"/></svg>{{t:mk.adv}}<span class="mk-adv-count" id="mk-adv-count" hidden></span></summary>
+      <div class="mk-filter-grid">
+        <div class="field"><span>{{t:mk.server}}</span>
+          <div class="seg" id="mk-sv" role="group"><button type="button" value="" aria-pressed="true">{{t:common.all}}</button><button type="button" value="1" aria-pressed="false">S1</button><button type="button" value="2" aria-pressed="false">S2</button><button type="button" value="3" aria-pressed="false">S3</button></div>
+        </div>
+        <div class="field"><span>{{t:market.currency}}</span>
+          <div class="seg" id="mk-cur" role="group"><button type="button" value="all" aria-pressed="true">{{t:mk.cur.both}}</button><button type="button" value="0" aria-pressed="false">{{t:common.coin}}</button><button type="button" value="1" aria-pressed="false">{{t:common.crystal}}</button></div>
+        </div>
+        <label class="field"><span>{{t:mk.range}}</span>
+          <select class="input" id="mk-range"><option value="7d">{{t:mk.range.7d}}</option><option value="30d" selected>{{t:mk.range.30d}}</option><option value="90d">{{t:mk.range.90d}}</option><option value="all">{{t:mk.range.all}}</option></select>
+        </label>
+        <div class="field"><span>{{t:mk.src}}</span>
+          <div class="seg" id="mk-src" role="group"><button type="button" value="official" aria-pressed="true">{{t:mk.src.official}}</button><button type="button" value="import" aria-pressed="false">{{t:mk.src.import}}</button></div>
+        </div>
+        <label class="field"><span>{{t:market.sort}}</span>
+          <select class="input" id="mk-sort">
+            <option value="value">{{t:market.sort.value}}</option><option value="coin">{{t:market.sort.coin}}</option><option value="crystal">{{t:market.sort.crystal}}</option><option value="expire">{{t:market.sort.expire}}</option>
+          </select>
+        </label>
+        <div class="field"><span>{{t:mk.view}}</span>
+          <div class="mk-view-row">
+            <select class="input" id="mk-view"><option value="all">{{t:mk.view.all}}</option><option value="lowest">{{t:mk.view.lowest}}</option><option value="server">{{t:mk.view.server}}</option><option value="need">{{t:mk.view.need}}</option></select>
+            <input class="input mk-need" id="mk-need" type="number" min="1" max="99999" value="1" inputmode="numeric" aria-label="{{t:mk.need}}" hidden>
+          </div>
+        </div>
+      </div>
+      <div class="mk-petf" id="mk-petf">
+        <p class="mk-petf-title">{{t:mk.petf}}</p>
+        <div class="row">
+          <label class="switch"><input type="checkbox" id="pf-star"><span>{{t:mk.petf.star}}</span></label>
+          <label class="switch"><input type="checkbox" id="pf-full"><span>{{t:mk.petf.full}}</span></label>
+          <label class="switch"><input type="checkbox" id="pf-skill"><span>{{t:mk.petf.skill}}</span></label>
+          <label class="field field-inline"><span>{{t:mk.petf.slot}}</span><select class="input sm" id="pf-slot"><option value="">{{t:common.all}}</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></label>
+        </div>
+        <div class="chip-row"><span class="chip-row-label">{{t:mk.petf.lv}}</span><div class="chips" id="pf-lv"></div><button class="btn sm ghost" type="button" id="pf-lv-clear">{{t:mk.petf.lvClear}}</button></div>
+      </div>
+    </details>
+  </section>
+
+  <div class="mk-status" id="mk-status" hidden></div>
+
+  <div class="tabs" role="tablist" id="mk-tabs">
+    <button type="button" role="tab" aria-selected="true" aria-controls="pane-listing" id="tab-listing" data-tab="listing"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:mk.tab.listing}}<span class="count" hidden></span></button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="pane-history" id="tab-history" data-tab="history"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg>{{t:mk.tab.history}}<span class="count" hidden></span></button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="pane-pricing" id="tab-pricing" data-tab="pricing"><svg class="ic" aria-hidden="true"><use href="#i-coin"/></svg>{{t:mk.tab.pricing}}</button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="pane-watch" id="tab-watch" data-tab="watch"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:market.tab.watch}}<span class="count" hidden></span></button>
+  </div>
+
+  <section id="pane-listing" role="tabpanel" aria-labelledby="tab-listing">
+    <div class="mk-summary" id="mk-summary" hidden></div>
+    <div id="mk-results">
+      <div class="empty" id="mk-intro">
+        {{pic:adv-sit}}
+        <b>{{t:page.market.lead}}</b>
+      </div>
+    </div>
+  </section>
+  <section id="pane-history" role="tabpanel" aria-labelledby="tab-history" hidden><div id="mk-history"></div></section>
+  <section id="pane-pricing" role="tabpanel" aria-labelledby="tab-pricing" hidden><div id="mk-pricing"></div></section>
+  <section id="pane-watch" role="tabpanel" aria-labelledby="tab-watch" hidden><div id="mk-watch"></div></section>
+
+  <section class="card mk-daily" id="mk-daily" aria-labelledby="daily-title">
+    <h2 class="card-title" id="daily-title"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg>{{t:mk.daily}}
+      <span class="sub"><span class="seg seg-sm" id="daily-day" role="group"><button type="button" value="0" aria-pressed="true">{{t:mk.daily.today}}</button><button type="button" value="1" aria-pressed="false">{{t:mk.daily.yesterday}}</button></span></span>
+    </h2>
+    <div id="daily-body"><div class="skel" style="height:160px"></div></div>
+  </section>
+</section>
+
+<!-- ═══════════ 批次採購 ═══════════ -->
+<section id="main-bulk" role="tabpanel" aria-labelledby="tab-main-bulk" hidden>
+  <div class="split">
+    <div class="stack">
+      <section class="card" aria-labelledby="bk-pick-title">
+        <h2 class="card-title" id="bk-pick-title"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>{{t:bk.pick}}{{tip:bk.pickHint}}</h2>
+        <div class="seg" id="bk-src" role="group" hidden><button type="button" value="player" aria-pressed="true">{{t:bk.src.player}}</button><button type="button" value="village" aria-pressed="false">{{t:bk.src.village}}</button></div>
+        <div class="input-wrap bk-search">
+          <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+          <input class="input" id="bk-q" type="search" placeholder="{{t:bk.searchPh}}" autocomplete="off" maxlength="40">
+        </div>
+        <div class="seg" id="bk-kind" role="group">
+          <button type="button" value="all" aria-pressed="false">{{t:mk.kind.all}}</button>
+          <button type="button" value="equip" aria-pressed="false">{{t:mk.kind.equip}}</button>
+          <button type="button" value="item" aria-pressed="false">{{t:mk.kind.item}}</button>
+          <button type="button" value="pet" aria-pressed="true">{{t:mk.kind.pet}}</button>
+        </div>
+        <div id="bk-quick" class="bk-quick"></div>
+        <div id="bk-cands" class="bk-cands"></div>
+      </section>
+
+      <section class="card" aria-labelledby="bk-sel-title">
+        <h2 class="card-title" id="bk-sel-title"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:bk.selected}}<span class="sub"><button class="btn sm ghost" type="button" id="bk-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>{{t:common.clear}}</button></span></h2>
+        <ul class="bk-sel" id="bk-sel"></ul>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card" aria-labelledby="bk-cfg-title">
+        <h2 class="card-title" id="bk-cfg-title"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>{{t:bk.cfg}}</h2>
+        <div class="grid g2">
+          <label class="field"><span>{{t:mk.server}}</span><select class="input" id="bk-sv"><option value="all">{{t:bk.sv.all}}</option><option value="1">{{t:bk.sv.one}} S1</option><option value="2">{{t:bk.sv.one}} S2</option><option value="3">{{t:bk.sv.one}} S3</option></select></label>
+          <label class="field"><span>{{t:market.currency}}</span><select class="input" id="bk-cur"><option value="both">{{t:bk.cur.both}}</option><option value="0">{{t:common.coin}}</option><option value="1">{{t:common.crystal}}</option></select></label>
+          <label class="field"><span>{{t:bk.basis}}</span><select class="input" id="bk-basis"><option value="piece">{{t:bk.basis.piece}}</option><option value="stack">{{t:bk.basis.stack}}</option></select></label>
+          <label class="field" id="bk-tol-wrap"><span>{{t:bk.tol}}</span><div class="input-wrap"><input class="input" id="bk-tol" type="number" min="0" max="500" value="15" inputmode="numeric"><span class="unit">%</span></div></label>
+        </div>
+        <div class="field" style="margin-top:12px"><span>{{t:bk.strat}}</span>
+          <div class="seg seg-wide" id="bk-strat" role="group">
+            <button type="button" value="route" aria-pressed="true">{{t:bk.strat.route}}</button>
+            <button type="button" value="fewest" aria-pressed="false">{{t:bk.strat.fewest}}</button>
+            <button type="button" value="price" aria-pressed="false">{{t:bk.strat.price}}</button>
+          </div>
+          <small class="muted" id="bk-strat-hint"></small>
+        </div>
+        <div class="hr"></div>
+        <div class="field"><span class="label-tip">{{t:bk.start}}{{tip:bk.mapHint}}</span>
+          <select class="input" id="bk-start"></select>
+        </div>
+        <div class="grid g3 bk-xy">
+          <label class="field"><span>{{t:bk.x}}</span><input class="input" id="bk-x" type="number" min="0" max="999" inputmode="numeric"></label>
+          <label class="field"><span>{{t:bk.y}}</span><input class="input" id="bk-y" type="number" min="0" max="999" inputmode="numeric"></label>
+          <div class="field"><span>&nbsp;</span><button class="btn" type="button" id="bk-save-start"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>{{t:bk.saveStart}}</button></div>
+        </div>
+        <div class="chip-row" id="bk-saved" hidden><span class="chip-row-label">{{t:bk.saved}}</span><div class="chips"></div></div>
+        <div class="bk-map" id="bk-map" aria-label="{{t:bk.map}}"></div>
+        <button class="btn primary wide" type="button" id="bk-go" style="margin-top:12px"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>{{t:bk.go}}</button>
+      </section>
+    </div>
+  </div>
+  <div id="bk-results"></div>
+</section>
+
+<!-- ═══════════ 資料管理 ═══════════ -->
+<section id="main-data" role="tabpanel" aria-labelledby="tab-main-data" hidden>
+  <div class="grid g2">
+    <section class="card" aria-labelledby="dm-imp-title">
+      <h2 class="card-title" id="dm-imp-title"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:dm.import}}<details class="tip"><summary aria-label="{{t:common.moreInfo}}" title="{{t:common.moreInfo}}"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg></summary><div class="tip-body">{{t:dm.importHint}}<pre class="dm-sample">時間,商品,數量,單價,幣別
+2026-10-13 21:05,水的水晶碎片,5,880,魔幣
+2026-10-13 21:40,年獸,1,900,魔晶</pre></div></details></h2>
+      <label class="field"><span>{{t:dm.paste}}</span><textarea class="input dm-text" id="dm-text" rows="5" spellcheck="false"></textarea></label>
+      <div class="row" style="margin-top:10px">
+        <label class="btn"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>{{t:dm.file}}<input type="file" id="dm-file" accept=".csv,.json,.txt,text/csv,application/json" hidden></label>
+        <button class="btn primary" type="button" id="dm-import">{{t:dm.doImport}}</button>
+      </div>
+      <div class="hr"></div>
+      <div id="dm-summary"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm" type="button" id="dm-export"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:dm.export}}</button>
+        <button class="btn sm ghost" type="button" id="dm-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>{{t:dm.clearImport}}</button>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="dm-bk-title">
+      <h2 class="card-title" id="dm-bk-title"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>{{t:dm.backup}}{{tip:dm.backupHint}}</h2>
+      <div class="kv" id="dm-local"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn sm" type="button" id="dm-save"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:dm.save}}</button>
+        <label class="btn sm"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg>{{t:dm.restore}}<input type="file" id="dm-restore" accept=".json,application/json" hidden></label>
+        <button class="btn sm ghost" type="button" id="dm-wipe"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>{{t:dm.wipe}}</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<section class="card faq help">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+    <details class="howto-d"><summary>{{t:common.howto}}</summary><ul class="howto">{{t:market.howto_html}}</ul></details>
+    <details><summary>{{t:market.faq.q1}}</summary><p>{{t:market.faq.a1}}</p></details>
+    <details><summary>{{t:market.faq.q2}}</summary><p>{{t:market.faq.a2}}</p></details>
+    <details><summary>{{t:market.faq.q3}}</summary><p>{{t:market.faq.a3}}</p></details>
+    <details><summary>{{t:market.faq.q4}}</summary><p>{{t:market.faq.a4}}</p></details>
+    <details><summary>{{t:market.faq.q5}}</summary><p>{{t:market.faq.a5}}</p></details>
+    <details><summary>{{t:market.faq.q6}}</summary><p>{{t:market.faq.a6}}</p></details>
+</section>

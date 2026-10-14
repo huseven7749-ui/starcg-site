@@ -1,0 +1,11 @@
+<article class="card post">
+  <header class="post-head">
+    <p class="post-meta"><time datetime="{{postDate}}">{{postDate}}</time>{{postUpdated}}<span>{{postRead}}</span></p>
+    <h1>{{postTitle}}</h1>
+    {{postTags}}
+    {{postOtherLang}}
+  </header>
+  <div class="prose">{{postHtml}}</div>
+</article>
+<nav class="post-nav" aria-label="{{t:posts.navLabel}}">{{postNav}}</nav>
+<p class="post-back"><a class="btn" href="{{postsHref}}"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg>{{t:posts.back}}</a></p>

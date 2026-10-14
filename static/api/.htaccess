@@ -1,0 +1,5 @@
+# 只開放公開端點；底線開頭的共用檔與設定檔禁止直接存取
+<FilesMatch "^(_.*|config(\.local)?)\.php$">
+  Require all denied
+</FilesMatch>
+Options -Indexes

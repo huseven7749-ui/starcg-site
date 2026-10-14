@@ -1,0 +1,102 @@
+<header class="page-head ph-remodel">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-remodel"/></svg></span>
+  <div><h1>{{t:page.remodel.h1}}</h1><p>{{t:page.remodel.lead}}</p></div>
+  <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}" loading="lazy"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.remodel}}</p></div>
+</header>
+
+<div class="split">
+  <section class="card" aria-labelledby="farm-title">
+    <h2 class="card-title" id="farm-title"><svg class="ic" aria-hidden="true"><use href="#i-ev-chest"/></svg>{{t:rm.farmTitle}}{{tip:rm.swapNote}}</h2>
+    <div class="grid g2 keep2">
+      <label class="field"><span>{{t:rm.runs}}</span><input class="input" id="f-runs" type="number" min="1" max="100000" value="100" inputmode="numeric"></label>
+      <label class="field"><span>{{t:rm.runCost}}</span><div class="input-wrap"><input class="input" id="f-cost" type="number" min="0" value="175000" inputmode="numeric"><span class="unit">{{t:common.coin}}</span></div></label>
+      <label class="field"><span>{{t:rm.perRun}}</span><input class="input" id="f-per" type="number" min="1" max="20" value="5" inputmode="numeric"></label>
+      <label class="field"><span>{{t:rm.target}}</span><select class="input" id="f-target"><option value="gold">{{t:js.card.gold}}</option><option value="silver">{{t:js.card.silver}}</option><option value="normal">{{t:js.card.normal}}</option></select></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <span class="field-label">{{t:rm.layer}}</span>
+      <div class="seg" id="f-layer"><button type="button" value="1" aria-pressed="false">{{t:rm.layer1}}</button><button type="button" value="2" aria-pressed="false">{{t:rm.layer2}}</button><button type="button" value="3" aria-pressed="true">{{t:rm.layer3}}</button></div>
+    </div>
+    <div class="prob-table" style="margin-top:12px">
+      <span></span><span>{{t:js.card.normal}}</span><span>{{t:js.card.silver}}</span><span>{{t:js.card.gold}}</span>
+      <b>{{t:rm.dropRate}}</b>
+      <input class="input sm num" id="p-n" type="number" min="0" max="100" step="0.1" aria-label="{{t:js.card.normal}} %">
+      <input class="input sm num" id="p-s" type="number" min="0" max="100" step="0.1" aria-label="{{t:js.card.silver}} %">
+      <input class="input sm num" id="p-g" type="number" min="0" max="100" step="0.1" aria-label="{{t:js.card.gold}} %">
+    </div>
+    <details style="margin-top:12px"><summary class="small muted" style="cursor:pointer">{{t:rm.advanced}}</summary>
+      <div class="grid g2 keep2" style="margin-top:10px">
+        <label class="field"><span>{{t:rm.n2s}}</span><input class="input sm" id="c-ns" type="number" min="1" value="3"></label>
+        <label class="field"><span>{{t:rm.n2sFee}}</span><input class="input sm" id="c-nsf" type="number" min="0" value="1500"></label>
+        <label class="field"><span>{{t:rm.s2g}}</span><input class="input sm" id="c-sg" type="number" min="1" value="4"></label>
+        <label class="field"><span>{{t:rm.s2gFee}}</span><input class="input sm" id="c-sgf" type="number" min="0" value="2000"></label>
+        <label class="field"><span>{{t:rm.perSet}}</span><input class="input sm" id="c-set" type="number" min="1" max="10" value="4"></label>
+      </div>
+      <label class="switch" style="margin-top:10px"><input type="checkbox" id="c-letters"><span>{{t:rm.letters}}</span></label>
+    </details>
+  </section>
+
+  <section class="card" aria-labelledby="farm-out">
+    <h2 class="card-title" id="farm-out"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:rm.resultTitle}}</h2>
+    <div class="kv" id="farm-kv"></div>
+    <h3 class="small" style="margin:14px 0 4px">{{t:rm.distTitle}}</h3>
+    <div class="dist" id="dist" aria-hidden="true"></div>
+    <div class="dist-axis" id="dist-axis"></div>
+    <p class="small muted" id="dist-note" style="margin-top:8px"></p>
+  </section>
+</div>
+
+<section class="card" aria-labelledby="stone-title" style="margin-top:16px">
+  <h2 class="card-title" id="stone-title"><svg class="ic" aria-hidden="true"><use href="#i-crystal"/></svg>{{t:rm.stoneTitle}}{{tip:rm.stoneHint}}</h2>
+  <div class="grid g4 stone-form">
+    <label class="field"><span>{{t:rm.stoneRuns}}</span><input class="input" id="s-runs" type="number" min="1" max="100000" value="100" inputmode="numeric"></label>
+    <label class="field"><span>{{t:rm.stoneTarget}}</span><input class="input" id="s-target" type="number" min="1" max="10000" value="100" inputmode="numeric"></label>
+    <div class="field span2m"><span>{{t:rm.stoneReach}}</span><div class="seg" id="s-reach"><button type="button" value="1" aria-pressed="false">{{t:rm.layer1}}</button><button type="button" value="2" aria-pressed="false">{{t:rm.layer2}}</button><button type="button" value="3" aria-pressed="true">{{t:rm.layer3}}</button></div></div>
+    <label class="field"><span>{{t:rm.stoneFee}}</span><div class="input-wrap"><input class="input" id="s-fee" type="number" min="0" value="175000" inputmode="numeric"><span class="unit">{{t:common.coin}}</span></div></label>
+    <label class="field"><span>{{t:rm.stoneValue}}</span><div class="input-wrap"><input class="input" id="s-value" type="number" min="0" value="2800" inputmode="numeric"><span class="unit"><svg class="ic" aria-hidden="true"><use href="#i-crystal"/></svg>{{t:common.crystal}}</span></div></label>
+    <label class="field"><span>{{t:rm.stoneP2}}</span><input class="input" id="s-p2" type="number" min="0" max="100" step="0.1" value="5"></label>
+    <label class="field"><span>{{t:rm.stoneP3}}</span><input class="input" id="s-p3" type="number" min="0" max="100" step="0.1" value="15"></label>
+    <div class="field span2m stone-opts"><span class="field-label">{{t:rm.stoneSync}}</span><label class="switch"><input type="checkbox" id="s-link" checked><span>{{t:rm.stoneLinked}}</span></label><label class="switch"><input type="checkbox" id="s-stonefee"><span>{{t:rm.stoneSellFee}}</span></label></div>
+  </div>
+  <div class="verdict stone-verdict" id="stone-verdict" aria-live="polite"></div>
+  <h3 class="kv-h" id="stone-h-runs"></h3>
+  <div class="kv" id="stone-kv"></div>
+  <h3 class="kv-h" id="stone-h-target"></h3>
+  <div class="kv" id="stone-kv2"></div>
+  <h3 class="kv-h"><span id="stone-h-cards"></span>{{tip:rm.cardMinTip}}</h3>
+  <div class="cp-row">
+    <label class="field cp-main"><span>{{t:rm.goldSetPrice}}</span><div class="input-wrap"><input class="input" id="cp-gset" type="number" min="0" step="10" value="2000" inputmode="numeric"><span class="unit"><svg class="ic" aria-hidden="true"><use href="#i-crystal"/></svg>{{t:common.crystal}}</span></div></label>
+    <p class="cp-min" id="cp-min" aria-live="polite"></p>
+  </div>
+  <div class="kv" id="cp-tiers"></div>
+  <div class="kv" id="stone-kv4" style="margin-top:12px"></div>
+</section>
+
+<section class="card" aria-labelledby="try-title" style="margin-top:16px">
+  <h2 class="card-title" id="try-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>{{t:rm.tryTitle}}{{tip:rm.consume}}</h2>
+  <div class="grid g3">
+    <label class="field"><span>{{t:pet.tier}}</span><select class="input" id="t-tier"><option value="金">{{t:js.card.gold}}</option><option value="銀">{{t:js.card.silver}}</option><option value="普">{{t:js.card.normal}}</option></select></label>
+    <label class="field"><span>{{t:rm.from}}</span><select class="input" id="t-from"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+    <label class="field"><span>{{t:rm.to}}</span><select class="input" id="t-to"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></label>
+    <label class="field"><span>{{t:rm.pay}}</span><select class="input" id="t-pay"><option value="coin">{{t:common.coin}}</option><option value="crystal">{{t:common.crystal}}</option></select></label>
+    <label class="field"><span>{{t:rm.setPrice}}</span><div class="input-wrap"><input class="input" id="t-set" inputmode="decimal" placeholder="0"><span class="unit">{{t:common.coin}}</span></div></label>
+    <div class="field"><span>&nbsp;</span><button class="btn sm" type="button" id="t-use-farm">{{t:rm.useFarm}}</button></div>
+  </div>
+  <div class="tbl-wrap cardify" style="margin-top:12px"><table class="tbl" id="t-table"></table></div>
+  <div class="kv" id="t-kv" style="margin-top:12px"></div>
+</section>
+
+<section class="card" aria-labelledby="mk-title" style="margin-top:16px">
+  <h2 class="card-title" id="mk-title"><svg class="ic" aria-hidden="true"><use href="#i-market"/></svg>{{t:rm.marketTitle}}{{tip:rm.marketHint}}</h2>
+  <div class="row"><button class="btn sky" type="button" id="mk-load"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>{{t:rm.marketBtn}}</button><a class="btn ghost sm" href="{{href:/market/}}?q=%E6%94%B9%E9%80%A0%E5%9C%96">{{t:rm.marketOpen}}</a></div>
+  <div id="mk-out" style="margin-top:12px"></div>
+</section>
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details class="howto-d"><summary>{{t:common.howto}}</summary><ul class="howto">{{t:rm.howto_html}}</ul></details>
+  <details><summary>{{t:remodel.faq.q1}}</summary><p>{{t:remodel.faq.a1}}</p></details>
+  <details><summary>{{t:remodel.faq.q2}}</summary><p>{{t:remodel.faq.a2}}</p></details>
+  <details><summary>{{t:remodel.faq.q3}}</summary><p>{{t:remodel.faq.a3}}</p></details>
+  <details><summary>{{t:remodel.faq.q4}}</summary><p>{{t:remodel.faq.a4}}</p></details>
+</section>

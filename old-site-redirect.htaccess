@@ -1,0 +1,9 @@
+# 放到舊站 cg-hoshino.online 的 .htaccess：舊網址 301 永久轉到新站對應頁面，保留搜尋排名。
+# 沒有搬到新站的工具（特技草計算機、種族克制分析、角色能力計算器）不轉址，維持在舊站。
+RewriteEngine On
+RewriteRule ^$ https://starcg.online/ [R=301,L]
+RewriteRule ^index\.html$ https://starcg.online/ [R=301,L]
+RewriteRule ^tools/pokedex\.html$ https://starcg.online/pets/ [R=301,L]
+RewriteRule ^tools/growth-custom\.html$ https://starcg.online/pets/ [R=301,L]
+RewriteRule ^tools/currency-converter\.html$ https://starcg.online/exchange/ [R=301,L]
+RewriteRule ^tools/magic-realm-calculator\.html$ https://starcg.online/remodel/ [R=301,L]
