@@ -22,8 +22,10 @@ const BUILD_DATE = new Date().toISOString().slice(0, 10);
 const REGISTER_URL = 'https://member.starcg.net/register.php?ref=Hsu12rDUCzP.PwC3';
 const GOOGLE_VERIFY = args.google || '';      // Search Console 驗證碼（可留空，改用 DNS 驗證）
 const NAVER_VERIFY = args.naver || '';        // Naver Search Advisor 驗證碼
-const SPONSOR_URL = args.sponsor || 'https://youtu.be/2dk9OO-lSmw?si=XK_sZEJmjuR3Y5nI';   // 贊助站長：教學影片（按「超級感謝」小額贊助）
-const WELCOME_VIDEO = args.video || '';       // 歡迎彈窗的教學影片（node build.mjs --video=網址；YouTube 連結或 mp4，留空顯示「影片準備中」）       // 贊助站長連結（node build.mjs --sponsor=網址；留空時首頁贊助卡會指到 #）
+// 教學影片（中／韓各一支）：新手彈窗內嵌播放，首頁「贊助站長」也連到同一支（按「超級感謝」小額贊助）
+// 可用 --video=網址 --video-ko=網址 --sponsor=網址 --sponsor-ko=網址 覆蓋；留空就用下面的預設
+const VIDEO = { zh: args.video || 'https://youtu.be/2dk9OO-lSmw?si=jf8WyNkAkoCsPtGg', ko: args['video-ko'] || 'https://youtu.be/vv5wRaEuV-Y?si=rjLWOqEwNbzLjZGu' };
+const SPONSOR = { zh: args.sponsor || VIDEO.zh, ko: args['sponsor-ko'] || VIDEO.ko };
 
 const LANGS = {
   zh: { prefix: '', dict: (await import('./src/i18n/zh.mjs')).default },
@@ -354,8 +356,8 @@ function buildPages() {
         spritesJson: esc(spritesJson(fromPath)),
         preview: PREVIEW ? '1' : '',
         registerUrl: REGISTER_URL,
-        sponsorUrl: SPONSOR_URL || '#',
-        welcomeVideo: esc(WELCOME_VIDEO),
+        sponsorUrl: SPONSOR[lang] || '#',
+        welcomeVideo: esc(VIDEO[lang]),
         buildDate: BUILD_DATE,
         verify: (GOOGLE_VERIFY ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFY)}">` : '') +
           (NAVER_VERIFY ? `<meta name="naver-site-verification" content="${esc(NAVER_VERIFY)}">` : ''),

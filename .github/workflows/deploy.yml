@@ -22,7 +22,7 @@ jobs:
       - name: 單元測試
         run: node tests/unit.mjs
       - name: 建置
-        run: node build.mjs --sponsor="${{ vars.SPONSOR_URL }}" --video="${{ vars.WELCOME_VIDEO }}" --naver="${{ vars.NAVER_VERIFY }}" --google="${{ vars.GOOGLE_VERIFY }}"
+        run: node build.mjs --sponsor="${{ vars.SPONSOR_URL }}" --sponsor-ko="${{ vars.SPONSOR_URL_KO }}" --video="${{ vars.WELCOME_VIDEO }}" --video-ko="${{ vars.WELCOME_VIDEO_KO }}" --naver="${{ vars.NAVER_VERIFY }}" --google="${{ vars.GOOGLE_VERIFY }}"
       - name: 設定 SSH
         env:
           SG_KEY: ${{ secrets.SG_KEY }}

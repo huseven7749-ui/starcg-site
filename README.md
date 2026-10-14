@@ -43,7 +43,7 @@
 1. GitHub 建私人倉庫，把整個專案推上去（或由 Claude 推）。
 2. SiteGround Site Tools → Devs → SSH Keys Manager → Generate，複製 Private Key；同一頁的 Manage → Show credentials 可看到主機、使用者與連接埠（18765）。
 3. GitHub 倉庫 → Settings → Secrets and variables → Actions → New repository secret，新增 `SG_HOST`、`SG_USER`、`SG_PORT`、`SG_KEY`、`SG_PASS`（金鑰密碼）、`SG_PATH`（例如 `/home/customer/www/starcg.online/public_html`）。
-4. 同頁的 Variables 可選填 `SPONSOR_URL`（贊助連結）、`WELCOME_VIDEO`（新手彈窗影片）、`GOOGLE_VERIFY`、`NAVER_VERIFY`（搜尋引擎驗證碼）。
+4. 同頁的 Variables 可選填 `WELCOME_VIDEO`／`WELCOME_VIDEO_KO`（新手彈窗的中／韓教學影片）、`SPONSOR_URL`／`SPONSOR_URL_KO`（贊助站長連結，預設同教學影片）、`GOOGLE_VERIFY`、`NAVER_VERIFY`（搜尋引擎驗證碼）。留空時使用 `build.mjs` 內的預設網址。
 5. 之後只要推送（或在 Actions 頁按 Run workflow）就會自動上線；Actions 分頁可看每次部署的結果。
 
 ## 三、市場查價怎麼做到「快、省、準」
