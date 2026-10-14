@@ -35,6 +35,17 @@
    - 市場查價頁搜尋任一商品，第二次查同一個應該幾乎瞬間出現
    - 開 `https://starcg.online/img/pets/104956.gif`，第一次會從攻略網抓回並存在本站
 
+## 二之一、之後的更新怎麼做（GitHub 自動部署）
+
+程式碼放在 GitHub 倉庫，推到 `main` 分支後，`.github/workflows/deploy.yml` 會自動建置、跑單元測試，再用 SSH（rsync）把 `dist/` 同步到 SiteGround 的 `public_html`，約 1～2 分鐘完成。快取（`cache/`）、寵物圖片（`img/pets/`）與本機設定檔不會被覆蓋或刪除。
+
+一次性設定：
+1. GitHub 建私人倉庫，把整個專案推上去（或由 Claude 推）。
+2. SiteGround Site Tools → Devs → SSH Keys Manager → Generate，複製 Private Key；同一頁的 Manage → Show credentials 可看到主機、使用者與連接埠（18765）。
+3. GitHub 倉庫 → Settings → Secrets and variables → Actions → New repository secret，新增 `SG_HOST`、`SG_USER`、`SG_PORT`、`SG_KEY`、`SG_PATH`（例如 `/home/customer/www/starcg.online/public_html`）。
+4. 同頁的 Variables 可選填 `SPONSOR_URL`（贊助連結）、`WELCOME_VIDEO`（新手彈窗影片）、`GOOGLE_VERIFY`、`NAVER_VERIFY`（搜尋引擎驗證碼）。
+5. 之後只要推送（或在 Actions 頁按 Run workflow）就會自動上線；Actions 分頁可看每次部署的結果。
+
 ## 三、市場查價怎麼做到「快、省、準」
 
 - **只有伺服器去抓官方**：瀏覽器只呼叫本站 `/api/market.php` 一次，伺服器並行抓官方各頁（最多 6 條連線）、整理成精簡格式後一次回傳，不再經過第三方 CORS 代理。
