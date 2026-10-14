@@ -344,6 +344,7 @@ document.addEventListener('click', e => {
     store.setRaw('sc.theme', next); applyTheme(next); syncSeg();
   } else if (act === 'settings') { e.preventDefault(); openSheet('sheet-settings'); }
   else if (act === 'more') { openSheet('sheet-more'); }
+  else if (act === 'sponsor' && document.getElementById('sheet-sponsor')) { e.preventDefault(); openSheet('sheet-sponsor'); }
   else if (act === 'close') { t.closest('dialog')?.close(); }
   else if (act === 'lang') { store.setRaw('sc.lang', t.dataset.lang); }
   else if (act === 'install') { installPrompt?.prompt(); }

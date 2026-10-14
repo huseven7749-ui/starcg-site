@@ -22,7 +22,7 @@ const BUILD_DATE = new Date().toISOString().slice(0, 10);
 const REGISTER_URL = 'https://member.starcg.net/register.php?ref=Hsu12rDUCzP.PwC3';
 const GOOGLE_VERIFY = args.google || '';      // Search Console 驗證碼（可留空，改用 DNS 驗證）
 const NAVER_VERIFY = args.naver || '';        // Naver Search Advisor 驗證碼
-const SPONSOR_URL = args.sponsor || '';
+const SPONSOR_URL = args.sponsor || 'https://youtu.be/2dk9OO-lSmw?si=XK_sZEJmjuR3Y5nI';   // 贊助站長：教學影片（按「超級感謝」小額贊助）
 const WELCOME_VIDEO = args.video || '';       // 歡迎彈窗的教學影片（node build.mjs --video=網址；YouTube 連結或 mp4，留空顯示「影片準備中」）       // 贊助站長連結（node build.mjs --sponsor=網址；留空時首頁贊助卡會指到 #）
 
 const LANGS = {

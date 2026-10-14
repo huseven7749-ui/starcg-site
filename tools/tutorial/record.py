@@ -1,5 +1,5 @@
 """錄製「魔力寶貝小工具」使用教學影片（無語音、字幕版）
-用法：python3 tools/tutorial/record.py http://127.0.0.1:8090 輸出資料夾
+用法：python3 tools/tutorial/record.py http://127.0.0.1:8090 輸出資料夾 [--lang ko]
   - 會用無頭瀏覽器實際操作網站，畫面上疊加導航精靈、字幕、步驟標籤與游標
   - 上線後把網址換成 https://starcg.online 再錄一次，就是真實市場資料
   - 產出：輸出資料夾/starcg-tutorial.mp4（1280×720）、starcg-tutorial.srt（字幕，時間點與影片一致，可直接匯入剪映）、starcg-tutorial-旁白.txt
@@ -10,6 +10,15 @@ from playwright.async_api import async_playwright
 
 BASE = sys.argv[1].rstrip('/')
 OUT = pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
+LANG = 'ko' if '--lang' in sys.argv and sys.argv[sys.argv.index('--lang') + 1] == 'ko' else 'zh'
+if LANG == 'ko':
+    sys.path.insert(0, str(pathlib.Path(__file__).parent))
+    from ko import KO, NAME, DEMO_LABEL
+    SITE = BASE + '/ko'
+else:
+    KO, NAME, DEMO_LABEL, SITE = {}, '星野', '', BASE
+SUFFIX = '-ko' if LANG == 'ko' else ''
+tr = lambda s: KO.get(s, s) if LANG == 'ko' else s
 DEMO = '127.0.0.1' in BASE or 'localhost' in BASE      # 本機測試資料 → 角落標示「示範資料」
 OVERLAY = (pathlib.Path(__file__).parent / 'overlay.js').read_text(encoding='utf-8')
 W, H = 1280, 720            # 畫面（CSS 像素）
@@ -22,6 +31,8 @@ async def ready(pg):
         await pg.wait_for_load_state('networkidle', timeout=6000)
     except Exception:
         pass
+    if LANG == 'ko':
+        await pg.evaluate("l => { document.getElementById('tg-demo').textContent = l; }", DEMO_LABEL)
 
 
 # 字幕節奏：依一般說話速度（中文約每秒 4 字）算每句需要停留多久；
@@ -30,9 +41,10 @@ _until = 0.0
 T0 = 0.0
 SUBS = []                   # [(出現秒數, 文字)]，之後換算成影片時間寫成 SRT
 def need(text):
-    cjk = sum(1 for c in text if ord(c) > 0x2E80)
-    other = len(text) - cjk
-    return min(8500, max(1500, int(cjk * 235 + other * 90 + 500)))
+    hangul = sum(1 for c in text if 0xAC00 <= ord(c) <= 0xD7A3)
+    cjk = sum(1 for c in text if ord(c) > 0x2E80) - hangul
+    other = len(text) - cjk - hangul
+    return min(8500, max(1500, int(cjk * 235 + hangul * 165 + other * 90 + 500)))
 
 
 async def wait_read(pg):
@@ -43,8 +55,9 @@ async def wait_read(pg):
 
 async def say(pg, text, pose='adv-look', hold=None):
     global _until
+    text = tr(text)
     await wait_read(pg)
-    await pg.evaluate("([t, p]) => __tg.say(t, p)", [text, pose])
+    await pg.evaluate("([t, p, n]) => __tg.say(t, p, n)", [text, pose, NAME])
     SUBS.append((time.monotonic() - T0, text))
     dur = hold if hold is not None else need(text)
     _until = time.monotonic() * 1000 + dur
@@ -73,7 +86,7 @@ async def typing(pg, sel, text, nth=0):
     await pg.evaluate("([x, y]) => __tg.ripple(x, y)", [x, y])
     await loc.click()
     await loc.fill('')
-    await loc.type(text, delay=90)
+    await loc.type(tr(text), delay=90)
     await pg.wait_for_timeout(350)
 
 
@@ -97,7 +110,7 @@ async def unmark(pg):
 
 
 async def step(pg, n, title):
-    await pg.evaluate("([n, t]) => __tg.step(n, t)", [n, title])
+    await pg.evaluate("([n, t]) => __tg.step(n, t)", [n, tr(title)])
 
 
 async def go(pg, sel, pose='adv-run', text=None):
@@ -108,14 +121,14 @@ async def go(pg, sel, pose='adv-run', text=None):
     await pg.wait_for_load_state('load')
     await ready(pg)
     if text:
-        await pg.evaluate("([t, p]) => __tg.say(t, p)", [text, pose])
+        await pg.evaluate("([t, p, n]) => __tg.say(t, p, n)", [tr(text), pose, NAME])
     await pg.wait_for_timeout(400)
 
 
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        ctx = await b.new_context(viewport={'width': W, 'height': H}, device_scale_factor=1, locale='zh-TW', timezone_id='Asia/Taipei',
+        ctx = await b.new_context(viewport={'width': W, 'height': H}, device_scale_factor=1, locale='ko-KR' if LANG == 'ko' else 'zh-TW', timezone_id='Asia/Seoul' if LANG == 'ko' else 'Asia/Taipei',
                                   color_scheme='light', record_video_dir=str(OUT / 'raw'), record_video_size={'width': VW, 'height': VH})
         await ctx.add_init_script("try{localStorage.setItem('sc.langHint','1');localStorage.setItem('sc.welcome','1')}catch(e){}")
         await ctx.add_init_script(OVERLAY)
@@ -124,9 +137,9 @@ async def main():
         pg = await ctx.new_page()
 
         # ───── 片頭 ─────
-        await pg.goto(BASE + '/', wait_until='load')
+        await pg.goto(SITE + '/', wait_until='load')
         await ready(pg)
-        await pg.evaluate("() => __tg.card('魔力寶貝小工具<br><span>使用教學</span>', '星詠魔力玩家專用小幫手')")
+        await pg.evaluate("([a, b]) => __tg.card(a, b)", [tr('魔力寶貝小工具<br><span>使用教學</span>'), tr('星詠魔力玩家專用小幫手')])
         t_start = time.monotonic() - t0
         await pg.wait_for_timeout(900)
         await say(pg, '大家好，我是星野！', 'adv-cheer', 2000)
@@ -333,7 +346,7 @@ async def main():
 
         # ───── 片尾 ─────
         await step(pg, 0, '')
-        await pg.evaluate("() => __tg.card('魔力寶貝小工具', '查市價・算匯率・養寵物・找樓梯，一站搞定')")
+        await pg.evaluate("([a, b]) => __tg.card(a, b)", [tr('魔力寶貝小工具'), tr('查市價・算匯率・養寵物・找樓梯，一站搞定')])
         await say(pg, '以上就是魔力寶貝小工具的使用教學！', 'adv-cheer')
         await say(pg, '新玩家記得透過網站的註冊連結領取獨家好禮，我們遊戲裡見～', 'adv-cheer')
         await wait_read(pg)
@@ -351,7 +364,7 @@ async def main():
     scale = dur / t_close if t_close > 0 else 1
     ss = max(0.0, t_start * scale - 0.2)
     end = min(dur, t_end * scale + 0.5)
-    mp4 = OUT / 'starcg-tutorial.mp4'
+    mp4 = OUT / f'starcg-tutorial{SUFFIX}.mp4'
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{ss:.2f}', '-to', f'{end:.2f}', '-i', str(raw),
                     '-vf', f'setpts=PTS/{scale:.4f},fps=30,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-movflags', '+faststart', str(mp4)], check=True)
     print('影片：', mp4, f'約 {(end - ss) / scale:.0f} 秒（錄影比例 {scale:.2f}，已校正為實際速度）')
@@ -368,11 +381,11 @@ async def main():
         b = (SUBS[i + 1][0] - off - 0.05) if i + 1 < len(SUBS) else total - 0.3
         lines.append(f'{i + 1}\n{ts(a)} --> {ts(b)}\n{text}\n')
         plain.append(text)
-    (OUT / 'starcg-tutorial-logged.srt').write_text('\n'.join(lines), encoding='utf-8-sig')
-    (OUT / 'starcg-tutorial-旁白.txt').write_text('\n'.join(plain) + '\n', encoding='utf-8-sig')
+    (OUT / f'starcg-tutorial{SUFFIX}-logged.srt').write_text('\n'.join(lines), encoding='utf-8-sig')
+    (OUT / f'starcg-tutorial{SUFFIX}-旁白.txt').write_text('\n'.join(plain) + '\n', encoding='utf-8-sig')
     # 錄影相對實際操作有 0～3 秒不固定的延遲，所以再從影片畫面偵測每句真正出現的時間，寫成最終 SRT
-    subprocess.run([sys.executable, str(pathlib.Path(__file__).parent / 'srt_from_video.py'), str(mp4), str(OUT / 'starcg-tutorial-logged.srt'), str(OUT / 'starcg-tutorial.srt')], check=True, stdout=subprocess.DEVNULL)
-    print('字幕：', OUT / 'starcg-tutorial.srt', f'共 {len(SUBS)} 句（時間點已依影片畫面校正，可直接匯入剪映）')
+    subprocess.run([sys.executable, str(pathlib.Path(__file__).parent / 'srt_from_video.py'), str(mp4), str(OUT / f'starcg-tutorial{SUFFIX}-logged.srt'), str(OUT / f'starcg-tutorial{SUFFIX}.srt')], check=True, stdout=subprocess.DEVNULL)
+    print('字幕：', OUT / f'starcg-tutorial{SUFFIX}.srt', f'共 {len(SUBS)} 句（時間點已依影片畫面校正，可直接匯入剪映）')
 
 
 asyncio.run(main())

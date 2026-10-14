@@ -27,7 +27,7 @@
   <a class="tool t-maze" href="{{href:/maze/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-maze"/></svg></span><b>{{t:nav.maze}}</b><p>{{t:home.tool.maze}}</p>{{pic:mouse-crown t-mouse}}</a>
   <a class="tool t-damage" href="{{href:/damage/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-damage"/></svg></span><b>{{t:nav.damage}}</b><p>{{t:home.tool.damage}}</p>{{pic:mouse-red t-mouse}}</a>
   <a class="tool t-posts" href="{{href:/posts/}}"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg></span><b>{{t:nav.posts}}</b><p>{{t:home.tool.posts}}</p>{{pic:mouse-love t-mouse}}</a>
-  <a class="tool t-sponsor" href="{{sponsorUrl}}" target="_blank" rel="noopener"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg></span><b>{{t:nav.sponsor}}</b><p>{{t:home.tool.sponsor}}</p>{{pic:adv-cheer t-mouse}}</a>
+  <a class="tool t-sponsor" href="{{sponsorUrl}}" target="_blank" rel="noopener" data-act="sponsor"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg></span><b>{{t:nav.sponsor}}</b><p>{{t:home.tool.sponsor}}</p>{{pic:adv-cheer t-mouse}}</a>
 </div>
 
 <h2 class="section-title" id="schedule"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg>{{t:home.scheduleTitle}}<small>{{t:home.scheduleNote}}</small></h2>
@@ -58,3 +58,12 @@
     <details><summary>{{t:home.faq.q4}}</summary><p>{{t:home.faq.a4}}</p></details>
   </section>
 </div>
+
+<!-- 贊助站長：說明用影片的「超級感謝」小額贊助 -->
+<dialog class="sheet sponsor" id="sheet-sponsor" aria-labelledby="sp-title">
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="sp-head">{{pic:adv-cheer sp-sp}}<div><h2 id="sp-title"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>{{t:sponsor.title}}</h2><p>{{t:sponsor.lead}}</p></div></div>
+  <ol class="sp-steps"><li>{{t:sponsor.s1}}</li><li>{{t:sponsor.s2}}</li><li>{{t:sponsor.s3}}</li></ol>
+  <a class="btn primary wide" href="{{sponsorUrl}}" target="_blank" rel="noopener" data-act="close"><svg class="ic" aria-hidden="true"><use href="#i-external"/></svg>{{t:sponsor.go}}</a>
+  <button type="button" class="btn ghost wide" data-act="close">{{t:sponsor.later}}</button>
+</dialog>

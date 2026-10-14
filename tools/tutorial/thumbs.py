@@ -64,14 +64,14 @@ def html_b(shot):
 .bg {{ position:absolute; inset:0; background:url({shot}) center/cover; filter: saturate(1.05); }}
 .shade {{ position:absolute; inset:0; background: linear-gradient(90deg, #2A1A10F4 0%, #2A1A10E6 50%, #2A1A1080 74%, #2A1A1040 100%); }}
 .small {{ position:absolute; left:70px; top:72px; background:#F2C058; color:#4A3422; font-size:40px; font-weight:700; padding:8px 26px; border-radius:16px; transform:rotate(-3deg); box-shadow:0 6px 0 #0004; }}
-h1 {{ position:absolute; left:66px; top:150px; margin:0; font-size:168px; line-height:1.0; color:#fff; letter-spacing:3px;
+h1 {{ position:absolute; left:66px; top:150px; margin:0; font-size:{128 if LANG == 'ko' else 168}px; line-height:1.0; color:#fff; letter-spacing:3px;
      text-shadow: 0 0 2px #D9654A, 0 0 2px #D9654A, 6px 6px 0 #D9654A, 0 14px 30px #0009; }}
 h1 b {{ color:#FFE08A; }}
 .tag {{ position:absolute; left:72px; top:520px; display:flex; align-items:center; gap:16px; font-size:40px; color:#fff; font-weight:700; text-shadow:0 3px 8px #000A; }}
 .tag span {{ background:#D9654A; padding:6px 20px; border-radius:999px; font-size:32px; }}
 .url {{ position:absolute; left:72px; bottom:44px; font-size:32px; font-weight:700; color:#fff; background:#D9654A; padding:10px 30px; border-radius:999px; box-shadow:0 6px 0 #0005; font-family:system-ui,sans-serif; }}
-.hero {{ position:absolute; right:110px; bottom:30px; width:230px; height:435px; filter: drop-shadow(0 10px 20px #0008); }}
-.bub {{ position:absolute; right:70px; top:150px; background:#FFFAEE; border:5px solid #D9654A; border-radius:40px; padding:14px 30px; font-size:48px; font-weight:700; color:#D9654A; box-shadow:0 8px 0 #0005; transform:rotate(5deg); }}
+.hero {{ position:absolute; right:{60 if LANG == 'ko' else 110}px; bottom:30px; width:{200 if LANG == 'ko' else 230}px; height:{378 if LANG == 'ko' else 435}px; filter: drop-shadow(0 10px 20px #0008); }}
+.bub {{ position:absolute; right:{40 if LANG == 'ko' else 70}px; top:150px; background:#FFFAEE; border:5px solid #D9654A; border-radius:40px; padding:14px 30px; font-size:48px; font-weight:700; color:#D9654A; box-shadow:0 8px 0 #0005; transform:rotate(5deg); }}
 .bub::after {{ content:""; position:absolute; left:50%; bottom:-28px; border:14px solid transparent; border-top:16px solid #D9654A; }}
 </style><div class="bg"></div><div class="shade"></div>
 <div class="small">{e(T['b_small'])}</div>
