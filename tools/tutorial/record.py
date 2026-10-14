@@ -24,9 +24,28 @@ async def ready(pg):
         pass
 
 
+# 字幕節奏：依一般說話速度（中文約每秒 4 字）算每句需要停留多久；
+# 下一句要等上一句讀完才會換，但畫面操作可以在讀的時候同時進行（像一般教學影片）
+_until = 0.0
+def need(text):
+    cjk = sum(1 for c in text if ord(c) > 0x2E80)
+    other = len(text) - cjk
+    return min(8500, max(1500, int(cjk * 235 + other * 90 + 500)))
+
+
+async def wait_read(pg):
+    rem = _until - time.monotonic() * 1000
+    if rem > 0:
+        await pg.wait_for_timeout(rem)
+
+
 async def say(pg, text, pose='adv-look', hold=None):
+    global _until
+    await wait_read(pg)
     await pg.evaluate("([t, p]) => __tg.say(t, p)", [text, pose])
-    await pg.wait_for_timeout(hold if hold is not None else max(1800, int(len(text) * 160)))
+    dur = hold if hold is not None else need(text)
+    _until = time.monotonic() * 1000 + dur
+    await pg.wait_for_timeout(min(900, dur))
 
 
 async def point(pg, sel, nth=0):
@@ -81,13 +100,13 @@ async def step(pg, n, title):
 async def go(pg, sel, pose='adv-run', text=None):
     """點導覽列換頁，換頁後疊加層會自動重建"""
     if text:
-        await pg.evaluate("([t, p]) => __tg.say(t, p)", [text, pose])
+        await say(pg, text, pose)
     await click(pg, sel, after=0)
     await pg.wait_for_load_state('load')
     await ready(pg)
     if text:
         await pg.evaluate("([t, p]) => __tg.say(t, p)", [text, pose])
-    await pg.wait_for_timeout(600)
+    await pg.wait_for_timeout(400)
 
 
 async def main():
@@ -106,7 +125,7 @@ async def main():
         await pg.evaluate("() => __tg.card('魔力寶貝小工具<br><span>使用教學</span>', '星詠魔力玩家專用小幫手')")
         t_start = time.monotonic() - t0
         await pg.wait_for_timeout(900)
-        await say(pg, '大家好，我是星野！', 'adv-cheer', 2200)
+        await say(pg, '大家好，我是星野！', 'adv-cheer', 2000)
         await say(pg, '跟大家介紹一下我這次新做的小工具網站——「魔力寶貝小工具」的使用教學。', 'adv-cheer')
         await say(pg, '查市價、算匯率、養寵物、算改造、迷宮找樓梯，全部都在這個網站，而且完全免費！', 'adv-cheer')
         await pg.evaluate("() => __tg.card('')")
@@ -130,9 +149,9 @@ async def main():
         await say(pg, '還沒有帳號的新玩家，記得從這個連結註冊，才能領到獨家好禮喔！', 'adv-cheer')
         await unmark(pg)
         await scroll(pg, 'body', 'top', 900)
-        await pg.evaluate("([t, p]) => __tg.say(t, p)", ['右上角可以切換白天和夜晚模式，晚上玩遊戲看起來比較不刺眼。', 'adv-look'])
+        await say(pg, '右上角可以切換白天和夜晚模式，晚上玩遊戲看起來比較不刺眼。', 'adv-look')
         await click(pg, '.top-actions [data-act=theme]', after=300)
-        await pg.wait_for_timeout(2600)
+        await wait_read(pg)
         await click(pg, '.top-actions [data-act=theme]', after=400)
 
         # ───── STEP 2 市場查價 ─────
@@ -141,7 +160,7 @@ async def main():
         if DEMO:
             await pg.evaluate("() => __tg.demo(true)")
         await typing(pg, '#mk-q', '水晶')
-        await say(pg, '輸入商品名稱，按下「查詢市價」。', 'adv-look', 1300)
+        await say(pg, '輸入商品名稱，按下「查詢市價」。', 'adv-look')
         await click(pg, '#mk-form button[type=submit]', after=300)
         await say(pg, '網站會整理官方擺攤市場目前所有的攤位，依「換算後最便宜」排好。', 'adv-run')
         await pg.wait_for_selector('.mk-group', timeout=30000)
@@ -212,7 +231,7 @@ async def main():
         await go(pg, '.mainnav a[href*="pets"]', 'adv-run', '接著看「寵物成長」。')
         await say(pg, '這裡有完整的寵物圖鑑，可以用名稱、種族、卡等、屬性篩選。', 'adv-look')
         await click(pg, '.pet-card', after=900)
-        await say(pg, '點一隻寵物就能開始模擬。', 'adv-look', 1300)
+        await say(pg, '點一隻寵物就能開始模擬。', 'adv-look')
         await typing(pg, '#s-lv', '120')
         await click(pg, '[data-fill="1"]', after=600)
         await mark(pg, '#result')
@@ -250,8 +269,8 @@ async def main():
         await say(pg, '用電腦版 Chrome 或 Edge，按「連結遊戲資料夾」選擇遊戲裡的 StarCG_Data，瀏覽器問的時候選「每次造訪都允許」。', 'adv-look')
         await unmark(pg)
         await say(pg, '只要設定一次，之後打開這頁就會自動接上，不用每次丟檔案，也不會動到遊戲檔案。', 'adv-look')
-        await say(pg, '我用示範模式讓大家看效果。', 'adv-cheer', 1500)
-        await pg.evaluate("() => { window.__mzDemoStep = 1400; }")
+        await say(pg, '我用示範模式讓大家看效果。', 'adv-cheer')
+        await pg.evaluate("() => { window.__mzDemoStep = 1000; }")
         await click(pg, '#mz-demo', after=1200)
         await pg.wait_for_selector('#mz-live:not([hidden])')
         await mark(pg, '#mz-floors')
@@ -274,10 +293,10 @@ async def main():
         await pg.mouse.click(cx, cy)
         await pg.wait_for_timeout(400)
         await say(pg, '看到寶箱或怪物，按一下「寶箱」再點地圖，就能自己標起來。', 'adv-cheer')
-        await pg.wait_for_function("document.querySelectorAll('#mz-floors .mz-chip').length >= 2", timeout=60000)
-        await pg.wait_for_timeout(1500)
-        await mark(pg, '#mz-floors')
         await say(pg, '換樓層會自動跟著切，想回頭看就點上面的樓層標籤。', 'adv-look')
+        await mark(pg, '#mz-floors')
+        await pg.wait_for_function("document.querySelectorAll('#mz-floors .mz-chip').length >= 2", timeout=60000)
+        await pg.wait_for_timeout(1200)
         await unmark(pg)
         await scroll(pg, 'body', 'top', 600)
         await mark(pg, '#mz-runline')
@@ -311,9 +330,10 @@ async def main():
         # ───── 片尾 ─────
         await step(pg, 0, '')
         await pg.evaluate("() => __tg.card('魔力寶貝小工具', '查市價・算匯率・養寵物・找樓梯，一站搞定')")
-        await say(pg, '以上就是魔力寶貝小工具的使用教學！', 'adv-cheer', 2400)
-        await say(pg, '新玩家記得透過網站的註冊連結領取獨家好禮，我們遊戲裡見～', 'adv-cheer', 3600)
-        await pg.wait_for_timeout(600)
+        await say(pg, '以上就是魔力寶貝小工具的使用教學！', 'adv-cheer')
+        await say(pg, '新玩家記得透過網站的註冊連結領取獨家好禮，我們遊戲裡見～', 'adv-cheer')
+        await wait_read(pg)
+        await pg.wait_for_timeout(900)
         t_end = time.monotonic() - t0
 
         video = pg.video
