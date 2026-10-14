@@ -1,7 +1,7 @@
 // 公式單元測試：node tests/unit.mjs
 // 期望值為手算結果（見各行註解），用來確認程式與攻略站公布的公式一致。
 import assert from 'node:assert/strict';
-import { simulate, statsFromBp, petScore, decodeAlloc, gradeMeta, expectedTries, capManual, maxStarAdd, REMODEL, TIERS } from '../src/assets/js/petcalc.js';
+import { simulate, statsFromBp, petScore, decodeAlloc, gradeMeta, expectedTries, capManual, maxStarAdd, REMODEL, TIERS, freePoints, remodelPoints } from '../src/assets/js/petcalc.js';
 import { expected, simulate as farmSim, craft, stonePerRun, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven, LAYERS } from '../src/assets/js/farmcalc.js';
 import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective } from '../src/assets/js/dmgcalc.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, parseImport, mergeRecords, inPeriod } from '../src/assets/js/mkstats.js';
@@ -39,6 +39,14 @@ t('升級成長：每級 + 檔次 ÷ 24，自由點數 Lv−1', () => {
 t('改造點數：金卡 3 改 = 24 點', () => {
   const r = simulate({ base: [20, 20, 20, 20, 20], rand: [0, 0, 0, 0, 0], level: 100, tier: '金', remodel: 3, manual: [0, 0, 0, 0, 0] });
   assert.equal(r.limit, 99 + 24);
+});
+
+t('改造點數：第 6 次固定 +8（金 5 改 40、6 改 48；普 6 改 38）', () => {
+  assert.equal(remodelPoints('金', 5), 40); assert.equal(remodelPoints('金', 6), 48);
+  assert.equal(remodelPoints('普', 6), 30 + 8); assert.equal(remodelPoints('銀', 6), 35 + 8);
+  assert.equal(freePoints(120, '金', 6), 119 + 48);
+  const r = simulate({ base: [20, 20, 20, 20, 20], rand: [0, 0, 0, 0, 0], level: 120, tier: '金', remodel: 6, manual: [0, 0, 0, 0, 0] });
+  assert.equal(r.limit, 119 + 48);
 });
 
 t('單項 BP 不可超過其他四項總和', () => {

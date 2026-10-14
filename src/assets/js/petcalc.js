@@ -36,6 +36,16 @@ export const REMODEL = [
   { rate: 0.25, pity: 9, lv: 110 },
   { rate: 0.15, pity: 13, lv: 120 },
 ];
+// 第 6 次改造：各卡等固定 +8 BP（成功率與保底未公布，改造期望花費仍以 1～5 次計算）
+export const REMODEL_MAX = 6;
+export const REMODEL_BP6 = 8;
+export const remodelLv = n => (REMODEL[Math.min(n, REMODEL.length) - 1] || REMODEL[REMODEL.length - 1]).lv;
+/** 改造帶來的自由點數：1～5 次依卡等每次 +6/7/8，第 6 次固定 +8 */
+export function remodelPoints(tier, remodelCount) {
+  const t = TIERS[tier];
+  const n = Math.max(0, Math.min(REMODEL_MAX, remodelCount | 0));
+  return (t ? t.remodelBp * Math.min(n, REMODEL.length) : 0) + (n > REMODEL.length ? REMODEL_BP6 * (n - REMODEL.length) : 0);
+}
 export const SKILL_WEIGHT = { 6: 10, 7: 30, 8: 60, 9: 100, 10: 150 };
 export const PET_ALLOC_POWERS = [64 ** 4, 64 ** 3, 64 ** 2, 64, 1];
 
@@ -61,8 +71,7 @@ export function baseBp({ ranks, rand, level }) {
 
 /** 自由點數上限：升級（Lv−1）＋ 改造 BP */
 export function freePoints(level, tier, remodelCount) {
-  const t = TIERS[tier];
-  return Math.max(0, level - 1) + (t ? t.remodelBp * remodelCount : 0);
+  return Math.max(0, level - 1) + remodelPoints(tier, remodelCount);
 }
 
 /**

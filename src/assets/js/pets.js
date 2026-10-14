@@ -1,6 +1,6 @@
 // 寵物圖鑑 + 成長模擬
 import { $, $$, T, esc, fmt, store, copy, toast, loadPets, petImgSrc, normName, downloadCsv, debounce, clamp, emptyState, spriteImg } from './core.js';
-import { simulate, petScore, maxStarAdd, tierOf, TIERS, REMODEL, STAT_KEYS, freePoints, RAND_TOTAL_MAX, DROP_TOTAL_MAX } from './petcalc.js';
+import { simulate, petScore, maxStarAdd, tierOf, TIERS, REMODEL, STAT_KEYS, freePoints, RAND_TOTAL_MAX, DROP_TOTAL_MAX , remodelPoints, remodelLv, REMODEL_MAX } from './petcalc.js';
 
 const CMP_KEY = 'sc.petcmp';
 const TIER_KEY = { '金': 'gold', '銀': 'silver', '普': 'normal' };
@@ -117,7 +117,7 @@ function selectPet(name) {
   if (!p) return;
   Object.assign(S, {
     pet: p, base: [...p.bp], drop: zero(), rand: [2, 2, 2, 2, 2], manual: zero(), extra: zero(),
-    tier: tierOf(p.cardTier), slots: clamp(p.skillSlots || 6, 6, 10), remodel: Math.min(S.remodel, 5),
+    tier: tierOf(p.cardTier), slots: clamp(p.skillSlots || 6, 6, 10), remodel: Math.min(S.remodel, REMODEL_MAX),
   });
   S.starAdd = S.maxStar ? maxStarAdd(p) : zero();
   $('#s-pet').value = p.name;
@@ -137,11 +137,11 @@ function compute() {
   });
   // 點數
   const t = TIERS[S.tier];
-  const rmNeed = S.remodel ? REMODEL[S.remodel - 1].lv : 0;
+  const rmNeed = S.remodel ? remodelLv(S.remodel) : 0;
   const pb = $('#points');
   pb.classList.toggle('over', r.used > r.limit);
   pb.innerHTML = `<span>${esc(T('pet.points'))}</span><span class="num">${fmt(r.used)} / ${fmt(r.limit)}</span><span class="badge ${r.limit - r.used ? 'b-warn' : 'b-ok'}">${esc(T('pet.remain', { n: fmt(r.limit - r.used) }))}</span>
-    <span class="small muted">${esc(T('pet.pointsFrom', { lv: Math.max(0, S.level - 1), rm: t ? t.remodelBp * S.remodel : 0 }))}</span>
+    <span class="small muted">${esc(T('pet.pointsFrom', { lv: Math.max(0, S.level - 1), rm: remodelPoints(S.tier, S.remodel) }))}</span>
     ${S.remodel && S.level < rmNeed ? `<span class="badge b-coral">${esc(T('pet.rmNeed', { n: S.remodel, lv: rmNeed }))}</span>` : ''}`;
   // 警示
   const randSum = S.rand.reduce((a, b) => a + b, 0), dropSum = S.drop.reduce((a, b) => a + b, 0);
@@ -173,7 +173,7 @@ function renderLvTable() {
   const strategy = $('#lv-strategy').value;
   const ratio = S.manual.some(v => v) ? S.manual : zero();
   const rows = LV_ROWS.map(L => {
-    const rmAt = Math.min(S.remodel, REMODEL.filter(x => x.lv <= L).length);
+    const rmAt = Math.min(S.remodel, Array.from({ length: REMODEL_MAX }, (_, i) => i + 1).filter(n => remodelLv(n) <= L).length);
     const limit = freePoints(L, S.tier, rmAt);
     const r = simulate({ base: S.base, starAdd: S.starAdd, drop: S.drop, rand: S.rand, level: L, tier: S.tier, remodel: rmAt, manual: allocFor(limit, strategy, ratio), extra: S.extra });
     const sc = petScore(r.stats, { level: L, slots: S.slots, tier: S.tier, fullSlot: S.fullSlot });
