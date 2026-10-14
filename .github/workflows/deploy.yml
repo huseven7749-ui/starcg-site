@@ -3,7 +3,8 @@
 #   SG_HOST  SiteGround SSH 主機（例如 ssgxx.siteground.biz 或 Site Tools 顯示的主機名）
 #   SG_USER  SSH 使用者（例如 u1234-abcdefg）
 #   SG_PORT  SSH 連接埠（SiteGround 預設 18765）
-#   SG_KEY   SSH 私鑰全文（從 Site Tools → Devs → SSH Keys Manager 產生後「Private Key」的內容）
+#   SG_KEY   SSH 私鑰全文（從 Site Tools → Devs → SSH Keys Manager 產生後「Private Key」的內容，含 BEGIN／END 兩行）
+#   SG_PASS  產生金鑰時填的密碼（SiteGround 一定要填；沒密碼就留空）
 #   SG_PATH  網站根目錄（例如 /home/customer/www/starcg.online/public_html）
 name: Deploy to SiteGround
 on:
@@ -23,15 +24,30 @@ jobs:
       - name: 建置
         run: node build.mjs --sponsor="${{ vars.SPONSOR_URL }}" --video="${{ vars.WELCOME_VIDEO }}" --naver="${{ vars.NAVER_VERIFY }}" --google="${{ vars.GOOGLE_VERIFY }}"
       - name: 設定 SSH
+        env:
+          SG_KEY: ${{ secrets.SG_KEY }}
+          SG_PASS: ${{ secrets.SG_PASS }}
         run: |
+          [ -n "${{ secrets.SG_HOST }}" ] || { echo "::error::缺少 Secret SG_HOST"; exit 1; }
+          [ -n "${{ secrets.SG_USER }}" ] || { echo "::error::缺少 Secret SG_USER"; exit 1; }
+          [ -n "${{ secrets.SG_PORT }}" ] || { echo "::error::缺少 Secret SG_PORT"; exit 1; }
+          [ -n "$SG_KEY" ] || { echo "::error::缺少 Secret SG_KEY"; exit 1; }
+          [ -n "${{ secrets.SG_PATH }}" ] || { echo "::error::缺少 Secret SG_PATH"; exit 1; }
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.SG_KEY }}" > ~/.ssh/id_sg && chmod 600 ~/.ssh/id_sg
+          printf '%s\n' "$SG_KEY" > ~/.ssh/id_sg && chmod 600 ~/.ssh/id_sg
           ssh-keyscan -p "${{ secrets.SG_PORT }}" -H "${{ secrets.SG_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # 金鑰有密碼：交給 ssh-agent，密碼用 SSH_ASKPASS 餵進去
+          eval "$(ssh-agent -s)" > /dev/null
+          printf '#!/bin/sh\necho "$SG_PASS"\n' > ~/.ssh/askpass.sh && chmod 700 ~/.ssh/askpass.sh
+          SSH_ASKPASS=~/.ssh/askpass.sh SSH_ASKPASS_REQUIRE=force DISPLAY=:0 ssh-add ~/.ssh/id_sg < /dev/null
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          ssh -p "${{ secrets.SG_PORT }}" -o BatchMode=yes "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}" 'echo 連線成功: $(hostname)'
       - name: 上傳到 public_html
         run: |
           rsync -az --delete \
             --exclude 'cache/' --exclude 'img/pets/' --exclude 'api/config.local.php' --exclude '.well-known/' \
-            -e "ssh -i ~/.ssh/id_sg -p ${{ secrets.SG_PORT }}" \
+            -e "ssh -p ${{ secrets.SG_PORT }} -o BatchMode=yes" \
             dist/ "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}:${{ secrets.SG_PATH }}/"
       - name: 上線檢查
         run: |
