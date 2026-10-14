@@ -4,7 +4,7 @@
 export const START_POINTS = [
   { id: 'E1', x: 242, y: 100 }, { id: 'E2', x: 233, y: 78 },
   { id: 'S1', x: 141, y: 148 }, { id: 'S2', x: 162, y: 130 },
-  { id: 'W1', x: 63, y: 79 }, { id: 'W2', x: 72, y: 123 },
+  { id: 'W1', x: 69, y: 79 }, { id: 'W2', x: 72, y: 123 },
 ];
 export const TOWN = '法蘭城';
 export const dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
