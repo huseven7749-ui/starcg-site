@@ -756,7 +756,7 @@ export default {
   'bk.custom': '＊ 좌표 직접 입력',
   'bk.saveStartName': '이 출발점의 이름을 정해 주세요',
   'bk.map': '출발점 지도',
-  'bk.mapDir': '동 → ／ 남 ↓',
+  'bk.mapDir': '동 ↗ ／ 남 ↘',
   'bk.mapHint': '지도를 누르면 출발점이 설정돼요. 좌표만 표시한 약도예요.',
   'bk.gate.E1': '동문 E1',
   'bk.gate.E2': '동문 E2',

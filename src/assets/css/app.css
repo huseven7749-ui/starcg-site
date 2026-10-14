@@ -837,13 +837,15 @@ html[data-view="mobile"] .mk-cur-quick > button { flex: 1; justify-content: cent
 .mp-bg { fill: var(--card-2); }
 .mp-grid { stroke: var(--line); stroke-width: 1; }
 .mp-ax { fill: var(--ink-3); font-size: 10px; font-family: var(--font-data); }
-.mp-dir { fill: var(--ink-3); font-size: 11px; font-weight: 700; }
-.mp-gate rect { fill: var(--sky-l); stroke: var(--sky-d); stroke-width: 1.5; }
-.mp-gate text { fill: var(--sky-d); font-size: 10px; font-weight: 700; }
-.mp-route { fill: none; stroke: var(--pink); stroke-width: 3; stroke-dasharray: 6 5; stroke-linecap: round; stroke-linejoin: round; }
-.mp-stop circle { fill: var(--pink); stroke: #fff; stroke-width: 2; }
-.mp-stop text { fill: #fff; font-size: 10px; font-weight: 800; font-family: var(--font-data); }
-.mp-start circle { fill: var(--lemon); stroke: var(--wood-d); stroke-width: 2; }
+.mp-dir { fill: #fff; font-size: 12px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.55); stroke-width: 3px; }
+.mp-gate rect { fill: #DDF0FF; stroke: #2E6FA8; stroke-width: 1.5; }
+.mp-gate text { fill: #fff; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 3px; }
+.mp-route-shadow { fill: none; stroke: rgba(0,0,0,.45); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.mp-route { fill: none; stroke: #FFE45C; stroke-width: 3.5; stroke-dasharray: 7 6; stroke-linecap: round; stroke-linejoin: round; }
+.mp-stop circle { fill: var(--pink); stroke: #fff; stroke-width: 2.5; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.mp-stop text { fill: #fff; font-size: 11px; font-weight: 800; font-family: var(--font-data); }
+.mp-start circle { fill: var(--lemon); stroke: var(--wood-d); stroke-width: 2; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.mp-start text { fill: #fff; font-size: 11px; font-weight: 800; font-family: var(--font-data); paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 3px; }
 .mp-start path { fill: var(--wood-d); }
 .bk-group { margin-top: 16px; }
 .bk-group .card-title .badge { margin-left: 6px; }

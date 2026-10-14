@@ -4,38 +4,13 @@ import { START_POINTS } from './route.js';
 
 // 圖片尺寸（src/assets/img/fran-city.jpg）
 const IMG_W = 960, IMG_H = 685;
-// 校正點：遊戲座標 (x=東, y=南) ↔ 圖片像素 (px, py)。至少三點，用最小平方法解仿射矩陣。
-// 遊戲地圖是斜 45° 的菱形：東往右上、南往右下。
-const CAL = [
-  { x: 242, y: 100, px: 748, py: 352 },   // 東門傳送石 E1
-  { x: 63, y: 79, px: 258, py: 404 },     // 西門傳送石 W1
-  { x: 141, y: 148, px: 614, py: 530 },   // 南門傳送石 S1
-  { x: 151, y: 40, px: 506, py: 234 },    // 北側（中央廣場北）
-];
-let M = null;   // [a, b, c, d, e, f]: px = a·x + b·y + c, py = d·x + e·y + f
-function solve() {
-  if (M) return M;
-  // 正規方程式：對 px、py 各解一組 (a,b,c)
-  const fit = key => {
-    let sxx = 0, sxy = 0, sx = 0, syy = 0, sy = 0, n = 0, sxp = 0, syp = 0, sp = 0;
-    for (const c of CAL) { const p = c[key]; sxx += c.x * c.x; sxy += c.x * c.y; sx += c.x; syy += c.y * c.y; sy += c.y; n++; sxp += c.x * p; syp += c.y * p; sp += p; }
-    // 解 3×3
-    const A = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]], B = [sxp, syp, sp];
-    for (let i = 0; i < 3; i++) {
-      let piv = i; for (let r = i + 1; r < 3; r++) if (Math.abs(A[r][i]) > Math.abs(A[piv][i])) piv = r;
-      [A[i], A[piv]] = [A[piv], A[i]]; [B[i], B[piv]] = [B[piv], B[i]];
-      for (let r = 0; r < 3; r++) { if (r === i) continue; const f = A[r][i] / A[i][i]; for (let k = i; k < 3; k++) A[r][k] -= f * A[i][k]; B[r] -= f * B[i]; }
-    }
-    return [B[0] / A[0][0], B[1] / A[1][1], B[2] / A[2][2]];
-  };
-  const [a, b, c] = fit('px'), [d, e, f] = fit('py');
-  return (M = [a, b, c, d, e, f]);
-}
-export const toPx = (x, y) => { const [a, b, c, d, e, f] = solve(); return { px: a * x + b * y + c, py: d * x + e * y + f }; };
+// 座標對應（由站長實際量的四個地標校正：東門口 281,88、西門口 22,88、南門口 153,241、里堡南 153,100）
+// 遊戲地圖是斜 45° 的菱形：東往右上、南往右下 → px 只跟 (x+y) 有關、py 只跟 (y−x) 有關
+const OX = -24.1, OY = 407.7, U = 2.025, V = 1.516;
+export const toPx = (x, y) => ({ px: OX + U * (x + y), py: OY + V * (y - x) });
 export const toGame = (px, py) => {
-  const [a, b, c, d, e, f] = solve(); const det = a * e - b * d;
-  const u = px - c, v = py - f;
-  return { x: Math.round((e * u - b * v) / det), y: Math.round((-d * u + a * v) / det) };
+  const s = (px - OX) / U, d = (py - OY) / V;     // s = x+y, d = y−x
+  return { x: Math.round((s - d) / 2), y: Math.round((s + d) / 2) };
 };
 
 /**
@@ -43,7 +18,7 @@ export const toGame = (px, py) => {
  * @param o { start:{x,y}, stops:[{x,y,label,title}], route:boolean, onPick:(x,y)=>void }
  */
 export function drawMap(box, o = {}) {
-  const src = box.dataset.src;
+  const src = box.dataset.src || document.getElementById('bk-map')?.dataset.src || '';
   const pts = [...START_POINTS, ...(o.stops || []), ...(o.start ? [o.start] : [])].filter(p => Number.isFinite(p.x) && Number.isFinite(p.y)).map(p => toPx(p.x, p.y));
   // 顯示範圍：包住所有點再留邊，最小一定範圍；沒有圖片時退回全圖
   let x0 = Math.min(...pts.map(p => p.px)), x1 = Math.max(...pts.map(p => p.px));

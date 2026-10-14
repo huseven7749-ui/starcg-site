@@ -755,7 +755,7 @@ export default {
   'bk.custom': '＊ 自訂座標',
   'bk.saveStartName': '幫這個起點取個名字',
   'bk.map': '起點地圖',
-  'bk.mapDir': '東 → ／ 南 ↓',
+  'bk.mapDir': '東 ↗ ／ 南 ↘',
   'bk.mapHint': '點地圖可設定起點；示意圖只標座標。',
   'bk.gate.E1': '東門 E1',
   'bk.gate.E2': '東門 E2',
