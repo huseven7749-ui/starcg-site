@@ -380,10 +380,10 @@ function buildPages() {
         const cur = id === page.id ? ' aria-current="page"' : '';
         return `<a href="${pageHref(lang, p.path, fromPath)}"${cur}><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(label)}</span></a>`;
       };
-      const moreActive = ['remodel', 'damage', 'maze', 'posts', 'post'].includes(page.id) ? ' aria-current="page"' : '';
-      v.tabbar = tab('home', t('nav.home')) + tab('market', t('nav.tab.market')) + tab('exchange', t('nav.tab.exchange')) + tab('pets', t('nav.tab.pets')) +
+      const moreActive = ['pets', 'remodel', 'damage', 'posts', 'post'].includes(page.id) ? ' aria-current="page"' : '';
+      v.tabbar = tab('home', t('nav.home')) + tab('market', t('nav.tab.market')) + tab('exchange', t('nav.tab.exchange')) + tab('maze', t('nav.short.maze')) +
         `<button type="button" data-act="more"${moreActive}><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>${esc(t('nav.more'))}</span></button>`;
-      v.moreLinks = ['remodel', 'damage', 'maze', 'posts'].map(id => {
+      v.moreLinks = ['pets', 'remodel', 'damage', 'posts'].map(id => {
         const p = PAGES.find(x => x.id === id);
         return `<a class="sheet-link" href="${pageHref(lang, p.path, fromPath)}"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(t('nav.' + id))}</span></a>`;
       }).join('');

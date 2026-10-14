@@ -1249,7 +1249,7 @@ html[data-theme="dark"] .mz-chip[aria-pressed="true"] { color: #3A1426; }
 .mz-pack-form { display: flex; align-items: flex-end; gap: 10px 14px; flex-wrap: wrap; }
 .mz-pack-form .field { flex: 1 1 160px; max-width: 260px; }
 .mz-pack-form .field > span { font-size: .84rem; }
-.mz-pack-reset small { font-size: .74rem; color: var(--ink-3); }
+.mz-pack-reset small { font-size: .74rem; font-weight: 500; color: var(--ink-3); margin-left: 4px; }
 .mz-pack-need { flex-basis: 100%; display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: .84rem; color: var(--ink-3); }
 .mz-pack-need .ic { width: 16px; height: 16px; flex: none; }
 .mz-pack-form > .btn { flex: none; }

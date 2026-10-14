@@ -1032,7 +1032,7 @@ export default {
   'mz.p.namePh': '例：法蘭城地下迷宮',
   'mz.p.shard': '迷宮分流',
   'mz.p.reset': '迷宮重製時間',
-  'mz.p.resetHint': '月／日　時：分：秒',
+  'mz.p.resetHint': '（月/日 時:分:秒）',
   'mz.p.need': '三項都填好，就會出現「一鍵打包」。',
   'mz.p.go': '一鍵打包',
   'mz.p.copy': '一鍵複製',

@@ -2,7 +2,7 @@
 用法：python3 tools/tutorial/record.py http://127.0.0.1:8090 輸出資料夾
   - 會用無頭瀏覽器實際操作網站，畫面上疊加導航精靈、字幕、步驟標籤與游標
   - 上線後把網址換成 https://starcg.online 再錄一次，就是真實市場資料
-  - 產出：輸出資料夾/starcg-tutorial.mp4（1280×720）
+  - 產出：輸出資料夾/starcg-tutorial.mp4（1280×720）、starcg-tutorial.srt（字幕，時間點與影片一致，可直接匯入剪映）、starcg-tutorial-旁白.txt
 """
 import os, sys, time, asyncio, glob, subprocess, pathlib
 os.environ.setdefault('PLAYWRIGHT_BROWSERS_PATH', '/opt/pw-browsers')
@@ -27,6 +27,8 @@ async def ready(pg):
 # 字幕節奏：依一般說話速度（中文約每秒 4 字）算每句需要停留多久；
 # 下一句要等上一句讀完才會換，但畫面操作可以在讀的時候同時進行（像一般教學影片）
 _until = 0.0
+T0 = 0.0
+SUBS = []                   # [(出現秒數, 文字)]，之後換算成影片時間寫成 SRT
 def need(text):
     cjk = sum(1 for c in text if ord(c) > 0x2E80)
     other = len(text) - cjk
@@ -43,6 +45,7 @@ async def say(pg, text, pose='adv-look', hold=None):
     global _until
     await wait_read(pg)
     await pg.evaluate("([t, p]) => __tg.say(t, p)", [text, pose])
+    SUBS.append((time.monotonic() - T0, text))
     dur = hold if hold is not None else need(text)
     _until = time.monotonic() * 1000 + dur
     await pg.wait_for_timeout(min(900, dur))
@@ -116,7 +119,8 @@ async def main():
                                   color_scheme='light', record_video_dir=str(OUT / 'raw'), record_video_size={'width': VW, 'height': VH})
         await ctx.add_init_script("try{localStorage.setItem('sc.langHint','1');localStorage.setItem('sc.welcome','1')}catch(e){}")
         await ctx.add_init_script(OVERLAY)
-        t0 = time.monotonic()
+        global T0
+        t0 = T0 = time.monotonic()
         pg = await ctx.new_page()
 
         # ───── 片頭 ─────
@@ -351,6 +355,24 @@ async def main():
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{ss:.2f}', '-to', f'{end:.2f}', '-i', str(raw),
                     '-vf', f'setpts=PTS/{scale:.4f},fps=30,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-movflags', '+faststart', str(mp4)], check=True)
     print('影片：', mp4, f'約 {(end - ss) / scale:.0f} 秒（錄影比例 {scale:.2f}，已校正為實際速度）')
+
+    # 字幕檔：每句從出現到下一句出現為止（最後一句到片尾），時間以剪好的影片為準
+    total = (end - ss) / scale
+    off = ss / scale
+    def ts(sec):
+        sec = max(0.0, min(total, sec)); ms = int(round(sec * 1000))
+        return f'{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}'
+    lines, plain = [], []
+    for i, (t, text) in enumerate(SUBS):
+        a = t - off
+        b = (SUBS[i + 1][0] - off - 0.05) if i + 1 < len(SUBS) else total - 0.3
+        lines.append(f'{i + 1}\n{ts(a)} --> {ts(b)}\n{text}\n')
+        plain.append(text)
+    (OUT / 'starcg-tutorial-logged.srt').write_text('\n'.join(lines), encoding='utf-8-sig')
+    (OUT / 'starcg-tutorial-旁白.txt').write_text('\n'.join(plain) + '\n', encoding='utf-8-sig')
+    # 錄影相對實際操作有 0～3 秒不固定的延遲，所以再從影片畫面偵測每句真正出現的時間，寫成最終 SRT
+    subprocess.run([sys.executable, str(pathlib.Path(__file__).parent / 'srt_from_video.py'), str(mp4), str(OUT / 'starcg-tutorial-logged.srt'), str(OUT / 'starcg-tutorial.srt')], check=True, stdout=subprocess.DEVNULL)
+    print('字幕：', OUT / 'starcg-tutorial.srt', f'共 {len(SUBS)} 句（時間點已依影片畫面校正，可直接匯入剪映）')
 
 
 asyncio.run(main())

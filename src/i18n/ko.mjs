@@ -1033,7 +1033,7 @@ export default {
   'mz.p.namePh': '예: 팔란 지하 미궁',
   'mz.p.shard': '미궁 채널',
   'mz.p.reset': '미궁 리셋 시간',
-  'mz.p.resetHint': '월/일 시:분:초',
+  'mz.p.resetHint': '(월/일 시:분:초)',
   'mz.p.need': '세 칸을 모두 채우면 「한 번에 정리」가 나타나요.',
   'mz.p.go': '한 번에 정리',
   'mz.p.copy': '한 번에 복사',
