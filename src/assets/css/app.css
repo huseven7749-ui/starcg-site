@@ -744,6 +744,10 @@ html[data-theme="dark"] .main-tabs button[aria-selected="true"] { color: #2a1610
 .mk-searchrow .btn.icon { width: 50px; }
 #mk-fav[aria-pressed="true"] { color: var(--lemon-d); --ic2: var(--lemon); border-color: var(--lemon); }
 .mk-kind-row { display: flex; gap: 10px 16px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.mk-cur-quick { margin-left: auto; }
+.mk-cur-quick button[value="0"][aria-pressed="true"] { color: var(--coin); } .mk-cur-quick button[value="1"][aria-pressed="true"] { color: var(--crystal); }
+html[data-view="mobile"] .mk-cur-quick { margin-left: 0; display: flex; width: 100%; }
+html[data-view="mobile"] .mk-cur-quick > button { flex: 1; justify-content: center; }
 .mk-sub { margin-top: 12px; padding: 12px; border-radius: var(--r-sm); background: var(--card-2); border: 1.5px dashed var(--line-2); }
 .mk-sub > .seg { margin-bottom: 10px; }
 .mk-hint { margin: 8px 0 0; }

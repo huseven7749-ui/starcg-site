@@ -33,6 +33,11 @@
         <button type="button" value="pet" aria-pressed="false">{{t:mk.kind.pet}}</button>
       </div>
       <label class="switch"><input type="checkbox" id="mk-exact"><span>{{t:mk.exact}}</span></label>
+      <div class="seg mk-cur-quick" id="mk-cur-quick" role="group" aria-label="{{t:market.currency}}">
+        <button type="button" value="all" aria-pressed="true">{{t:mk.cur.both}}</button>
+        <button type="button" value="0" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-coin"/></svg>{{t:common.coin}}</button>
+        <button type="button" value="1" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-crystal"/></svg>{{t:common.crystal}}</button>
+      </div>
     </div>
 
     <div class="mk-sub" id="mk-equip" hidden>

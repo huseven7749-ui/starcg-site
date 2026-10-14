@@ -109,7 +109,7 @@ function syncKindUi() {
   if (S.kind === 'pet') fillPetSelects();
 }
 function syncFilterUi() {
-  seg(el.sv, S.sv); seg(el.cur, S.cur); seg(el.src, S.src);
+  seg(el.sv, S.sv); seg(el.cur, S.cur); seg($('#mk-cur-quick'), S.cur); seg(el.src, S.src);
   el.range.value = S.range; el.sort.value = S.sort; el.view.value = S.view;
   el.need.hidden = S.view !== 'need'; el.need.value = S.need;
   $('#pf-star').checked = S.pf.star; $('#pf-full').checked = S.pf.full; $('#pf-skill').checked = S.pf.skill; $('#pf-slot').value = S.pf.slot;
@@ -772,6 +772,7 @@ $('#pet-name').addEventListener('change', e => { S.petName = e.target.value; if 
 const onFilter = (fn, rerenderHist = false) => () => { fn(); saveCfg(); syncFilterUi(); render(); if (rerenderHist) { renderPricing(); } };
 el.sv.addEventListener('click', e => { const b = e.target.closest('button'); if (b) onFilter(() => (S.sv = b.value))(); });
 el.cur.addEventListener('click', e => { const b = e.target.closest('button'); if (b) onFilter(() => (S.cur = b.value))(); });
+$('#mk-cur-quick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) onFilter(() => (S.cur = b.value))(); });
 el.sort.addEventListener('change', onFilter(() => (S.sort = el.sort.value)));
 el.view.addEventListener('change', onFilter(() => (S.view = el.view.value)));
 el.need.addEventListener('input', debounce(onFilter(() => (S.need = Math.max(1, Math.floor(Number(el.need.value) || 1)))), 200));
