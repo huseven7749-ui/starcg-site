@@ -117,6 +117,10 @@ with sync_playwright() as p:
             check(page.locator('#mz-exits .mz-exit.mine').count() == 0, '可以刪除自己的標記')
             page.click('#mz-mark [data-type=mob]'); page.mouse.click(box['x'] + box['width'] / 2 + 30, box['y'] + box['height'] / 2); page.wait_for_timeout(300)
             check('怪物' in page.inner_text('#mz-exits'), '標記怪物')
+            # NPC：點了會問名稱（可留空）
+            page.once('dialog', lambda d: d.accept('商人'))
+            page.click('#mz-mark [data-type=npc]'); page.mouse.click(box['x'] + box['width'] / 2 - 30, box['y'] + box['height'] / 2); page.wait_for_timeout(300)
+            check('商人' in page.inner_text('#mz-exits') and 'NPC' in page.inner_text('#mz-exits'), '標記 NPC（含名稱）')
             page.click('#mz-view button[value=grid]')
             check(not page.eval_on_selector('#mz-stage', 'e => e.classList.contains("is-iso")'), '切換為正方格')
             page.click('#mz-view button[value=iso]')
@@ -130,9 +134,22 @@ with sync_playwright() as p:
             # 結束探索 → 清掉；之後同一座迷宮再有動靜 → 自動接回
             page.click('#mz-runend')
             check(page.is_visible('#mz-begin') and page.locator('#mz-floors .mz-chip').count() == 0, '結束探索後清掉樓層、回到開始面板')
+            # 打包分享：三項填好才出現按鈕
+            check(page.is_visible('#mz-pack') and page.is_hidden('#mz-pack-go'), '結束後出現打包面板，還沒填資料不給打包')
+            check(page.input_value('#mz-pack-shard') == 'S1', '分流自動帶入')
+            page.fill('#mz-pack-name', '測試迷宮'); page.fill('#mz-pack-reset', '2026-10-14T22:30:15')
+            check(page.is_visible('#mz-pack-go'), '三項填好後出現一鍵打包')
+            page.click('#mz-pack-go')
+            txt = page.input_value('#mz-pack-text')
+            check(page.is_visible('#mz-pack-out') and '【迷宮分享】測試迷宮 · S1' in txt and '10/14 22:30:15' in txt, '打包文字含名稱、分流、重製時間')
+            check('第 3 層' in txt and '第 4 層' in txt and '下樓梯　東26 南22' in txt and 'NPC「商人」　東' in txt and '怪物　東' in txt, '打包文字含每層樓梯座標與自己的標記')
+            page.evaluate("navigator.clipboard.writeText = t => { window.__clip = t; return Promise.resolve(); }")
+            page.click('#mz-pack-copy'); page.wait_for_timeout(200)
+            check(page.evaluate('window.__clip') == txt, '一鍵複製整段文字')
             page.evaluate(f"__put('1', '30102.dat', '{b64(F2)}', {now - 1000})")      # 回到第 4 層（內容一樣＝同一座迷宮）
             check(wait_text(page, '#mz-title', '第 4 層'), '重置前回到同一座迷宮：自動接回第 4 層')
             check(page.is_hidden('#mz-begin') and '已接回' in page.inner_text('#mz-runline'), '狀態列顯示已接回上次的探索')
+            check(page.is_hidden('#mz-pack'), '接回探索後打包面板先收起來')
             page.click('#mz-floors .mz-chip >> nth=0'); page.wait_for_timeout(400)
             check('怪物' in page.inner_text('#mz-exits'), '接回後自己的標記也回來了')
             # 迷宮重置：同一個檔名但地圖不一樣 → 不會誤接

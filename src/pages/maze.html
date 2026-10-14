@@ -41,6 +41,30 @@
     <p class="mz-tripline" id="mz-runline" hidden><svg class="ic" aria-hidden="true"><use href="#i-flag"/></svg><span></span><button type="button" class="btn sm" id="mz-runend"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg>{{t:mz.runEnd}}</button></p>
   </div>
 
+  <!-- 探索結束後：打包這次每一層的座標與標記，一鍵複製分享 -->
+  <section class="card mz-pack" id="mz-pack" hidden>
+    <div class="mz-pack-head">
+      <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>{{t:mz.p.title}}</h2>
+      <span class="badge b-mint" id="mz-pack-sum"></span>
+      <button type="button" class="btn sm icon ghost" id="mz-pack-close" title="{{t:mz.close}}" aria-label="{{t:mz.close}}"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="mz-pack-desc">{{t:mz.p.desc}}</p>
+    <div class="mz-pack-form">
+      <label class="field"><span>{{t:mz.p.name}}</span><input class="input sm" id="mz-pack-name" type="text" maxlength="30" placeholder="{{t:mz.p.namePh}}" autocomplete="off"></label>
+      <label class="field"><span>{{t:mz.p.shard}}</span><input class="input sm" id="mz-pack-shard" type="text" maxlength="10" placeholder="S1" autocomplete="off"></label>
+      <label class="field mz-pack-reset"><span>{{t:mz.p.reset}}</span><input class="input sm" id="mz-pack-reset" type="datetime-local" step="1"><small>{{t:mz.p.resetHint}}</small></label>
+      <p class="mz-pack-need" id="mz-pack-need"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>{{t:mz.p.need}}</p>
+      <button class="btn primary" type="button" id="mz-pack-go" hidden><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>{{t:mz.p.go}}</span></button>
+    </div>
+    <div class="mz-pack-out" id="mz-pack-out" hidden>
+      <textarea class="input mz-pack-text" id="mz-pack-text" rows="12" readonly spellcheck="false"></textarea>
+      <div class="mz-pack-actions">
+        <button class="btn primary" type="button" id="mz-pack-copy"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span>{{t:mz.p.copy}}</span></button>
+        <span class="mz-pack-tip">{{t:mz.p.copyTip}}</span>
+      </div>
+    </div>
+  </section>
+
   <div class="mz-main">
     <section class="card mz-mapcard">
       <div class="mz-maphead">
@@ -48,6 +72,7 @@
         <div class="mz-mark" id="mz-mark" role="group" aria-label="{{t:mz.markTitle}}" hidden><span class="mz-mark-label">{{t:mz.markTitle}}</span>
           <button type="button" class="chip" data-type="chest" aria-pressed="false"><i class="mzk mzk-chest"></i>{{t:mz.k.chest}}</button>
           <button type="button" class="chip" data-type="mob" aria-pressed="false"><i class="mzk mzk-mob"></i>{{t:mz.k.mob}}</button>
+          <button type="button" class="chip" data-type="npc" aria-pressed="false"><i class="mzk mzk-npc"></i>{{t:mz.k.npc}}</button>
           <button type="button" class="chip" data-type="note" aria-pressed="false"><i class="mzk mzk-note"></i>{{t:mz.k.note}}</button>{{tip:mz.markTip}}</div>
         <div class="seg seg-sm" id="mz-view" role="group" aria-label="{{t:mz.view}}"><button type="button" value="iso" aria-pressed="true">{{t:mz.view.iso}}</button><button type="button" value="grid" aria-pressed="false">{{t:mz.view.grid}}</button></div>
       </div>
@@ -81,7 +106,7 @@
         <div class="mz-wait" id="mz-wait" hidden>{{pic:mouse-blue}}<b></b><span></span></div>
       </div>
       <div class="mz-legend" id="mz-legend">
-        <span><i class="mzk mzk-up"></i>{{t:mz.k.up}}</span><span><i class="mzk mzk-down"></i>{{t:mz.k.down}}</span><span><i class="mzk mzk-crystal"></i>{{t:mz.k.crystal}}</span><span><i class="mzk mzk-warp"></i>{{t:mz.k.warp}}</span><span><i class="mzk mzk-other"></i>{{t:mz.k.other}}</span><span><i class="mzk mzk-poi"></i>{{t:mz.k.poi}}</span><span><i class="mzk mzk-chest"></i>{{t:mz.k.chest}}</span><span><i class="mzk mzk-mob"></i>{{t:mz.k.mob}}</span>
+        <span><i class="mzk mzk-up"></i>{{t:mz.k.up}}</span><span><i class="mzk mzk-down"></i>{{t:mz.k.down}}</span><span><i class="mzk mzk-crystal"></i>{{t:mz.k.crystal}}</span><span><i class="mzk mzk-warp"></i>{{t:mz.k.warp}}</span><span><i class="mzk mzk-other"></i>{{t:mz.k.other}}</span><span><i class="mzk mzk-poi"></i>{{t:mz.k.poi}}</span><span><i class="mzk mzk-chest"></i>{{t:mz.k.chest}}</span><span><i class="mzk mzk-mob"></i>{{t:mz.k.mob}}</span><span><i class="mzk mzk-npc"></i>{{t:mz.k.npc}}</span>
         <span class="mz-legend-old" hidden><i class="mz-old-swatch"></i>{{t:mz.legendOld}}</span>
       </div>
     </section>

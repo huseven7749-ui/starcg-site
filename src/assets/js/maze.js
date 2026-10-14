@@ -7,10 +7,10 @@ const PREF = 'sc.maze';
 const pref = store.get(PREF) || {};
 const FS_OK = typeof window.showDirectoryPicker === 'function';
 const PIP_OK = 'documentPictureInPicture' in window;
-const ORDER = { 1: 0, 2: 1, 3: 2, 4: 3, 0: 4, 5: 5, 6: 6, 7: 7, 8: 8 };
-const MARK_KINDS = { chest: 6, mob: 7, note: 8 };
-const KIND_NAME = k => KIND_NAMES[k] || { 6: 'chest', 7: 'mob', 8: 'note' }[k];
-// 這層的點：樓梯、水晶、特殊點＋使用者自己標的（寶箱、怪物、備註）
+const ORDER = { 1: 0, 2: 1, 3: 2, 4: 3, 0: 4, 5: 5, 6: 6, 9: 7, 7: 8, 8: 9 };
+const MARK_KINDS = { chest: 6, mob: 7, note: 8, npc: 9 };
+const KIND_NAME = k => KIND_NAMES[k] || { 6: 'chest', 7: 'mob', 8: 'note', 9: 'npc' }[k];
+// 這層的點：樓梯、水晶、特殊點＋使用者自己標的（寶箱、怪物、NPC、備註）
 function allPoints(f) {
   const m = f.map; if (!m) return [];
   const marks = (S.run?.marks || []).filter(x => x.key === f.key).map((x, k) => ({ e: x.e, s: x.s, i: -1 - k, kind: MARK_KINDS[x.type] || 8, mark: x }));
@@ -52,6 +52,7 @@ const S = {
   cur: null, liveKey: null, liveStamp: 0, pendingShow: null,
   follow: pref.follow !== false,
   run: null,                  // 這次探索：{ id, at, mode, start, floors: { key: { n, fp } }, base: { key: bytes } }
+  pack: null,                 // 剛結束的探索整理好的內容（打包分享用）
   runs: [],                   // 結束過的探索（迷宮重置前再回來可自動接回）
   baseParsed: new Map(),
   timer: 0, timerWin: window, busy: false, scanMs: 0, error: '', errorText: '', seq: 0,
@@ -357,7 +358,7 @@ async function startRun(mode, start) {
     const base = S.source.kind === 'demo' ? {} : await snapshotBase(curKey);
     const run = { id: Date.now().toString(36), at: Date.now(), mode, start, floors: {}, base };
     if (curKey) { const f = S.floors.get(curKey); run.floors[curKey] = { n: start, fp: f?.fp || '' }; }
-    S.run = run; S.baseParsed.clear();
+    S.run = run; S.baseParsed.clear(); S.pack = null; idb.del('pack');
     for (const f of S.floors.values()) { f.dirty = true; f.mask = null; }
     R.paths = null;
     if (curKey) setCur(curKey); else S.cur = null;
@@ -373,6 +374,8 @@ function assignFloor(f, en) {
 }
 async function endRun() {
   const run = S.run; if (!run) return;
+  S.pack = buildPack(run);
+  if (S.source?.kind === 'dir') idb.set('pack', S.pack);
   S.run = null; S.baseParsed.clear(); if (R.place) setPlace(null);
   if (S.source?.kind === 'dir') {
     // 存下每層最後的地圖，重置前回來時用來認迷宮
@@ -398,6 +401,7 @@ function addMark(type, c) {
   const f = curMap(); if (!f || !S.run) return;
   let note = '';
   if (type === 'note') { note = (prompt(T('mz.notePrompt')) || '').trim().slice(0, 20); if (!note) { setPlace(null); return; } }
+  else if (type === 'npc') { const v = prompt(T('mz.npcPrompt')); if (v === null) { setPlace(null); return; } note = v.trim().slice(0, 20); }
   S.run.marks ||= [];
   S.run.marks.push({ key: f.key, e: c.e, s: c.s, type, note });
   if (S.source?.kind === 'dir') saveRun();
@@ -446,6 +450,76 @@ function tryResume(f, en) {
 async function restoreRuns() {
   S.savedRun = (await idb.get('run')) || null;
   S.runs = (await idb.get('runs')) || [];
+  S.pack = (await idb.get('pack')) || null;
+}
+
+// ───── 打包分享：探索結束後，把每層的樓梯座標與自己標的點整理成一段文字，一鍵複製給別人 ─────
+function buildPack(run) {
+  const floors = runFloors().map(({ n, f }) => {
+    const m = f.map;
+    const pts = m ? allPoints(f).filter(x => !(!x.mark && f.mask && !f.mask[x.i])) : [];
+    return { n, name: f.name, shard: f.shard, w: m?.width || 0, h: m?.height || 0,
+      pts: pts.map(x => ({ kind: x.kind, e: x.e, s: x.s, note: x.mark?.note || '' })).sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.s - b.s || a.e - b.e) };
+  });
+  return { at: run.at, end: Date.now(), start: run.start, floors, shard: floors.find(x => x.shard)?.shard || '' };
+}
+const MD = new Intl.DateTimeFormat(LOC, { month: 'numeric', day: 'numeric' });
+// 重製時間：datetime-local 的值 → 「月/日 時:分:秒」；打不出日期欄的瀏覽器就照使用者打的字
+function fmtReset(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(v);
+  if (!m) return v.trim();
+  return `${Number(m[2])}/${Number(m[3])} ${m[4]}:${m[5]}:${m[6] || '00'}`;
+}
+function packText(p, form) {
+  const L = [];
+  L.push(`【${T('mz.p.head')}】${form.name} · ${form.shard}`);
+  L.push(`${T('mz.p.reset')}：${fmtReset(form.reset)}`);
+  L.push(`${T('mz.p.explored')}：${MD.format(p.at)} ${HM.format(p.at)}–${HM.format(p.end)} · ${T('mz.p.floorsN', { n: p.floors.length })}`);
+  L.push('');
+  for (const fl of p.floors) {
+    L.push(`▸ ${T('mz.floorN', { n: fl.n })}`);
+    if (!fl.pts.length) L.push(`　${T('mz.p.none')}`);
+    for (const x of fl.pts) {
+      const k = T('mz.k.' + KIND_NAME(x.kind));
+      L.push(`　${x.note ? `${k}「${x.note}」` : k}　${xyShort(x.e, x.s)}`);
+    }
+  }
+  L.push('');
+  L.push(`${T('mz.p.by')} ${location.origin}${LANG === 'ko' ? '/ko' : ''}/maze/`);
+  return L.join('\n');
+}
+function packForm() {
+  return { name: $('#mz-pack-name').value.trim(), shard: $('#mz-pack-shard').value.trim(), reset: $('#mz-pack-reset').value.trim() };
+}
+function renderPack() {
+  const box = $('#mz-pack');
+  const show = !!S.pack && !S.run && S.source && S.source.kind !== 'files';
+  box.hidden = !show;
+  if (!show) return;
+  const p = S.pack;
+  if (box.dataset.id !== String(p.end)) {
+    box.dataset.id = String(p.end);
+    $('#mz-pack-out').hidden = true; $('#mz-pack-text').value = '';
+    if (!$('#mz-pack-shard').value) $('#mz-pack-shard').value = p.shard;
+    const last = (store.get(PREF) || {}).packName; if (!$('#mz-pack-name').value && last) $('#mz-pack-name').value = last;
+  }
+  $('#mz-pack-sum').textContent = T('mz.p.sum', { n: p.floors.length, k: p.floors.reduce((a, f) => a + f.pts.length, 0) });
+  packReady();
+}
+function packReady() {
+  const f = packForm();
+  const ok = !!(f.name && f.shard && f.reset);
+  $('#mz-pack-go').hidden = !ok;
+  $('#mz-pack-need').hidden = ok;
+  return ok;
+}
+function doPack() {
+  if (!S.pack || !packReady()) return;
+  const f = packForm();
+  store.set(PREF, { ...store.get(PREF), packName: f.name });
+  $('#mz-pack-text').value = packText(S.pack, f);
+  $('#mz-pack-out').hidden = false;
+  $('#mz-pack-text').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 // ───── 畫面切換 ─────
@@ -549,7 +623,7 @@ function renderDiag() {
   box.querySelector('pre').textContent = lines.join('\n');
 }
 function renderAll() {
-  renderStatus(); renderFloors(); renderPanel();
+  renderStatus(); renderFloors(); renderPanel(); renderPack();
   const f = S.cur && S.floors.get(S.cur);
   if (f?.map && R.autoFit) fit();
   draw();
@@ -564,7 +638,7 @@ function readColors() {
   R.C = {
     floor: v('--mz-floor'), old: v('--mz-floor-old'), gap: v('--mz-gap'), gapOld: v('--mz-gap-old'), shadow: v('--mz-shadow'), hover: v('--mz-hover'),
     wall: v('--mz-wall'), wallOld: v('--mz-wall-old'), wallDark: v('--mz-wall-dark'),
-    kind: ['--mz-other', '--mz-up', '--mz-down', '--mz-crystal', '--mz-warp', '--mz-poi', '--mz-chest', '--mz-mob', '--mz-note'].map(v), label: v('--mz-label'), labelInk: v('--mz-label-ink'),
+    kind: ['--mz-other', '--mz-up', '--mz-down', '--mz-crystal', '--mz-warp', '--mz-poi', '--mz-chest', '--mz-mob', '--mz-note', '--mz-npc'].map(v), label: v('--mz-label'), labelInk: v('--mz-label-ink'),
   };
 }
 function resize() {
@@ -628,6 +702,7 @@ function glyph(kind, x, y, g) {
   else if (kind === 6) { ctx.rect(x - g * 1.05, y - g * 0.75, g * 2.1, g * 1.5); ctx.fill(); ctx.beginPath(); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.rect(x - g * 1.05, y - g * 0.15, g * 2.1, g * 0.22); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y - 0.05 * g, g * 0.22, 0, Math.PI * 2); ctx.fill(); return; }
   else if (kind === 7) { ctx.font = `900 ${Math.round(g * 2.6)}px ${getComputedStyle(document.body).getPropertyValue('--font-data') || 'system-ui'}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', x, y + g * 0.1); return; }
   else if (kind === 8) { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? g * 0.5 : g * 1.15; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } }
+  else if (kind === 9) { ctx.arc(x, y - g * 0.5, g * 0.48, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(x, y + g * 1.05, g * 0.95, Math.PI, 0); ctx.closePath(); ctx.fill(); return; }
   else if (kind === 5) { ctx.font = `800 ${Math.round(g * 2.4)}px ${getComputedStyle(document.body).getPropertyValue('--font-data') || 'system-ui'}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', x, y + g * 0.1); return; }
   else { ctx.arc(x, y, g * 0.55, 0, Math.PI * 2); }
   ctx.closePath(); ctx.fill();
@@ -835,6 +910,10 @@ $('#mz-diag-copy').addEventListener('click', () => copy($('#mz-diag pre').textCo
 $('#mz-begin-fresh').addEventListener('click', () => startRun('fresh', 1));
 $('#mz-begin-mid').addEventListener('click', () => startRun('mid', clamp(Number($('#mz-begin-n').value) || 1, 1, 200)));
 $('#mz-runend').addEventListener('click', endRun);
+['#mz-pack-name', '#mz-pack-shard', '#mz-pack-reset'].forEach(q => $(q).addEventListener('input', packReady));
+$('#mz-pack-go').addEventListener('click', doPack);
+$('#mz-pack-copy').addEventListener('click', () => copy($('#mz-pack-text').value));
+$('#mz-pack-close').addEventListener('click', () => { S.pack = null; idb.del('pack'); renderPack(); });
 $('#mz-follow').checked = S.follow;
 $('#mz-follow').addEventListener('change', e => {
   S.follow = e.target.checked; store.set(PREF, { ...store.get(PREF), follow: S.follow });
