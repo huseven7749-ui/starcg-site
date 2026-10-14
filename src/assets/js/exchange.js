@@ -126,9 +126,9 @@ function renderBatch() {
     const v = rowResult(r);
     const better = !v ? '–' : v.better === 'same' ? T('ex.same') : `<span class="badge ${v.better === 'coin' ? 'b-gold' : 'b-lav'}">${esc(T('common.' + v.better))}</span>`;
     return `<tr data-i="${i}">
-      <td data-label="${L('name')}"><input class="input sm" data-k="name" value="${esc(r.name)}" maxlength="30"></td>
-      <td data-label="${L('crystal')}"><input class="input sm" data-k="crystal" inputmode="decimal" value="${esc(r.crystal)}"></td>
-      <td data-label="${L('coin')}"><input class="input sm" data-k="coin" inputmode="decimal" value="${esc(r.coin)}"></td>
+      <td data-label="${L('name')}"><input class="input sm" data-k="name" value="${esc(r.name)}" maxlength="30" aria-label="${L('name')}"></td>
+      <td data-label="${L('crystal')}"><input class="input sm" data-k="crystal" inputmode="decimal" value="${esc(r.crystal)}" aria-label="${L('crystal')}"></td>
+      <td data-label="${L('coin')}"><input class="input sm" data-k="coin" inputmode="decimal" value="${esc(r.coin)}" aria-label="${L('coin')}"></td>
       <td class="num" data-label="${L('better')}" data-out="better">${better}</td>
       <td class="num" data-label="${L('save')}" data-out="save">${v && v.better !== 'same' ? fmt(v.pct, 1) + '%' : '–'}</td>
       <td><button class="btn sm icon ghost" type="button" data-del="${i}" aria-label="${esc(T('common.remove'))}"><svg class="ic"><use href="#i-trash"/></svg></button></td>

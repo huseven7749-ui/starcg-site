@@ -88,6 +88,7 @@
 ## 五、日常維護
 
 - **改文字**：繁中 `src/i18n/zh.mjs`、韓文 `src/i18n/ko.mjs`（兩邊的鍵要一致）。
+  - 腳本用的字串（`js.*`、`common.*`、`wel.*`、`guide.*`、`day.*`）每頁都會內嵌；各工具的字串只放在該頁（`build.mjs` 的 `DICT_GROUPS`：market → `mk|bk|dm|eqc|pet|market.type`、pets → `pet|eqc`、remodel → `rm`、exchange → `ex`、damage → `dmg`、maze → `mz`）。新增工具或在別頁用到別組字串時要加進去，否則 `T()` 會回傳鍵名。
 - **改每週活動**：`src/data/schedule.json`。
 - **說明文字**：頁面上只放最必要的字，補充說明用 `{{tip:字串鍵}}`（ⓘ 圖示，點了才展開）；長的使用方式、公式都收在可展開的區塊裡。
 - **角色圖**：放在 `src/assets/img/sprites/`（GIF 動畫＋同名 `-still.png` 靜態第一格，給設定「減少動態效果」的使用者）。新角色要在 `build.mjs` 的 `SPRITES` 登記；頁面樣板用 `{{pic:名稱 class}}`，腳本用 `spriteImg('名稱')`。目前的安排：鼠王＝各頁引導與官方市場卡；五色小鼠＝首頁各工具卡（顏色對應工具色）；冒險者＝坐著（還沒有資料／等待）、四處張望（找不到、404）、奔跑（搜尋中、規劃路線中）、歡呼（註冊好禮、最划算方案、魔法結果）、攻擊（物理傷害結果）。

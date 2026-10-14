@@ -142,8 +142,8 @@ async def act(pg, pid, step):
     if pid == 'maze' and step == 'demo':
         await pg.click('#mz-demo'); await pg.wait_for_timeout(4000)
     if pid == 'maze' and step == 'trip':
-        await pg.click('#mz-demo'); await pg.wait_for_timeout(1500); await pg.click('#mz-trip'); await pg.wait_for_timeout(3500)
-        await pg.click('#mz-exits .mz-exit-go >> nth=0'); await pg.wait_for_timeout(300)
+        await pg.click('#mz-demo'); await pg.wait_for_timeout(2500); await pg.click('#mz-runend'); await pg.wait_for_timeout(600)
+        await pg.fill('#mz-pack-name', '測試迷宮'); await pg.fill('#mz-pack-reset', '2026-10-14T22:30:15'); await pg.click('#mz-pack-go'); await pg.wait_for_timeout(400)
     if pid == 'home' and step == 'more':
         await pg.click('.tabbar [data-act=more]'); await pg.wait_for_timeout(400)
     if pid == 'home' and step == 'settings':

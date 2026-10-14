@@ -38,6 +38,8 @@ PAGE_COLORS = {
     'pets': ('#4C7C35', 'i-pets'),
     'remodel': ('#66529C', 'i-remodel'),
     'damage': ('#AE4932', 'i-damage'),
+    'maze': ('#2E7D5B', 'i-maze'),
+    'posts': ('#B5533C', 'i-posts'),
 }
 PAVING = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='48'%3E%3Cg fill='none' stroke='%237B5F43' stroke-opacity='.14' stroke-width='1.5'%3E%3Cpath d='M0 .75h96M0 24.75h96M24 0v24M72 0v24M0 24v24M48 24v24M96 24v24'/%3E%3C/g%3E%3C/svg%3E\")"
 
@@ -45,7 +47,8 @@ def og_html(page, lang):
     d = dicts[lang]
     accent, ic = PAGE_COLORS[page]
     title = d['page.home.h1'] if page == 'home' else d[f'page.{page}.h1']
-    lead = d[f'page.{page}.lead']
+    lead = d.get(f'page.{page}.lead') or d.get(f'page.{page}.desc', '')
+    if len(lead) > 46: lead = lead[:45] + '…'
     font = 'StarRoundKO, StarRound' if lang == 'ko' else 'StarRound'
     return f'''<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face {{ font-family: StarRound; src: url({FONT_ZH}); }}

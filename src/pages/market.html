@@ -88,7 +88,7 @@
         </label>
         <div class="field"><span>{{t:mk.view}}</span>
           <div class="mk-view-row">
-            <select class="input" id="mk-view"><option value="all">{{t:mk.view.all}}</option><option value="lowest">{{t:mk.view.lowest}}</option><option value="server">{{t:mk.view.server}}</option><option value="need">{{t:mk.view.need}}</option></select>
+            <select class="input" id="mk-view" aria-label="{{t:mk.view}}"><option value="all">{{t:mk.view.all}}</option><option value="lowest">{{t:mk.view.lowest}}</option><option value="server">{{t:mk.view.server}}</option><option value="need">{{t:mk.view.need}}</option></select>
             <input class="input mk-need" id="mk-need" type="number" min="1" max="99999" value="1" inputmode="numeric" aria-label="{{t:mk.need}}" hidden>
           </div>
         </div>
@@ -182,7 +182,7 @@
         </div>
         <div class="hr"></div>
         <div class="field"><span class="label-tip">{{t:bk.start}}{{tip:bk.mapHint}}</span>
-          <select class="input" id="bk-start"></select>
+          <select class="input" id="bk-start" aria-label="{{t:bk.start}}"></select>
         </div>
         <div class="grid g3 bk-xy">
           <label class="field"><span>{{t:bk.x}}</span><input class="input" id="bk-x" type="number" min="0" max="999" inputmode="numeric"></label>

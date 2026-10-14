@@ -82,13 +82,13 @@ function buildTable() {
   const H = [...$$('#bp-table thead th')].map(th => esc(th.textContent.trim()));
   tbody.innerHTML = [0, 1, 2, 3, 4].map(i => `<tr data-i="${i}">
     <td class="bp-stat">${esc(T('bp.' + i))}</td>
-    <td data-label="${H[1]}"><input class="input sm num" data-k="base" type="number" step="0.01" min="0" max="80" inputmode="decimal"></td>
-    <td data-label="${H[2]}"><input class="input sm num" data-k="starAdd" type="number" step="0.01" min="0" max="25" inputmode="decimal"></td>
-    <td data-label="${H[3]}"><select class="input sm" data-k="drop">${opt(4)}</select></td>
-    <td data-label="${H[4]}"><input class="input sm num" data-k="rand" type="number" min="0" max="10" inputmode="numeric"></td>
+    <td data-label="${H[1]}"><input class="input sm num" data-k="base" type="number" step="0.01" min="0" max="80" inputmode="decimal" aria-label="${H[1]}"></td>
+    <td data-label="${H[2]}"><input class="input sm num" data-k="starAdd" type="number" step="0.01" min="0" max="25" inputmode="decimal" aria-label="${H[2]}"></td>
+    <td data-label="${H[3]}"><select class="input sm" data-k="drop" aria-label="${H[3]}">${opt(4)}</select></td>
+    <td data-label="${H[4]}"><input class="input sm num" data-k="rand" type="number" min="0" max="10" inputmode="numeric" aria-label="${H[4]}"></td>
     <td data-label="${H[5]}"><output data-o="real"></output></td>
-    <td data-label="${H[6]}"><input class="input sm num" data-k="manual" type="number" min="0" inputmode="numeric"></td>
-    <td data-label="${H[7]}"><input class="input sm num" data-k="extra" type="number" step="1" inputmode="numeric"></td>
+    <td data-label="${H[6]}"><input class="input sm num" data-k="manual" type="number" min="0" inputmode="numeric" aria-label="${H[6]}"></td>
+    <td data-label="${H[7]}"><input class="input sm num" data-k="extra" type="number" step="1" inputmode="numeric" aria-label="${H[7]}"></td>
     <td data-label="${H[8]}"><output data-o="bp"></output></td></tr>`).join('');
 }
 function fillInputs() {

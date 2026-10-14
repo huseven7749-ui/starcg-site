@@ -148,7 +148,7 @@ function pic(spec, fromPath) {
   const scale = Number((parts.find(x => x.startsWith('@')) || '@1').slice(1)) || 1;
   const cls = parts.filter(x => !x.startsWith('@'));
   const s = spriteInfo(name, fromPath);
-  return `<picture class="sp"><source srcset="${s.still}" media="(prefers-reduced-motion: reduce)"><img${cls.length ? ` class="${cls.join(' ')}"` : ''} src="${s.src}" width="${s.w * scale}" height="${s.h * scale}" alt="" loading="lazy" decoding="async"></picture>`;
+  return `<picture class="sp"><source srcset="${s.still}" media="(prefers-reduced-motion: reduce)"><source srcset="${s.still}" media="(prefers-reduced-data: reduce)"><img${cls.length ? ` class="${cls.join(' ')}"` : ''} src="${s.src}" width="${s.w * scale}" height="${s.h * scale}" alt="" loading="lazy" decoding="async"></picture>`;
 }
 const spritesJson = fromPath => JSON.stringify(Object.fromEntries(SPRITES.map(n => { const s = spriteInfo(n, fromPath); return [n, [s.src, s.still, s.w, s.h]]; })));
 
@@ -292,7 +292,7 @@ function postCard(p, lang, fromPath, t) {
   const tags = p.tags.length ? `<span class="post-tags">${p.tags.slice(0, 3).map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</span>` : '';
   return `<article class="post-card"><a href="${pageHref(p.lang, postPath(p), fromPath)}"${foreign ? ` hreflang="${LANGS[p.lang].dict['lang.hreflang']}"` : ''}>` +
     `<span class="post-card-meta"><time datetime="${p.date}">${p.date}</time>${foreign ? `<span class="badge b-sky">${esc(LANGS[p.lang].dict['lang.name'])}</span>` : ''}</span>` +
-    `<h3${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.title)}</h3><p${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.desc)}</p>${tags}</a></article>`;
+    `<h2${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.title)}</h2><p${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.desc)}</p>${tags}</a></article>`;
 }
 function postVars(page, lang, fromPath, t) {
   const p = page.post;
@@ -320,7 +320,10 @@ function buildPages() {
   const schedule = JSON.parse(read(path.join(SRC, 'data', 'schedule.json')));
   for (const lang of Object.keys(LANGS)) {
     const t = makeT(lang);
-    const jsDict = Object.fromEntries(Object.entries({ ...LANGS.zh.dict, ...LANGS[lang].dict }).filter(([k]) => /^(js|common|day|market\.type|pet|rm|ex|dmg|guide|mk|bk|dm|eqc|mz|wel)\./.test(k) && !/(_html|\.faq\.)/.test(k)));
+    // 腳本字典：共用部分每頁都帶，各工具的字串只放在該頁（首頁、心得頁不用載市場／迷宮的字串）
+    const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc', remodel: 'rm', exchange: 'ex', damage: 'dmg', maze: 'mz' };
+    const fullDict = { ...LANGS.zh.dict, ...LANGS[lang].dict };
+    const dictFor = id => { const re = new RegExp(`^(js|common|day|guide|wel${DICT_GROUPS[id] ? '|' + DICT_GROUPS[id] : ''})\\.`); return Object.fromEntries(Object.entries(fullDict).filter(([k]) => re.test(k) && !/(_html|\.faq\.)/.test(k))); };
     const postPages = POSTS.filter(p => p.lang === lang).map(p => ({ id: 'post', path: postPath(p), tpl: 'post', js: null, post: p, langs: p.langs }));
     for (const page of [...PAGES, ...postPages]) {
       if (page.id === '404' && lang !== 'zh') continue; // 404 只需一份
@@ -342,14 +345,14 @@ function buildPages() {
         canonical: absUrl(lang, page.path),
         altZh: absUrl('zh', page.path), altKo: absUrl('ko', page.path),
         ogLocale: t('lang.og'), ogLocaleAlt: LANGS[other].dict['lang.og'],
-        ogImage: `${SITE}/assets/${assetMap[`img/og/${['404', 'post', 'posts'].includes(page.id) ? 'home' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+        ogImage: `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
         otherLangHref: pageHref(other, otherPath, fromPath), otherLangName: LANGS[other].dict['lang.name'],
         otherLangCode: other, otherLangShort: LANGS[other].dict['lang.short'],
         zhHref: pageHref('zh', lang === 'zh' ? page.path : otherPath, fromPath), koHref: pageHref('ko', lang === 'ko' ? page.path : otherPath, fromPath),
         manifest: PREVIEW ? '' : `<link rel="manifest" href="/manifest${lang === 'ko' ? '.ko' : ''}.webmanifest">`,
         robots: page.noindex ? 'noindex,follow' : 'index,follow,max-image-preview:large,max-snippet:-1',
         jsonld: jsonLd(lang, page, t),
-        i18nJson: JSON.stringify(jsDict).replace(/</g, '\\u003c'),
+        i18nJson: JSON.stringify(dictFor(page.id)).replace(/</g, '\\u003c'),
         pageScript: page.js ? `<script type="module" src="${asset(`js/${page.js}.js`, fromPath)}"></script>` : '',
         base: PREVIEW ? relPath(fromPath, '/') : '/',
         fontHref: asset(`fonts/round-${lang}.woff2`, fromPath),
