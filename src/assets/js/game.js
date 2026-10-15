@@ -1,6 +1,7 @@
 // 冒險手冊：經驗值、等級、稱號、頭像、成就、每日任務、連續天數。
 // 全部只存在這台裝置的瀏覽器（localStorage），不需要帳號；可以匯出一段代碼搬到別台裝置。
 import { $, $$, T, esc, fmt, store, toast, openSheet, spriteImg, LANG } from './core.js';
+import { initStats } from './stats.js';
 
 const KEY = 'sc.game';
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -280,3 +281,4 @@ function mouseRain() {
   track('egg.rain');
 }
 init();
+initStats();

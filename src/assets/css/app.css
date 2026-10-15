@@ -1574,3 +1574,6 @@ html[data-view="mobile"] .dummy-pick { grid-template-columns: repeat(2, minmax(0
 .post-card-cover { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: cover; border-radius: 12px; background: var(--card-2); }
 .prose img { display: block; margin-inline: auto; }
 .prose p > img + em { display: block; text-align: center; font-size: .85rem; color: var(--ink-3); }
+
+.foot-stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.foot-stats[hidden] { display: none; }

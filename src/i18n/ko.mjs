@@ -58,6 +58,9 @@ export default {
   'footer.about': '사이트 소개',
   'footer.aboutText': '시장 데이터는 공식 노점 시장, 펫 데이터는 StarCG 공략 사이트에서 가져와요.',
   'footer.updated': '최종 업데이트',
+  'stats.online': '현재 접속',
+  'stats.today': '오늘 조회',
+  'stats.total': '누적 조회',
 
   'common.search': '검색',
   'common.reset': '초기화',

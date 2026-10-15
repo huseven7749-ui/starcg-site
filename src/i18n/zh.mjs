@@ -59,6 +59,9 @@ export default {
   'footer.about': '關於本站',
   'footer.aboutText': '市場資料來自官方擺攤市場，寵物資料來自星詠攻略網。',
   'footer.updated': '最後更新',
+  'stats.online': '目前在線',
+  'stats.today': '今日瀏覽',
+  'stats.total': '累計瀏覽',
 
   'common.search': '搜尋',
   'common.reset': '重設',
