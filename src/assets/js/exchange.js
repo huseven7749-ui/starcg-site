@@ -1,5 +1,7 @@
 // 魔幣・魔晶・法幣（台幣／港幣／人民幣／韓元／美金）匯率比價
 import { $, $$, T, api, esc, fmt, fmtWan, rates, store, toast, parseAmount, downloadCsv, debounce, loadFx, FIATS } from './core.js';
+import { track } from './game.js';
+const trackCompare = debounce(() => track('exchange.compare'), 1200);
 
 const BATCH_KEY = 'sc.batch';
 const el = {
@@ -84,10 +86,12 @@ function verdictOf(crystalPrice, coinPrice) {
   if (coinPrice < crystalAsCoin) return { better: 'coin', pct: (crystalAsCoin - coinPrice) / crystalAsCoin * 100, save: crystalAsCoin - coinPrice, crystalAsCoin };
   return { better: 'crystal', pct: (coinPrice - crystalAsCoin) / coinPrice * 100, save: rates.coinToCrystal(coinPrice, r) - crystalPrice, crystalAsCoin };
 }
+let lastCmp = '';
 function renderVerdict() {
   const v = verdictOf(num(el.sC.value), num(el.sG.value));
   el.verdict.className = 'verdict';
   if (!v) { el.verdict.textContent = T('ex.verdictEmpty'); return; }
+  const key = `${el.sC.value}|${el.sG.value}`; if (key !== lastCmp) { lastCmp = key; trackCompare(); }
   if (v.better === 'same') { el.verdict.textContent = T('ex.verdictSame'); return; }
   el.verdict.classList.add(v.better);
   const save = v.better === 'coin' ? `${fmtWan(v.save)} ${T('common.coin')}` : `${fmt(v.save, 1)} ${T('common.crystal')}`;

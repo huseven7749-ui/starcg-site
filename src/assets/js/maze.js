@@ -1,7 +1,8 @@
 // 迷宮找樓梯：連結一次遊戲的 StarCG_Data 資料夾，之後自動讀取 map\分流\*.dat，
 // 邊走邊畫出地圖、標出樓梯與座標。全部在使用者電腦上讀取，不上傳、不修改遊戲檔案。
-import { $, $$, T, LANG, esc, fmt, store, toast, copy, emptyState, clamp } from './core.js';
+import { $, $$, T, LANG, esc, fmt, store, toast, copy, emptyState, clamp, spriteImg, openSheet } from './core.js';
 import { parseDat, freshMask, shardOf, demoMaze, KIND_NAMES, isFloor, MARK_EXIT } from './mazedat.js';
+import { track, miceRun } from './game.js';
 
 const PREF = 'sc.maze';
 const pref = store.get(PREF) || {};
@@ -171,7 +172,10 @@ async function loadFloor(f) {
   try { bytes = await f.read(); } catch { f.dirty = true; return false; }
   const m = parseDat(bytes);
   if (!m.ok) { f.dirty = m.code === 'partial'; f.error = m.code; return false; }
+  const stairsBefore = f.map ? f.map.exits.filter(x => x.kind === 1 || x.kind === 2).length : 0;
   f.map = m; f.dirty = false; f.error = '';
+  const stairsNow = m.exits.filter(x => x.kind === 1 || x.kind === 2).length;
+  if (S.run && !f.manual && stairsNow > stairsBefore && f.key in S.run.floors) { track('maze.stairs'); if (S.source?.kind !== 'files') confetti(); }
   f.mask = null;
   if (S.run && !f.manual) {
     const base = S.run.base[f.key];
@@ -375,6 +379,7 @@ function assignFloor(f, en) {
 async function endRun() {
   const run = S.run; if (!run) return;
   S.pack = buildPack(run);
+  const result = buildResult(run, S.pack);
   if (S.source?.kind === 'dir') idb.set('pack', S.pack);
   S.run = null; S.baseParsed.clear(); if (R.place) setPlace(null);
   if (S.source?.kind === 'dir') {
@@ -388,6 +393,7 @@ async function endRun() {
   S.endedKey = S.cur;          // 結束時還在這層的話，繼續寫入不算「回來」
   S.cur = null; S.liveKey = null; S.liveStamp = 0; R.paths = null;
   renderAll(); poll();
+  if (result.floors) { track('maze.run'); if (result.floors >= 5) track('maze.deep'); showResult(result); }
 }
 // ───── 自己標的點（寶箱、怪物、備註）：跟著這次探索一起存 ─────
 function setPlace(type) {
@@ -453,6 +459,78 @@ async function restoreRuns() {
   S.pack = (await idb.get('pack')) || null;
 }
 
+// ───── 探索結算：像遊戲結算畫面，評價＋數據，可存成圖片 ─────
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function buildResult(run, pack) {
+  const floors = pack.floors.length;
+  const stairs = pack.floors.reduce((a, f) => a + f.pts.filter(p => p.kind === 1 || p.kind === 2).length, 0);
+  const marks = (run.marks || []).length;
+  const cells = runFloors().reduce((a, { f }) => a + (f.map?.floor || 0), 0);
+  const ms = Math.max(0, Date.now() - run.at);
+  const score = floors * 10 + stairs * 3 + marks * 2 + cells / 60;
+  const grade = score >= 60 ? 'S' : score >= 35 ? 'A' : score >= 15 ? 'B' : 'C';
+  return { floors, stairs, marks, cells, ms, grade, at: run.at };
+}
+const fmtDur = ms => { const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`; };
+let lastResult = null;
+function showResult(r) {
+  lastResult = r;
+  const d = $('#sheet-mzresult'); if (!d) return;
+  const pose = r.grade === 'S' || r.grade === 'A' ? 'adv-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
+  $('.mr-grade', d).textContent = r.grade; $('.mr-grade', d).dataset.g = r.grade;
+  $('.mr-sp', d).innerHTML = spriteImg(pose);
+  $('.mr-line', d).textContent = T('mz.r.line.' + r.grade);
+  $('.mr-stats', d).innerHTML = [[T('mz.r.floors'), r.floors], [T('mz.r.time'), fmtDur(r.ms)], [T('mz.r.cells'), fmt(r.cells)], [T('mz.r.stairs'), r.stairs], [T('mz.r.marks'), r.marks]]
+    .map(([k, v]) => `<div class="stat-tile"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('');
+  openSheet('sheet-mzresult');
+  if (!REDUCED && (r.grade === 'S' || r.grade === 'A')) setTimeout(() => miceRun(r.grade === 'S' ? 5 : 3), 300);
+}
+function confetti() {
+  if (REDUCED) return;
+  const host = $('#mz-stage'); if (!host) return;
+  const colors = ['#D9654A', '#E2AE47', '#7DAE5F', '#4E95D0', '#8B6CE0', '#FFF6D8'];
+  for (let i = 0; i < 24; i++) {
+    const p = document.createElement('i'); p.className = 'mz-confetti';
+    p.style.cssText = `left:${10 + Math.random() * 80}%;background:${colors[i % colors.length]};animation-delay:${Math.random() * 0.4}s;animation-duration:${1.2 + Math.random() * 0.8}s;transform:rotate(${Math.random() * 360}deg)`;
+    host.appendChild(p); setTimeout(() => p.remove(), 2400);
+  }
+}
+// 存成圖片：用 canvas 畫一張結算卡
+async function resultImage() {
+  const r = lastResult; if (!r) return;
+  const W = 720, H = 900, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#CFE4F4'); g.addColorStop(0.5, '#F7EBD2'); g.addColorStop(1, '#EFD9AE');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#D9654A'; x.lineWidth = 8; x.beginPath(); x.roundRect(14, 14, W - 28, H - 28, 28); x.stroke();
+  const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
+  x.fillStyle = '#4A3422'; x.textAlign = 'center'; x.font = `700 30px ${font}`; x.fillText(T('mz.r.title'), W / 2, 86);
+  x.font = `500 20px ${font}`; x.fillStyle = '#7B5F43'; x.fillText(new Date(r.at).toLocaleString(LOC, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }), W / 2, 120);
+  const gc = { S: '#D9654A', A: '#E2AE47', B: '#4E95D0', C: '#8A8A8A' }[r.grade];
+  x.fillStyle = gc; x.font = `900 180px ${font}`; x.fillText(r.grade, W / 2, 300);
+  x.fillStyle = '#4A3422'; x.font = `700 26px ${font}`; x.fillText(T('mz.r.line.' + r.grade), W / 2, 360);
+  const rows = [[T('mz.r.floors'), String(r.floors)], [T('mz.r.time'), fmtDur(r.ms)], [T('mz.r.cells'), fmt(r.cells)], [T('mz.r.stairs'), String(r.stairs)], [T('mz.r.marks'), String(r.marks)]];
+  rows.forEach(([k, v], i) => {
+    const y = 420 + i * 72;
+    x.fillStyle = 'rgba(255,250,238,.9)'; x.beginPath(); x.roundRect(70, y, W - 140, 58, 16); x.fill();
+    x.textAlign = 'left'; x.fillStyle = '#7B5F43'; x.font = `600 22px ${font}`; x.fillText(k, 96, y + 38);
+    x.textAlign = 'right'; x.fillStyle = '#4A3422'; x.font = `800 30px ${font}`; x.fillText(v, W - 96, y + 40);
+  });
+  // 角色
+  try {
+    const spr = JSON.parse(document.body.dataset.sprites || '{}');
+    const pose = r.grade === 'S' || r.grade === 'A' ? 'adv-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
+    if (spr[pose]) { const img = new Image(); img.src = spr[pose][1]; await img.decode(); x.imageSmoothingEnabled = false; const h = 150, w = img.naturalWidth * (h / img.naturalHeight); x.drawImage(img, 60, 190, w, h); }
+  } catch { /* 略 */ }
+  x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = `700 22px system-ui, sans-serif`;
+  x.fillStyle = '#D9654A'; x.beginPath(); x.roundRect(W / 2 - 120, H - 84, 240, 44, 22); x.fill(); x.fillStyle = '#fff'; x.fillText('starcg.online', W / 2, H - 54);
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  const file = new File([blob], 'maze-result.png', { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: T('mz.r.title') }); return; } catch { /* 使用者取消 → 改下載 */ } }
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'maze-result.png' });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
 // ───── 打包分享：探索結束後，把每層的樓梯座標與自己標的點整理成一段文字，一鍵複製給別人 ─────
 function buildPack(run) {
   const floors = runFloors().map(({ n, f }) => {
@@ -515,6 +593,7 @@ function packReady() {
 }
 function doPack() {
   if (!S.pack || !packReady()) return;
+  track('maze.pack');
   const f = packForm();
   store.set(PREF, { ...store.get(PREF), packName: f.name });
   $('#mz-pack-text').value = packText(S.pack, f);
@@ -914,6 +993,8 @@ $('#mz-runend').addEventListener('click', endRun);
 $('#mz-pack-go').addEventListener('click', doPack);
 $('#mz-pack-copy').addEventListener('click', () => copy($('#mz-pack-text').value));
 $('#mz-pack-close').addEventListener('click', () => { S.pack = null; idb.del('pack'); renderPack(); });
+$('#mr-save')?.addEventListener('click', resultImage);
+$('#mr-pack')?.addEventListener('click', () => { $('#sheet-mzresult').close(); $('#mz-pack')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 $('#mz-follow').checked = S.follow;
 $('#mz-follow').addEventListener('change', e => {
   S.follow = e.target.checked; store.set(PREF, { ...store.get(PREF), follow: S.follow });

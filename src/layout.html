@@ -62,6 +62,7 @@
       <button class="icon-btn" type="button" data-act="theme" aria-label="{{t:a11y.theme}}">
         <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"/></svg>
       </button>
+      <button class="icon-btn game-btn" type="button" data-act="game" aria-label="{{t:game.title}}"><span class="game-av"></span><span class="game-lv">Lv.1</span></button>
       <button class="icon-btn" type="button" data-act="settings" aria-label="{{t:a11y.settings}}"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
     </div>
   </div>
@@ -93,6 +94,7 @@
 <dialog class="sheet" id="sheet-more">
   <div class="sheet-grab" aria-hidden="true"></div>
   <div class="sheet-links">{{moreLinks}}
+    <a class="sheet-link" href="#" data-act="game"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span>{{t:game.title}}</span></a>
     <a class="sheet-link sheet-link-sponsor" href="{{sponsorUrl}}" target="_blank" rel="noopener" data-act="sponsor"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>{{t:nav.sponsor}}</span></a>
     <a class="sheet-link" href="https://member.starcg.net/market.php" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg><span>{{t:nav.officialMarket}}</span></a>
     <a class="sheet-link" href="https://guide.starcg.net/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>{{t:nav.guide}}</span></a>
@@ -125,6 +127,19 @@
   <a class="btn primary wide" href="{{videoUrl}}" target="_blank" rel="noopener" data-act="close"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg>{{t:sponsor.comment}}</a>
   <a class="btn sky wide" href="{{sponsorUrl}}" target="_blank" rel="noopener" data-act="close"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>{{t:sponsor.go}}</a>
 </dialog>
+<!-- 冒險手冊：等級、稱號、每日任務、成就、頭像（只存在瀏覽器） -->
+<dialog class="sheet game" id="sheet-game" aria-labelledby="gm-title">
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="gm-head"><span class="gm-av"></span><div class="gm-info"><h2 id="gm-title">{{t:game.title}}</h2><p><b class="gm-lv"></b> <span class="gm-title"></span></p><div class="gm-bar" aria-hidden="true"><i></i></div><small class="gm-xp"></small> · <small class="gm-next"></small></div></div>
+  <div class="gm-stats"><div><b class="gm-cheese"></b><span>🧀 {{t:game.cheese}}</span></div><div><b class="gm-streak"></b><span>🔥 {{t:game.streakLabel}}</span></div><div><b class="gm-best"></b><span>{{t:game.bestStreak}}</span></div></div>
+  <h3>{{t:game.todayQuests}}</h3><ul class="quest-list gm-quests"></ul>
+  <h3>{{t:game.avatars}}</h3><div class="gm-avatars"></div>
+  <h3>{{t:game.achievements}} <small class="gm-ach-sum"></small></h3><ul class="gm-ach"></ul>
+  <h3>{{t:game.transfer}}</h3><p class="small muted">{{t:game.transferNote}}</p>
+  <div class="row gm-transfer"><button type="button" class="btn sm" data-act="game-export"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>{{t:game.export}}</button><button type="button" class="btn sm ghost" data-act="game-import">{{t:game.import}}</button></div>
+  <textarea class="input gm-code" id="gm-code" rows="3" readonly hidden aria-label="{{t:game.export}}"></textarea>
+  <button type="button" class="btn ghost wide" data-act="close">{{t:a11y.close}}</button>
+</dialog>
 <dialog class="sheet welcome" id="sheet-welcome" aria-labelledby="wel-title">
   <div class="sheet-grab" aria-hidden="true"></div>
   <div class="wel-head">{{pic:ratking wel-sp}}<div><h2 id="wel-title">{{t:wel.title}}</h2><p>{{t:wel.lead}}</p></div></div>
@@ -140,6 +155,7 @@
 <div class="toast" role="status" aria-live="polite"></div>
 <script type="application/json" id="i18n">{{i18nJson}}</script>
 <script type="module" src="{{asset:js/core.js}}"></script>
+<script type="module" src="{{asset:js/game.js}}"></script>
 {{pageScript}}
 </body>
 </html>

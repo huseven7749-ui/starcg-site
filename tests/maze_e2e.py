@@ -7,6 +7,12 @@ BASE = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8090'
 SHOTS = sys.argv[2] if len(sys.argv) > 2 else None
 MARK = 0xC003
 
+def end_run(page):
+    """結束探索；有結算畫面就順手關掉"""
+    page.click('#mz-runend'); page.wait_for_timeout(300)
+    if page.is_visible('#sheet-mzresult'):
+        page.click('#sheet-mzresult [data-act="close"]'); page.wait_for_timeout(200)
+
 def dat(w, h, floor, exits):
     n = w * h
     tile = [100] * n; obj = [0] * n; mark = [0] * n
@@ -134,6 +140,13 @@ with sync_playwright() as p:
             # 結束探索 → 清掉；之後同一座迷宮再有動靜 → 自動接回
             page.click('#mz-runend')
             check(page.is_visible('#mz-begin') and page.locator('#mz-floors .mz-chip').count() == 0, '結束探索後清掉樓層、回到開始面板')
+            # 結算畫面：評級、統計，關掉後才能操作打包
+            page.wait_for_selector('#sheet-mzresult[open]')
+            grade = page.get_attribute('#sheet-mzresult .mr-grade', 'data-g')
+            stats = page.inner_text('#sheet-mzresult .mr-stats')
+            check(grade in ('S', 'A', 'B', 'C') and '2' in stats, f'結算畫面：評級 {grade}、統計 2 層')
+            page.click('#sheet-mzresult [data-act="close"]'); page.wait_for_timeout(200)
+            check(not page.is_visible('#sheet-mzresult'), '關閉結算畫面')
             # 打包分享：三項填好才出現按鈕
             check(page.is_visible('#mz-pack') and page.is_hidden('#mz-pack-go'), '結束後出現打包面板，還沒填資料不給打包')
             check(page.input_value('#mz-pack-shard') == 'S1', '分流自動帶入')
@@ -153,7 +166,7 @@ with sync_playwright() as p:
             page.click('#mz-floors .mz-chip >> nth=0'); page.wait_for_timeout(400)
             check('怪物' in page.inner_text('#mz-exits'), '接回後自己的標記也回來了')
             # 迷宮重置：同一個檔名但地圖不一樣 → 不會誤接
-            page.click('#mz-runend')
+            end_run(page)
             F3 = dat(30, 30, corridor([(2, 2), (25, 2), (25, 25)]), [(2, 2, 12001), (25, 25, 12003)])
             page.evaluate(f"__put('1', '30102.dat', '{b64(F3)}', {now})")
             page.wait_for_timeout(1200)
@@ -166,7 +179,7 @@ with sync_playwright() as p:
             page.evaluate(f"__put('1', '30103.dat', '{b64(F1b)}', {now + 2000})")
             page.wait_for_timeout(800)
             check('舊記錄' not in page.inner_text('#mz-exits') and '下樓梯' in page.inner_text('#mz-exits'), '新探索的樓梯不會標成舊記錄')
-            page.click('#mz-runend')
+            end_run(page)
             # 手動選檔
             tmp = tempfile.mkdtemp()
             fp = os.path.join(tmp, '40001.dat'); open(fp, 'wb').write(F1b)

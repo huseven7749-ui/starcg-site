@@ -331,7 +331,7 @@ addEventListener('pageshow', e => { if (e.persisted) reapplyPrefs(); });
 addEventListener('storage', e => { if (e.key === 'sc.theme' || e.key === 'sc.layout') reapplyPrefs(); });
 addEventListener('resize', debounce(() => { if ((html.dataset.layoutPref || 'auto') === 'auto') applyLayout('auto'); }, 200));
 
-function openSheet(id) {
+export function openSheet(id) {
   $$('dialog.sheet[open]').forEach(d => d.close());
   const d = document.getElementById(id);
   if (!d) return;

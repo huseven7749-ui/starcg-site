@@ -40,7 +40,7 @@ JS = r"""
     const txt = n.textContent.trim();
     if (!txt) continue;
     const host = n.parentElement;
-    if (!host || !visible(host) || host.closest('script,style,svg,dialog:not([open]),[hidden],.sr-only,.skip,datalist,option,select')) continue;
+    if (!host || !visible(host) || host.closest('script,style,svg,dialog:not([open]),[hidden],.sr-only,.skip,.xp-float,.ach-toast,.toast,datalist,option,select')) continue;
     if (host.closest('details:not([open])') && !host.closest('summary')) continue;
     const range = document.createRange();
     range.selectNodeContents(n);
@@ -60,7 +60,8 @@ JS = r"""
     const cs = getComputedStyle(box);
     const bl = br.left + parseFloat(cs.borderLeftWidth), brr = br.right - parseFloat(cs.borderRightWidth);
     const overR = tr.right - brr, overL = bl - tr.left;
-    const overB = tr.bottom - br.bottom, overT = br.top - tr.top;
+    let overB = tr.bottom - br.bottom, overT = br.top - tr.top;
+    if (['auto', 'scroll'].includes(cs.overflowY)) { overB = 0; overT = 0; }   // 會捲動的容器（底部面板）上下超出是正常的
     const over = Math.max(overR, overL, overB, overT);
     if (over > 1.5) {
       const k = 'box|' + path(host) + '|' + label(box);
@@ -141,23 +142,31 @@ async def act(pg, pid, step):
         await pg.evaluate("document.querySelectorAll('details.fold').forEach(d => d.open = true)"); await pg.click('.dmg-result .tip > summary >> visible=true'); await pg.wait_for_timeout(300)
     if pid == 'maze' and step == 'demo':
         await pg.click('#mz-demo'); await pg.wait_for_timeout(4000)
-    if pid == 'maze' and step == 'trip':
+    if pid == 'maze' and step in ('result', 'trip'):
         await pg.click('#mz-demo'); await pg.wait_for_timeout(2500); await pg.click('#mz-runend'); await pg.wait_for_timeout(600)
+    if pid == 'maze' and step == 'trip':
+        await pg.click('#sheet-mzresult [data-act=close]'); await pg.wait_for_timeout(300)      # 關掉結算畫面才能填打包
         await pg.fill('#mz-pack-name', '測試迷宮'); await pg.fill('#mz-pack-reset', '2026-10-14T22:30:15'); await pg.click('#mz-pack-go'); await pg.wait_for_timeout(400)
+    if pid == 'damage' and step == 'dummy':
+        await pg.click('#dm-hit10'); await pg.wait_for_timeout(2200)
+    if pid == 'remodel' and step == 'sim':
+        await pg.select_option('#sim-n', '20'); await pg.click('#sim-go'); await pg.wait_for_timeout(1800)
+    if pid == 'home' and step == 'game':
+        await pg.click('.top-actions .game-btn'); await pg.wait_for_timeout(500)
     if pid == 'home' and step == 'more':
         await pg.click('.tabbar [data-act=more]'); await pg.wait_for_timeout(400)
     if pid == 'home' and step == 'settings':
         await pg.click('.top-actions [data-act=settings]'); await pg.wait_for_timeout(400)
 
 PLAN = [
-    ('home', '/', ['base', 'more', 'settings']),
+    ('home', '/', ['base', 'more', 'settings', 'game']),
     ('market', '/market/?q=%E6%B0%B4%E6%99%B6', ['base', 'history', 'pricing', 'need', 'watch', 'bulk', 'data']),
     ('market2', '/market/?kind=pet&race=%E9%87%8E%E7%8D%B8%E7%B3%BB', ['base']),
     ('exchange', '/exchange/', ['base', 'filled', 'tip']),
     ('pets', '/pets/', ['base', 'sim', 'cmp']),
-    ('remodel', '/remodel/', ['base', 'adv']),
-    ('damage', '/damage/', ['base', 'pet', 'magic', 'formula']),
-    ('maze', '/maze/', ['base', 'demo', 'trip']),
+    ('remodel', '/remodel/', ['base', 'adv', 'sim']),
+    ('damage', '/damage/', ['base', 'pet', 'magic', 'formula', 'dummy']),
+    ('maze', '/maze/', ['base', 'demo', 'result', 'trip']),
     ('posts', '/posts/', ['base']),
     ('post', '/posts/site-guide/', ['base']),
     ('404', '/nope/', ['base']),

@@ -1,6 +1,7 @@
 // 寵物改造圖成本計算
 import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, toast, parseAmount, debounce, emptyState } from './core.js';
-import { LAYERS, expected, simulate, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven } from './farmcalc.js';
+import { LAYERS, expected, simulate, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven, craft, stonePerRun } from './farmcalc.js';
+import { track } from './game.js';
 import { TIERS, REMODEL, expectedTries , remodelPoints } from './petcalc.js';
 
 const KEY = 'sc.remodel.v2';
@@ -265,3 +266,65 @@ loadFx();
 renderFarm();
 renderStones();
 renderTries();
+
+// ───── 模擬刷場：一場一場隨機跑，看運氣起伏 ─────
+const SIM = { busy: false, timer: 0 };
+const simReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function simStop() { clearInterval(SIM.timer); SIM.timer = 0; SIM.busy = false; $('#sim-go').disabled = false; }
+function simStart() {
+  if (SIM.busy) return;
+  const n = Math.max(1, Math.min(500, Number($('#sim-n').value) || 50));
+  const o = farmOpts();
+  const p2 = Math.min(100, Math.max(0, v('s-p2'))) / 100, p3 = Math.min(100, Math.max(0, v('s-p3'))) / 100;
+  const per = stonePerRun(reach, p2, p3);
+  const grid = $('#sim-grid'); grid.innerHTML = ''; grid.dataset.n = String(n);
+  const tally = { n: 0, s: 0, g: 0, stones: 0, runs: 0 };
+  SIM.busy = true; $('#sim-go').disabled = true;
+  const step = () => {
+    tally.runs++;
+    const k = Math.floor(o.per) + (Math.random() < o.per % 1 ? 1 : 0);
+    let best = -1, cn = 0, cs = 0, cg = 0;
+    for (let i = 0; i < k; i++) {
+      const r = Math.random();
+      const t = r < o.rates[2] ? 2 : r < o.rates[2] + o.rates[1] ? 1 : 0;
+      if (t === 0) cn++; else if (t === 1) cs++; else cg++;
+      best = Math.max(best, t);
+    }
+    const st = (reach >= 2 && Math.random() < p2 ? 1 : 0) + (reach >= 3 && Math.random() < p3 ? 1 : 0);
+    tally.n += cn; tally.s += cs; tally.g += cg; tally.stones += st;
+    const cell = document.createElement('i');
+    cell.className = 'sr' + (best === 2 ? ' g' : best === 1 ? ' s' : best === 0 ? ' n' : ' z') + (st ? ' x' : '');
+    cell.title = `#${tally.runs}：${T('rm.tier.normal')} ${cn}・${T('rm.tier.silver')} ${cs}・${T('rm.tier.gold')} ${cg}${st ? `・${T('rm.simStone')} ${st}` : ''}`;
+    if (st) cell.textContent = st > 1 ? '◆◆' : '◆';
+    grid.appendChild(cell);
+    simRender(tally, o, per, n, false);
+    if (tally.runs >= n) { simStop(); simRender(tally, o, per, n, true); }
+  };
+  if (simReduced) { while (tally.runs < n) step(); return; }
+  SIM.timer = setInterval(step, n > 100 ? 25 : 45);
+}
+function simRender(t, o, per, n, done) {
+  const c = craft(t.n, t.s, t.g, o.target, o);
+  const expCards = expected({ ...o, runs: t.runs });
+  const fees = c.crafts1 * o.nsFee + c.crafts2 * o.sgFee;
+  const cost = t.runs * o.runCost + fees;
+  const tier = T('rm.tier.' + o.target);
+  const tile = (k, body, sub = '') => `<div class="stat-tile"><span>${esc(k)}</span><b>${body}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  $('#sim-kv').innerHTML =
+    tile(T('rm.simCards'), `<span class="t-n">${fmt(t.n)}</span> / <span class="t-s">${fmt(t.s)}</span> / <span class="t-g">${fmt(t.g)}</span>`, T('rm.simExp', { n: `${fmt(expCards.n, 1)} / ${fmt(expCards.s, 1)} / ${fmt(expCards.g, 1)}` })) +
+    tile(T('rm.simTarget', { t: tier }), fmt(c.count), T('rm.simExp', { n: fmt(expCards.target, 1) })) +
+    tile(T('rm.simStones'), fmt(t.stones), T('rm.simExp', { n: fmt(per.mean * t.runs, 1) })) +
+    tile(T('rm.simCost'), fmtWan(cost));
+  const vd = $('#sim-verdict');
+  if (!done) { vd.textContent = T('rm.simRunning', { i: t.runs, n }); vd.className = 'sim-verdict'; return; }
+  // 運氣：目標卡等張數（含突破石加權）對期望值
+  const act = c.count + t.stones * 3, exp = expCards.target + per.mean * t.runs * 3;
+  const ratio = exp > 0 ? act / exp : 1;
+  const pct = Math.round(Math.abs(ratio - 1) * 100);
+  const kind = exp >= 2 && ratio >= 1.5 ? 'lucky' : exp >= 2 && ratio <= 0.5 ? 'unlucky' : 'normal';
+  vd.textContent = T(kind === 'lucky' ? 'rm.simLucky' : kind === 'unlucky' ? 'rm.simUnlucky' : 'rm.simNormal', { p: kind === 'normal' ? Math.round(ratio * 100) : pct });
+  vd.className = 'sim-verdict ' + kind;
+  track('remodel.sim'); if (kind === 'lucky') track('remodel.lucky'); if (kind === 'unlucky') track('remodel.unlucky');
+}
+$('#sim-go').addEventListener('click', simStart);
+$('#sim-reset').addEventListener('click', () => { simStop(); $('#sim-grid').innerHTML = ''; $('#sim-kv').innerHTML = ''; $('#sim-verdict').textContent = ''; });

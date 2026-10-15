@@ -30,6 +30,12 @@
   <a class="tool t-sponsor" href="{{sponsorUrl}}" target="_blank" rel="noopener" data-act="sponsor"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg></span><b>{{t:nav.sponsor}}</b><p>{{t:home.tool.sponsor}}</p>{{pic:adv-cheer t-mouse}}</a>
 </div>
 
+<section class="card quest-card" id="quest-card" aria-labelledby="quest-title">
+  <div class="quest-head">{{pic:ratking quest-sp}}<div><h2 class="card-title" id="quest-title">{{t:game.todayQuests}}</h2><div class="quest-meta"></div></div><button type="button" class="btn sm" data-act="game"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span>{{t:game.open}}</span></button></div>
+  <ul class="quest-list"></ul>
+  <p class="small muted quest-note">{{t:game.localNote}}</p>
+</section>
+
 <h2 class="section-title" id="schedule"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg>{{t:home.scheduleTitle}}<small>{{t:home.scheduleNote}}</small></h2>
 {{scheduleHtml}}
 <p class="next-ev" id="next-ev" hidden><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span></span></p>

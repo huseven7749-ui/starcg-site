@@ -1,5 +1,6 @@
 // 寵物圖鑑 + 成長模擬
 import { $, $$, T, esc, fmt, store, copy, toast, loadPets, petImgSrc, normName, downloadCsv, debounce, clamp, emptyState, spriteImg } from './core.js';
+import { track } from './game.js';
 import { simulate, petScore, maxStarAdd, tierOf, TIERS, REMODEL, STAT_KEYS, freePoints, RAND_TOTAL_MAX, DROP_TOTAL_MAX , remodelPoints, remodelLv, REMODEL_MAX } from './petcalc.js';
 
 const CMP_KEY = 'sc.petcmp';
@@ -115,6 +116,7 @@ function renderHead() {
 function selectPet(name) {
   const p = byName.get(normName(name));
   if (!p) return;
+  track('pets.sim');
   Object.assign(S, {
     pet: p, base: [...p.bp], drop: zero(), rand: [2, 2, 2, 2, 2], manual: zero(), extra: zero(),
     tier: tierOf(p.cardTier), slots: clamp(p.skillSlots || 6, 6, 10), remodel: Math.min(S.remodel, REMODEL_MAX),

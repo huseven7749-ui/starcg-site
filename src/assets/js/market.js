@@ -6,6 +6,7 @@ import { tradeStats, dailyWeighted, pricingRef, trialPrice, inPeriod, stripBr, t
 import { loadCatalog, EQ_CATS, eqCatName, raceName } from './catalog.js';
 import { initBulk } from './mkbulk.js';
 import { initData, importedRecords } from './mkdata.js';
+import { track } from './game.js';
 
 const ITEM_STATS = ['atk', 'def', 'agi', 'spt', 'rec', 'crit', 'ctr', 'hit', 'avd', 'hp', 'mp', 'matk', 'mres'];
 const RES = ['poison', 'sleep', 'stone', 'drunk', 'confusion', 'amnesia'];
@@ -188,6 +189,7 @@ async function search(fresh = false) {
     if (token !== S.token) return;
     S.data = d;
     S.rows = flatten(d);
+    if (mode === 'query' && S.rows.length) track('market.search');
     render();
     renderPricing();
   } catch (e) {
@@ -613,6 +615,7 @@ async function loadDaily() {
   const d = new Date(Date.now() + 8 * 3600e3 - dailyDay * 86400e3).toISOString().slice(0, 10);
   try {
     const r = await api('daily', { day: d });
+    track('market.daily');
     const t = r.totals || {};
     const item = (x, extra) => `<li><button type="button" class="dl-name" data-goto="${esc(x.n)}" data-exact="1">${esc(dn(x))}</button>${extra}</li>`;
     const medTxt = m => [0, 1].filter(c => m?.[c] != null).map(c => `<span class="price ${c ? 'crystal' : 'coin'}"><svg class="ic"><use href="#i-${c ? 'crystal' : 'coin'}"/></svg>${fmt(m[c])}</span>`).join(' ');
@@ -798,7 +801,7 @@ document.addEventListener('input', e => {
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-copy],[data-expand],[data-watch],[data-unwatch],[data-goto],[data-retry],[data-refresh],[data-hist-more],[data-hist-fetch],[data-watch-all],[data-csv],[data-fav-go],[data-fav-del],#hist-cur button,#tr-cur button');
   if (!t || !t.closest('#main-cmp')) return;
-  if (t.dataset.copy) copy(t.dataset.copy);
+  if (t.dataset.copy) { copy(t.dataset.copy); track('market.copy'); }
   else if (t.dataset.expand != null) { const n = t.dataset.expand; S.expanded.has(n) ? S.expanded.delete(n) : S.expanded.add(n); render(); }
   else if (t.dataset.watch != null) { toggleWatch(t.dataset.watch, t.dataset.kind); render(); toast(T(isWatched(t.dataset.watch) ? 'watchAdd' : 'watchRemove')); }
   else if (t.dataset.unwatch != null) { toggleWatch(t.dataset.unwatch); if (S.data) render(); }

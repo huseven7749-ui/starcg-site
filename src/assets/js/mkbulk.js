@@ -4,6 +4,7 @@ import { loadCatalog, EQ_CATS, CRYSTALS, eqCatName, raceName } from './catalog.j
 import { plan, parseLoc, START_POINTS, TOWN } from './route.js';
 import { drawMap } from './mkmap.js';
 import { stripBr, twTime } from './mkstats.js';
+import { track } from './game.js';
 import { tierOf } from './petcalc.js';
 
 const LIST_KEY = 'sc.bulk', CFG_KEY = 'sc.bulkcfg', START_KEY = 'sc.starts';
@@ -160,6 +161,7 @@ async function go() {
     }
     const notFound = list.filter(x => !listings.some(l => normName(l.name) === normName(x.n))).map(x => x.n);
     S.results = { groups, notFound, failed, fetchedAt: isFinite(fetchedAt) ? fetchedAt : Date.now() / 1000, demo };
+    if (groups.length) track('market.bulk');
     renderResults();
     drawCfgMap();
   } catch (e) {
