@@ -178,3 +178,8 @@ python3 tests/seo_check.py dist https://starcg.online
 
 - 圓體字型子集：jf open 粉圓（SIL OFL 1.1）、Gowun Dodum（SIL OFL 1.1），依授權改名為 StarRound／StarRoundKO，授權全文在 `src/assets/fonts/`。
 - 寵物圖片與圖鑑資料來自星詠攻略網；本站為非官方玩家工具站。
+
+### 發文後圖片檢查清單（每次發文都要做）
+- 封面／文內圖用看圖方式逐張打開確認：角色不可互相重疊或被裁切、標題不要孤字換行（單獨一個「？」）、文字不超出卡片。
+- 封面多個角色時由右往左依實際寬度加間距排列，不要手動指定座標。
+- 確認文章頁圖片都載得出來（naturalWidth > 0）、手機版不橫向溢出。
