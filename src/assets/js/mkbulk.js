@@ -217,7 +217,7 @@ function groupCard(g, gi, isBest) {
   const over = p.over.length ? `<p class="small muted">${esc(T('bk.over'))}${p.over.map(u => ` ${esc(u.name)} +${fmt(u.qty)}`).join('、')}</p>` : '';
   const off = p.offMap.length ? `<details class="bk-off"><summary>${esc(T('bk.offMap', { n: p.offMap.length }))}</summary><ul>${p.offMap.map(l => `<li>${esc(stripBr(l.name))} · ${esc(l.stall.loc || l.stall.map)} · ${money(l.p)}</li>`).join('')}</ul></details>` : '';
   return `<section class="card bk-group">
-    <h2 class="card-title"><svg class="ic"><use href="#i-pin"/></svg>S${g.sv} · ${esc(curName(g.c))}${isBest ? `<span class="badge b-ok">${esc(T('bk.best'))}</span>${spriteImg('adv-cheer', 'bk-cheer')}` : ''}</h2>
+    <h2 class="card-title"><svg class="ic"><use href="#i-pin"/></svg>S${g.sv} · ${esc(curName(g.c))}${isBest ? `<span class="badge b-ok">${esc(T('bk.best'))}</span>${spriteImg('car-cheer', 'bk-cheer')}` : ''}</h2>
     ${tiles}${unmet}
     <div class="bk-group-body"><ol class="bk-steps">${steps || `<li class="muted">${esc(T('bk.noStops'))}</li>`}</ol><div class="bk-map" id="bk-gmap-${gi}"></div></div>${over}${off}
   </section>`;

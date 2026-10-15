@@ -234,7 +234,7 @@ export const emptyState = (pose, title, tip = '') =>
   `<div class="empty">${spriteImg(pose)}<b>${esc(title)}</b>${tip ? `<p>${esc(tip)}</p>` : ''}</div>`;
 // 載入中：冒險者在跑道上跑
 export const runningState = text =>
-  `<div class="sp-loading" role="status"><div class="sp-track">${spriteImg('adv-run', 'sp-runner')}</div><span>${esc(text)}</span></div>`;
+  `<div class="sp-loading" role="status"><div class="sp-track">${spriteImg('car-run', 'sp-runner')}</div><span>${esc(text)}</span></div>`;
 
 export function petImgSrc(id) {
   const n = String(id ?? '').match(/\d+/)?.[0];

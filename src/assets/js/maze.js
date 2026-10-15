@@ -476,7 +476,7 @@ let lastResult = null;
 function showResult(r) {
   lastResult = r;
   const d = $('#sheet-mzresult'); if (!d) return;
-  const pose = r.grade === 'S' || r.grade === 'A' ? 'adv-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
+  const pose = r.grade === 'S' || r.grade === 'A' ? 'car-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
   $('.mr-grade', d).textContent = r.grade; $('.mr-grade', d).dataset.g = r.grade;
   $('.mr-sp', d).innerHTML = spriteImg(pose);
   $('.mr-line', d).textContent = T('mz.r.line.' + r.grade);
@@ -519,7 +519,7 @@ async function resultImage() {
   // 角色
   try {
     const spr = JSON.parse(document.body.dataset.sprites || '{}');
-    const pose = r.grade === 'S' || r.grade === 'A' ? 'adv-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
+    const pose = r.grade === 'S' || r.grade === 'A' ? 'car-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
     if (spr[pose]) { const img = new Image(); img.src = spr[pose][1]; await img.decode(); x.imageSmoothingEnabled = false; const h = 150, w = img.naturalWidth * (h / img.naturalHeight); x.drawImage(img, 60, 190, w, h); }
   } catch { /* 略 */ }
   x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = `700 22px system-ui, sans-serif`;

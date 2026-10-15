@@ -247,7 +247,8 @@ async function dmHit({ combo = false } = {}) {
   if (DM.myPool <= 1) resetMine();
   const skill = val('dm-mode') === 'skill';
   const move = skill || (crit && Math.random() < 0.6) ? 'magic' : 'attack';
-  const near = FOE.x - (move === 'magic' ? 135 : 72) * K;
+  const rc = SPRITES.fighters[ME.key].reach || {};                          // 車子比較寬，停遠一點
+  const near = FOE.x - (move === 'magic' ? rc.magic || 135 : rc.attack || 72) * K;
   if (Math.abs(ME.x - near) > 4) { play(ME, 'run', { loop: true, speed: 1.4 }); await tween(ME, near, combo ? 110 : 220); }
   sfx(move === 'magic' ? 'magic' : 'swing');
   const speed = combo ? 1.7 : 1.25;
