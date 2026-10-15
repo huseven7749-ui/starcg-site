@@ -10,7 +10,15 @@ $mk = function (string $q, string $lang = '') use ($base) {
     if ($lang !== '') $p['lang'] = $lang;
     return $base . '?' . http_build_query($p, '', '&', PHP_QUERY_RFC3986);
 };
-$cases = ['zh' => $mk('水晶'), 'zh_langko' => $mk('水晶', 'ko'), 'ko_langko' => $mk('수정', 'ko'), 'ko_nolang' => $mk('수정')];
+$mk2 = function (array $extra) use ($base) { return $base . '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986); };
+$cases = [
+    'ko_exact' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 1, 'page' => 1, 'search' => '자수정', 'lang' => 'ko']),
+    'ko_fuzzy' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '자수정', 'lang' => 'ko']),
+    'ko_item' => $mk2(['ajax' => 1, 'type' => 'item', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '수정', 'lang' => 'ko']),
+    'all_ko' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '', 'lang' => 'ko']),
+    'all_zh' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '']),
+    'pet_ko' => $mk2(['ajax' => 1, 'type' => 'pet', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '', 'lang' => 'ko']),
+];
 $res = http_multi(array_values($cases), 4, 12, ['Accept-Language: ko-KR,ko;q=0.9,zh-TW;q=0.5', 'Cookie: lang=ko']);
 $out = [];
 foreach ($cases as $k => $url) {
@@ -23,6 +31,6 @@ foreach ($cases as $k => $url) {
     }
     $first = null;
     if ($d) foreach (($d['itemsByCd'] ?? []) as $items) { foreach ((array)$items as $it) { $first = array_keys($it); break 2; } }
-    $out[$k] = ['code' => $r['code'] ?? null, 'err' => $r['err'] ?? null, 'json' => (bool)$d, 'total' => $d['totalFiltered'] ?? null, 'names' => $names, 'keys' => $first, 'head' => $d ? null : mb_substr((string)($r['body'] ?? ''), 0, 120)];
+    $out[$k] = ['code' => $r['code'] ?? null, 'err' => $r['err'] ?? null, 'json' => (bool)$d, 'total' => $d['totalFiltered'] ?? null, 'perPage' => $d['perPage'] ?? null, 'ids' => $d ? array_slice(array_map(fn($its) => array_map(fn($it) => ($it['ITEM_ID'] ?? '?') . '=' . ($it['ITEM_TRUENAME'] ?? '?'), (array)$its), array_values($d['itemsByCd'] ?? [])), 0, 2) : null, 'names' => $names, 'keys' => $first, 'head' => $d ? null : mb_substr((string)($r['body'] ?? ''), 0, 120)];
 }
 echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
