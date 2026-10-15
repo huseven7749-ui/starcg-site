@@ -1487,9 +1487,10 @@ html[data-view="mobile"] .game-btn { padding: 0; width: 40px; }
 .dummy-stage { position: relative; height: 210px; border-radius: var(--r); background: linear-gradient(180deg, var(--sky-l) 0 64%, var(--mint-l) 64% 100%); border: 1.5px solid var(--line); overflow: hidden; margin: 4px 0 12px; }
 .dummy-stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36%; background: var(--paving); opacity: .6; pointer-events: none; }
 .dummy-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; image-rendering: pixelated; }
-.dummy-tag { position: absolute; z-index: 3; width: 64px; transform: translateX(-50%); text-align: center; pointer-events: none; }
-.dummy-tag b { display: inline-block; padding: 0 7px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font: 800 .72rem/1.5 var(--font-data); letter-spacing: .04em; }
-.dummy-tag .dummy-hp { margin-top: 3px; }
+.dummy-tag { position: absolute; z-index: 3; width: 64px; transform: translateX(-50%); text-align: center; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
+.dummy-tag b { display: inline-block; white-space: nowrap; padding: 0 7px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font: 800 .72rem/1.5 var(--font-data); letter-spacing: .04em; }
+.dummy-tag .dummy-hp { margin-top: 3px; width: 64px; }
+.dummy-tag.me b { font-size: .66rem; }
 .dummy-hp { height: 6px; border-radius: 4px; background: rgba(0, 0, 0, .25); overflow: hidden; }
 .dummy-hp i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--mint), var(--mint-d)); transition: width .25s; }
 .dummy-hp i.low { background: linear-gradient(90deg, var(--coral), var(--pink-d)); }
@@ -1552,3 +1553,17 @@ body.rat-dance .hero h1 .twinkle { animation-duration: .4s; }
 html[data-view="mobile"] .mr-grade { font-size: 4.4rem; }
 html[data-view="mobile"] .mr-sp img { height: 84px; }
 html[data-view="mobile"] .mr-actions .btn { flex: 1 1 40%; justify-content: center; }
+/* 痛打 01：選角色、音效、跳字顏色 */
+.dummy-pick { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 2px 0 8px; padding: 2px; }
+.dummy-pick button { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 78px; padding: 4px 2px 5px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card-2); color: var(--ink-2); font: 700 .72rem/1.2 var(--font); cursor: pointer; transition: transform .12s, border-color .12s, background .12s; }
+.dummy-pick button:hover { transform: translateY(-1px); border-color: var(--line-2); }
+.dummy-pick button[aria-checked="true"] { border-color: var(--pink); background: var(--pink-ll); color: var(--pink-d); box-shadow: 0 0 0 2px color-mix(in srgb, var(--pink) 25%, transparent); }
+.dummy-pick button i { display: block; width: 48px; height: 48px; border-radius: 10px; background-color: var(--card-3); background-image: var(--pt); background-repeat: no-repeat; background-size: auto 48px; image-rendering: pixelated; }
+.dummy-pick button span { max-width: 74px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dummy-pick.is-busy { opacity: .6; pointer-events: none; }
+.dummy-tag.me b { background: color-mix(in srgb, var(--sky-d) 80%, transparent); }
+.dummy-sound { position: absolute; right: 8px; top: 8px; z-index: 4; width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--line); background: color-mix(in srgb, var(--card) 85%, transparent); font-size: 15px; line-height: 1; padding: 0; cursor: pointer; }
+.dummy-sound .off, .dummy-sound[aria-pressed="false"] .on { display: none; }
+.dummy-sound[aria-pressed="false"] .off { display: inline; }
+.dm-pop.blue { color: var(--sky-d); font-size: 1.15rem; }
+.dm-pop.warn { color: var(--coral-d); font-size: 1.1rem; bottom: 118px; }
