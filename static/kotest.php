@@ -12,14 +12,12 @@ $mk = function (string $q, string $lang = '') use ($base) {
 };
 $mk2 = function (array $extra) use ($base) { return $base . '?' . http_build_query($extra, '', '&', PHP_QUERY_RFC3986); };
 $cases = [
-    'ko_exact' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 1, 'page' => 1, 'search' => '자수정', 'lang' => 'ko']),
-    'ko_fuzzy' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '자수정', 'lang' => 'ko']),
-    'ko_item' => $mk2(['ajax' => 1, 'type' => 'item', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '수정', 'lang' => 'ko']),
-    'all_ko' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '', 'lang' => 'ko']),
-    'all_zh' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '']),
-    'pet_ko' => $mk2(['ajax' => 1, 'type' => 'pet', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '', 'lang' => 'ko']),
+    'ko_langzh' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '자수정', 'lang' => 'zh']),
+    'ko_nolang' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '자수정']),
+    'zh_langko' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '紫水晶', 'lang' => 'ko']),
+    'zh_langzh' => $mk2(['ajax' => 1, 'type' => 'all', 'server' => 'all', 'exact' => 0, 'page' => 1, 'search' => '紫水晶', 'lang' => 'zh']),
 ];
-$res = http_multi(array_values($cases), 4, 12, ['Accept-Language: ko-KR,ko;q=0.9,zh-TW;q=0.5', 'Cookie: lang=ko']);
+$res = []; foreach ($cases as $u) { $res += http_multi([$u], 1, 12); usleep(400000); }
 $out = [];
 foreach ($cases as $k => $url) {
     $r = $res[$url] ?? null;
