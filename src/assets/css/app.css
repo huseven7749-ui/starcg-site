@@ -90,8 +90,8 @@ button { cursor: pointer; }
 .skip:focus { left: 12px; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 [hidden] { display: none !important; }
-.sky { display: none; }
-html[data-theme="dark"] .sky {
+.night-sky { display: none; }
+html[data-theme="dark"] .night-sky {
   display: block; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
     radial-gradient(1.5px 1.5px at 12% 18%, #fff8 50%, transparent 51%), radial-gradient(1px 1px at 32% 8%, #fff7 50%, transparent 51%),
