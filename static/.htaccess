@@ -7,6 +7,7 @@ AddType application/manifest+json .webmanifest
 AddType font/woff2 .woff2
 AddType font/woff .woff
 AddType image/svg+xml .svg
+AddType image/webp .webp
 
 <IfModule mod_rewrite.c>
   RewriteEngine On

@@ -1,13 +1,23 @@
 // 批次採購路線規劃（純函式，瀏覽器與 Node 測試共用）
-// 距離：魔力寶貝可斜走，走一格（含斜角）算 1 步 → max(|dx|, |dy|)
+// 距離：魔力寶貝可斜走，走一格（含斜角）算 1 步。預設用直線距離 max(|dx|, |dy|)；
+// 瀏覽器會傳入 frangrid.js 的實際步數（繞牆、過橋、避開水面），見 plan() 的 o.dist。
 
+// 起點：座標來自遊戲地圖資料（Map1000 的傳送點與地標），城門／里堡是「從那裡走出來站的那一格」
+export const START_GROUPS = ['gate', 'castle', 'stone', 'rest', 'place'];
 export const START_POINTS = [
-  { id: 'E1', x: 242, y: 100 }, { id: 'E2', x: 233, y: 78 },
-  { id: 'S1', x: 141, y: 148 }, { id: 'S2', x: 162, y: 130 },
-  { id: 'W1', x: 69, y: 79 }, { id: 'W2', x: 72, y: 123 },
+  { id: 'gateS', x: 153, y: 235, g: 'gate' }, { id: 'gateE', x: 277, y: 88, g: 'gate' }, { id: 'gateW', x: 27, y: 88, g: 'gate' },
+  { id: 'castleS', x: 153, y: 103, g: 'castle' }, { id: 'castleE', x: 170, y: 88, g: 'castle' }, { id: 'castleW', x: 138, y: 88, g: 'castle' }, { id: 'castleN', x: 153, y: 68, g: 'castle' },
+  { id: 'E1', x: 242, y: 100, g: 'stone' }, { id: 'E2', x: 233, y: 78, g: 'stone' },
+  { id: 'S1', x: 141, y: 148, g: 'stone' }, { id: 'S2', x: 162, y: 130, g: 'stone' },
+  { id: 'W1', x: 69, y: 79, g: 'stone' }, { id: 'W2', x: 72, y: 123, g: 'stone' },
+  { id: 'restE1', x: 247, y: 95, g: 'rest' }, { id: 'restE2', x: 239, y: 74, g: 'rest' },
+  { id: 'church', x: 154, y: 29, g: 'place' }, { id: 'arena', x: 122, y: 161, g: 'place' }, { id: 'bank', x: 238, y: 111, g: 'place' },
+  { id: 'hospE', x: 221, y: 83, g: 'place' }, { id: 'hospW', x: 82, y: 83, g: 'place' }, { id: 'petshop', x: 171, y: 132, g: 'place' },
+  { id: 'inn', x: 238, y: 64, g: 'place' }, { id: 'theater', x: 184, y: 151, g: 'place' }, { id: 'cake', x: 216, y: 148, g: 'place' },
 ];
 export const TOWN = '法蘭城';
-export const dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+export const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+export const dist = cheb;
 
 /** 「法蘭城 [東:219 南:132]」→ { map, x, y } */
 export function parseLoc(loc, x, y) {
@@ -18,7 +28,7 @@ export function parseLoc(loc, x, y) {
 }
 
 /** 路線排序：最近鄰 ＋ 2-opt（從起點出發、不回起點） */
-export function orderRoute(start, pts) {
+export function orderRoute(start, pts, dist = cheb) {
   if (pts.length < 2) return [...pts];
   const left = [...pts], route = [];
   let cur = start;
@@ -49,11 +59,13 @@ const norm = s => String(s ?? '').normalize('NFKC').trim().replace(/^\[(.*)\]$/,
  * @param o {
  *   needs: [{ name, qty }],
  *   listings: [{ name, p, q, stall: { key, n, x, y, map, sv } }],
- *   start: { x, y, map }, strategy: 'route' | 'fewest' | 'price', basis: 'piece' | 'stack', tol: 0.15
+ *   start: { x, y, map }, strategy: 'route' | 'fewest' | 'price', basis: 'piece' | 'stack', tol: 0.15,
+ *   dist: (a, b) => 步數（選用；沒給用直線距離）
  * }
  */
 export function plan(o) {
   const basis = o.basis === 'stack' ? 'stack' : 'piece';
+  const dist = typeof o.dist === 'function' ? o.dist : cheb;
   const start = { map: TOWN, ...o.start };
   const rem = new Map();
   for (const n of o.needs) if (n.qty > 0) rem.set(norm(n.name), (rem.get(norm(n.name)) || 0) + Math.floor(n.qty));
@@ -149,7 +161,7 @@ export function plan(o) {
     }
   }
 
-  const ordered = orderRoute(start, [...visits.values()].map(v => v.stall));
+  const ordered = orderRoute(start, [...visits.values()].map(v => v.stall), dist);
   let prev = start, walked = 0, total = 0;
   const steps = ordered.map((st, i) => {
     const v = visits.get(st.key);

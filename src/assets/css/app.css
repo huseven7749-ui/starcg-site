@@ -842,13 +842,13 @@ html[data-view="mobile"] .mk-cur-quick > button { flex: 1; justify-content: cent
 .mp-bg { fill: var(--card-2); }
 .mp-grid { stroke: var(--line); stroke-width: 1; }
 .mp-ax { fill: var(--ink-3); font-size: 10px; font-family: var(--font-data); }
-.mp-dir { fill: #fff; font-size: 12px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.55); stroke-width: 3px; }
-.mp-gate rect { fill: #DDF0FF; stroke: #2E6FA8; stroke-width: 1.5; }
-.mp-gate text { fill: #fff; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 3px; }
-.mp-route-shadow { fill: none; stroke: rgba(0,0,0,.45); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
-.mp-route { fill: none; stroke: #FFE45C; stroke-width: 3.5; stroke-dasharray: 7 6; stroke-linecap: round; stroke-linejoin: round; }
-.mp-stop circle { fill: var(--pink); stroke: #fff; stroke-width: 2.5; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
-.mp-stop text { fill: #fff; font-size: 11px; font-weight: 800; font-family: var(--font-data); }
+.mp-dir { fill: #fff; font-size: calc(12px * var(--mk, 1)); font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.55); stroke-width: calc(3px * var(--mk, 1)); }
+.mp-gate rect { fill: #DDF0FF; stroke: #2E6FA8; stroke-width: calc(1.5px * var(--mk, 1)); }
+.mp-gate text { fill: #fff; font-size: calc(11px * var(--mk, 1)); font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: calc(3px * var(--mk, 1)); }
+.mp-route-shadow { fill: none; stroke: rgba(0,0,0,.45); stroke-width: calc(6px * var(--mk, 1)); stroke-linecap: round; stroke-linejoin: round; }
+.mp-route { fill: none; stroke: #FFE45C; stroke-width: calc(3.5px * var(--mk, 1)); stroke-dasharray: calc(7px * var(--mk, 1)) calc(6px * var(--mk, 1)); stroke-linecap: round; stroke-linejoin: round; }
+.mp-stop circle { fill: var(--pink); stroke: #fff; stroke-width: calc(2.5px * var(--mk, 1)); filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.mp-stop text { fill: #fff; font-size: calc(11px * var(--mk, 1)); font-weight: 800; font-family: var(--font-data); }
 .mp-start circle { fill: var(--lemon); stroke: var(--wood-d); stroke-width: 2; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 .mp-start text { fill: #fff; font-size: 11px; font-weight: 800; font-family: var(--font-data); paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 3px; }
 .mp-start path { fill: var(--wood-d); }

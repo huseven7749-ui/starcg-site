@@ -1,7 +1,8 @@
 // 批次採購：多項商品一次查價，依分流／幣別規劃購買攤位與路線
 import { $, $$, T, api, esc, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState, LANG } from './core.js';
 import { loadCatalog, EQ_CATS, CRYSTALS, eqCatName, raceName } from './catalog.js';
-import { plan, parseLoc, START_POINTS, TOWN } from './route.js';
+import { plan, parseLoc, START_POINTS, START_GROUPS, TOWN } from './route.js';
+import { makeDist, pathBetween } from './frangrid.js';
 import { drawMap } from './mkmap.js';
 import { stripBr, twTime } from './mkstats.js';
 import { track } from './game.js';
@@ -9,7 +10,7 @@ import { tierOf } from './petcalc.js';
 
 const LIST_KEY = 'sc.bulk', CFG_KEY = 'sc.bulkcfg', START_KEY = 'sc.starts';
 const MAX_ITEMS = 60, CAND_SHOW = 48;
-const DEF = { kind: 'pet', petMode: 'bounty', cat: '', race: '', sv: 'all', cur: 'both', strat: 'route', tol: 15, basis: 'piece', start: 'E1', x: 242, y: 100, src: 'player' };
+const DEF = { kind: 'pet', petMode: 'bounty', cat: '', race: '', sv: 'all', cur: 'both', strat: 'route', tol: 15, basis: 'piece', start: 'castleS', x: 153, y: 103, src: 'player' };
 let C = null;
 const S = { ...DEF, ...(store.get(CFG_KEY) || {}), q: '', showAll: false, results: null, busy: false };
 const saveCfg = () => { const { q, showAll, results, busy, ...rest } = S; store.set(CFG_KEY, rest); };
@@ -87,10 +88,14 @@ function toggle(n, kind) {
 
 // ───── 起點 ─────
 const savedStarts = () => store.get(START_KEY, []) || [];
+const walkDist = makeDist();   // 法蘭城實際步數（繞牆、過橋、避開水面），BFS 結果會記住
+/** 起點→各站實際走的格子（畫路線用） */
+const routePaths = (start, steps) => { const pts = [start, ...steps.map(st => st.stall)]; const out = []; for (let i = 1; i < pts.length; i++) out.push(pathBetween(pts[i - 1], pts[i])); return out; };
 function fillStart() {
   const saved = savedStarts();
-  $('#bk-start').innerHTML = START_POINTS.map(p => `<option value="${p.id}">${esc(T('bk.gate.' + p.id))}（${p.x}, ${p.y}）</option>`).join('') +
-    saved.map((p, i) => `<option value="saved:${i}">★ ${esc(p.name)}（${p.x}, ${p.y}）</option>`).join('') +
+  const opt = p => `<option value="${p.id}">${esc(T('bk.gate.' + p.id))}（${p.x}, ${p.y}）</option>`;
+  $('#bk-start').innerHTML = START_GROUPS.map(g => `<optgroup label="${esc(T('bk.sg.' + g))}">${START_POINTS.filter(p => p.g === g).map(opt).join('')}</optgroup>`).join('') +
+    (saved.length ? `<optgroup label="${esc(T('bk.sg.saved'))}">${saved.map((p, i) => `<option value="saved:${i}">★ ${esc(p.name)}（${p.x}, ${p.y}）</option>`).join('')}</optgroup>` : '') +
     `<option value="custom">${esc(T('bk.custom'))}</option>`;
   $('#bk-start').value = [...$('#bk-start').options].some(o => o.value === S.start) ? S.start : 'custom';
   $('#bk-x').value = S.x; $('#bk-y').value = S.y;
@@ -105,8 +110,9 @@ function setStart(id) {
   saveCfg(); fillStart();
 }
 function drawCfgMap() {
-  const stops = (S.results?.groups?.[0]?.plan.steps || []).map(s => ({ x: s.stall.x, y: s.stall.y, label: s.i, title: s.stall.n }));
-  drawMap($('#bk-map'), { start: { x: S.x, y: S.y }, stops, route: !!stops.length, onPick: (x, y) => { S.start = 'custom'; S.x = x; S.y = y; saveCfg(); fillStart(); } });
+  const steps = S.results?.groups?.[0]?.plan.steps || [];
+  const stops = steps.map(s => ({ x: s.stall.x, y: s.stall.y, label: s.i, title: s.stall.n }));
+  drawMap($('#bk-map'), { start: { x: S.x, y: S.y }, stops, route: !!stops.length, paths: steps.length ? routePaths({ x: S.x, y: S.y }, steps) : [], onPick: (x, y) => { S.start = 'custom'; S.x = x; S.y = y; saveCfg(); fillStart(); } });
 }
 
 // ───── 規劃 ─────
@@ -157,7 +163,7 @@ async function go() {
     for (const sv of servers) for (const c of curs) {
       const L = listings.filter(l => l.stall.sv === sv && l.c === c);
       if (!L.length) continue;
-      groups.push({ sv, c, plan: plan({ needs, listings: L, start, strategy: S.strat, basis: S.basis, tol: S.tol / 100 }) });
+      groups.push({ sv, c, plan: plan({ needs, listings: L, start, strategy: S.strat, basis: S.basis, tol: S.tol / 100, dist: walkDist }) });
     }
     const notFound = list.filter(x => !listings.some(l => normName(l.name) === normName(x.n))).map(x => x.n);
     S.results = { groups, notFound, failed, fetchedAt: isFinite(fetchedAt) ? fetchedAt : Date.now() / 1000, demo };
@@ -187,7 +193,8 @@ function renderResults() {
   out.innerHTML = head + r.groups.map((g, gi) => groupCard(g, gi, best[g.c] === g)).join('');
   r.groups.forEach((g, gi) => {
     const box = $(`#bk-gmap-${gi}`);
-    if (box) drawMap(box, { start: { x: Number(S.x), y: Number(S.y) }, stops: g.plan.steps.map(s => ({ x: s.stall.x, y: s.stall.y, label: s.i, title: s.stall.n })), route: true });
+    const start = { x: Number(S.x), y: Number(S.y) };
+    if (box) drawMap(box, { start, stops: g.plan.steps.map(s => ({ x: s.stall.x, y: s.stall.y, label: s.i, title: s.stall.n })), route: true, paths: routePaths(start, g.plan.steps) });
   });
 }
 function groupCard(g, gi, isBest) {

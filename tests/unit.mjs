@@ -5,7 +5,8 @@ import { simulate, statsFromBp, petScore, decodeAlloc, gradeMeta, expectedTries,
 import { expected, simulate as farmSim, craft, stonePerRun, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven, LAYERS } from '../src/assets/js/farmcalc.js';
 import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective } from '../src/assets/js/dmgcalc.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, parseImport, mergeRecords, inPeriod } from '../src/assets/js/mkstats.js';
-import { plan, orderRoute, dist, parseLoc, START_POINTS } from '../src/assets/js/route.js';
+import { plan, orderRoute, dist, parseLoc, START_POINTS, START_GROUPS } from '../src/assets/js/route.js';
+import { isWalk, inMain, snap, bfs, makeDist, pathBetween, GW, GH } from '../src/assets/js/frangrid.js';
 import { parseDat, encodeDat, exitKind, classify, freshMask, shardOf, demoMaze, KIND, MARK_EXIT } from '../src/assets/js/mazedat.js';
 
 const near = (a, b, eps = 0.011) => assert.ok(Math.abs(a - b) <= eps, `${a} ≠ ${b}`);
@@ -229,7 +230,9 @@ t('匯入 CSV／JSON 成交紀錄', () => {
 t('採購路線：距離、排序、三種策略與堆疊計價', () => {
   assert.equal(dist({ x: 0, y: 0 }, { x: 3, y: 5 }), 5);           // 可斜走
   assert.deepEqual(parseLoc('法蘭城 [東:219 南:132]'), { map: '法蘭城', x: 219, y: 132 });
-  assert.equal(START_POINTS.length, 6);
+  assert.equal(START_POINTS.length, 24);
+  assert.ok(START_POINTS.every(p => START_GROUPS.includes(p.g) && Number.isFinite(p.x) && Number.isFinite(p.y)));
+  assert.equal(new Set(START_POINTS.map(p => p.id)).size, START_POINTS.length);
   const start = { x: 0, y: 0, map: '法蘭城' };
   assert.deepEqual(orderRoute(start, [{ x: 10, y: 0 }, { x: 1, y: 0 }, { x: 5, y: 0 }]).map(p => p.x), [1, 5, 10]);
   const S = (key, x) => ({ key, n: key, x, y: 0, map: '法蘭城', sv: 1 });
@@ -251,6 +254,34 @@ t('採購路線：距離、排序、三種策略與堆疊計價', () => {
   assert.equal(stack.total, 100); assert.deepEqual(stack.over, [{ name: '甲', qty: 2 }]);  // 整堆 5 個 100
   const short = plan({ needs: [{ name: '甲', qty: 20 }], listings, start, strategy: 'price', basis: 'piece' });
   assert.deepEqual(short.unmet, [{ name: '甲', qty: 10 }]);
+});
+
+t('法蘭城可走格：連通、貼齊、實際步數與路線', () => {
+  assert.equal(GW * GH, 90000);
+  // 起點都要在主要連通區（或 6 格內能貼到）
+  for (const p of START_POINTS) assert.ok(snap(p.x, p.y), `起點 ${p.id} 貼不到可走格`);
+  assert.ok(inMain(153, 103) && inMain(153, 235) && inMain(277, 88) && inMain(27, 88), '城門、里堡都連得到');
+  assert.ok(!inMain(153, 85), '里堡內部不算城內可走區');
+  const d = makeDist();
+  const castleS = { x: 153, y: 103 }, gateS = { x: 153, y: 235 }, gateE = { x: 277, y: 88 };
+  assert.equal(d(castleS, castleS), 0);
+  assert.ok(d(castleS, gateS) >= Math.max(0, 235 - 103), '實際步數不會小於直線距離');
+  assert.ok(d(castleS, gateE) > 124 && d(castleS, gateE) < 400, `里堡→東門 ${d(castleS, gateE)} 步要合理`);
+  assert.equal(d(castleS, gateE), d(gateE, castleS), '來回一樣');
+  // 水面不能走：直線穿過護城河的兩點，實際要繞
+  assert.ok(d({ x: 153, y: 103 }, { x: 153, y: 68 }) > 60, '里堡南→北要繞護城河');
+  // 貼齊：欄杆內的傳送石 W1 會貼到旁邊的可走格；城外座標退回直線距離
+  assert.ok(d({ x: 69, y: 79 }, { x: 72, y: 123 }) > 40);
+  assert.equal(d({ x: 0, y: 0 }, { x: 3, y: 5 }), 5);
+  const path = pathBetween(castleS, gateS);
+  assert.ok(path.length >= 2 && path[0].x === 153 && path[path.length - 1].y === 235, '路線從起點到終點');
+  for (let i = 1; i < path.length; i++) assert.ok(isWalk(path[i].x, path[i].y), '路線每個轉折點都可走');
+  const { dist: D } = bfs(153, 103);
+  assert.equal(D[235 * GW + 153], d(castleS, gateS));
+  // 規劃時用實際步數：最近鄰會改變順序
+  const start = { x: 153, y: 103, map: '法蘭城' };
+  const far = { x: 153, y: 68 }, near = { x: 170, y: 103 };
+  assert.deepEqual(orderRoute(start, [far, near], d).map(p => p.y), [103, 68]);
 });
 
 t('迷宮地圖檔：檔頭、三層資料與出入口座標', () => {
