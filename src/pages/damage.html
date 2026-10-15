@@ -56,9 +56,9 @@
       </section>
   <section class="card dummy-card" id="dummy" aria-labelledby="dummy-title">
         <h2 class="card-title" id="dummy-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>{{t:dmg.dummy}}{{tip:dmg.dummyTip}}</h2>
-        <div class="dummy-stage" id="dm-stage">
-          <div class="dummy-actor">{{pic:adv-attack dummy-sp}}</div>
-          <div class="dummy-target" id="dm-target"><div class="dummy-post"><i></i><i></i><i></i></div><div class="dummy-hp" aria-hidden="true"><i id="dm-hp"></i></div></div>
+        <div class="dummy-stage" id="dm-stage" data-boy="{{asset:img/dummy/boy.png}}" data-foe="{{asset:img/dummy/no01.png}}">
+          <canvas class="dummy-canvas" id="dm-canvas" role="img" aria-label="{{t:dmg.dmScene}}"></canvas>
+          <div class="dummy-tag" id="dm-tag"><b>{{t:dmg.dmFoe}}</b><div class="dummy-hp" aria-hidden="true"><i id="dm-hp"></i></div></div>
           <div class="dummy-pops" id="dm-pops" aria-live="polite"></div>
         </div>
         <div class="dummy-ctl">

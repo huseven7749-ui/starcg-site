@@ -2,6 +2,7 @@
 import { $, $$, T, esc, fmt, store, debounce } from './core.js';
 import { physical, magic, CRYSTAL, RACE, SKILL_QIANKUN, SKILL_HUIXUAN, SKILL_ZHUIYUE, zhuiyuePve, MAGIC_BASE } from './dmgcalc.js';
 import { track } from './game.js';
+import { SPRITES } from './dummysprites.js';
 
 const KEY = 'sc.damage';
 const CRY = Object.fromEntries(CRYSTAL), RAC = Object.fromEntries(RACE);
@@ -124,8 +125,8 @@ load();
 renderPhys();
 renderMagic();
 
-// ───── 打木樁：在算出的範圍內隨機出手，看實際分布 ─────
-const DM = { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [] };
+// ───── 痛打 01：金髮男孩出手，在算出的範圍內隨機傷害，看實際分布 ─────
+const DM = { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [], hp: 1, pool: 1 };
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let dmBusy = false;
 function dmRange(crit) {
@@ -134,21 +135,104 @@ function dmRange(crit) {
   const boss = chk('dm-boss');
   return set[boss ? (crit ? 'bossCrit' : 'boss') : (crit ? 'crit' : 'normal')];
 }
-function dmHit() {
+
+// 舞台：一張 canvas 畫兩個角色（遊戲原圖的圖集，依腳底原點對齊）
+const stage = $('#dm-stage'), cv = $('#dm-canvas'), ctx = cv.getContext('2d');
+const sheet = src => { const im = new Image(); im.decoding = 'async'; im.src = src; return im; };
+const ACT = {
+  boy: { img: sheet(stage.dataset.boy), m: SPRITES.boy, act: 'idle', t0: 0, loop: true, x: 0, home: 0, flip: false },
+  foe: { img: sheet(stage.dataset.foe), m: SPRITES.no01, act: 'idle', t0: 0, loop: true, x: 0, hold: 0 },
+};
+let W = 0, H = 0, K = 1, GROUND = 0;
+function layout() {
+  const r = stage.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height; K = W >= 520 ? 1.25 : 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
+  GROUND = H - 24;
+  ACT.foe.x = Math.round(W * 0.64);
+  ACT.boy.home = ACT.boy.x = Math.round(ACT.foe.x - 150 * K);
+  const tag = $('#dm-tag'); tag.style.left = ACT.foe.x + 'px'; tag.style.top = Math.max(4, GROUND - 112 * K) + 'px';
+}
+function play(a, act, { loop = false, speed = 1 } = {}) {
+  a.act = act; a.t0 = performance.now(); a.loop = loop; a.speed = speed;
+  const m = a.m[act]; return (m.n * m.ms) / speed;          // 播完需要的毫秒
+}
+function frameOf(a, now) {
+  const m = a.m[a.act]; const f = Math.floor(((now - a.t0) * (a.speed || 1)) / m.ms);
+  return a.loop ? f % m.n : Math.min(f, m.n - 1);
+}
+function draw(a, now) {
+  if (!a.img.complete || !a.img.naturalWidth) return;
+  const m = a.m[a.act], f = REDUCED ? 0 : frameOf(a, now);
+  ctx.drawImage(a.img, f * m.w, m.y, m.w, m.h, Math.round(a.x + m.ox * K), Math.round(GROUND + m.oy * K), m.w * K, m.h * K);
+}
+let raf = 0, visible = true;
+function loop(now) {
+  raf = 0;
+  ctx.clearRect(0, 0, W, H);
+  draw(ACT.foe, now); draw(ACT.boy, now);
+  if (visible && !document.hidden) raf = requestAnimationFrame(loop);
+}
+const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+new ResizeObserver(() => { layout(); kick(); }).observe(stage);
+new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); kick(); }).observe(stage);
+document.addEventListener('visibilitychange', kick);
+ACT.boy.img.onload = ACT.foe.img.onload = kick;
+play(ACT.boy, 'idle', { loop: true }); play(ACT.foe, 'idle', { loop: true });
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const tween = (a, to, ms) => new Promise(res => {
+  if (REDUCED || ms <= 0) { a.x = to; return res(); }
+  const from = a.x, t0 = performance.now();
+  const step = now => { const p = Math.min(1, (now - t0) / ms); a.x = Math.round(from + (to - from) * (1 - (1 - p) * (1 - p))); p < 1 ? requestAnimationFrame(step) : res(); };
+  requestAnimationFrame(step);
+});
+
+function resetPool() { const top = dmRange(true)?.max || 1; DM.pool = top * 3; DM.hp = DM.pool; hpBar(); }
+function hpBar() { const p = Math.max(0, DM.hp / DM.pool); const el = $('#dm-hp'); el.style.width = `${Math.max(p > 0 ? 4 : 0, p * 100)}%`; el.classList.toggle('low', p < 0.3); }
+
+/** 一下：男孩衝上去出招 → 命中時算傷害、01 受擊（血條見底就倒地再爬起來） */
+async function dmHit({ combo = false } = {}) {
   const crit = Math.random() * 100 < num('dm-crit');
   const r = dmRange(crit); if (!r) return;
+  if (DM.pool <= 1) resetPool();
+  const boy = ACT.boy, foe = ACT.foe;
+  const move = crit ? 'ball' : (Math.random() < 0.5 ? 'kick' : 'dash');
+  const near = foe.x - (crit ? 120 : 62) * K;
+  await tween(boy, near, combo ? 70 : 120);
+  const speed = combo ? 1.6 : 1.15;
+  const dur = play(boy, move, { speed });
+  await wait(REDUCED ? 0 : dur * (move === 'ball' ? 0.7 : 0.55));
+  // ── 命中 ──
   const dmg = Math.round(r.min + Math.random() * (r.max - r.min));
-  DM.hits++; DM.total += dmg; DM.max = Math.max(DM.max, dmg); if (crit) { DM.crits++; DM.streak++; if (DM.streak === 3) track('damage.crit3'); } else DM.streak = 0;
+  DM.hits++; DM.total += dmg; DM.max = Math.max(DM.max, dmg);
+  if (crit) { DM.crits++; DM.streak++; if (DM.streak === 3) track('damage.crit3'); } else DM.streak = 0;
   DM.recent.push(dmg); if (DM.recent.length > 40) DM.recent.shift();
   track('damage.hit');
-  // 畫面
   const pops = $('#dm-pops'), el = document.createElement('b');
   el.className = 'dm-pop' + (crit ? ' crit' : ''); el.textContent = (crit ? T('dmg.dmCritPop') + ' ' : '') + fmt(dmg);
-  el.style.left = `${35 + Math.random() * 30}%`; pops.appendChild(el); setTimeout(() => el.remove(), REDUCED ? 700 : 1100);
-  const t = $('#dm-target'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit');
-  const sp = $('.dummy-actor'); sp.classList.remove('go'); void sp.offsetWidth; sp.classList.add('go');
-  const hp = $('#dm-hp'); const top = dmRange(true).max * 3 || 1; hp.style.width = `${Math.max(6, 100 - ((DM.total % top) / top) * 100)}%`;
+  pops.appendChild(el);
+  const ew = el.offsetWidth; el.style.left = `${Math.max(4, Math.min(W - ew - 4, foe.x - ew / 2 + (Math.random() - 0.5) * 30))}px`;   // 不超出舞台
+  setTimeout(() => el.remove(), REDUCED ? 700 : 1100);
+  DM.hp -= dmg; hpBar();
+  let ko = false;
+  if (DM.hp <= 0) {
+    ko = true; DM.hp = 0; hpBar();
+    const down = play(foe, 'down', { speed: 1.2 });
+    const msg = document.createElement('b'); msg.className = 'dm-pop ko'; msg.textContent = T('dmg.dmKo'); msg.style.left = `${Math.max(2, (ACT.boy.home / W) * 100 - 6)}%`;
+    setTimeout(() => { pops.appendChild(msg); setTimeout(() => msg.remove(), 1600); }, REDUCED ? 0 : down * 0.6);
+    foe.hold = performance.now() + down + 900;
+    setTimeout(() => { resetPool(); play(foe, 'idle', { loop: true }); }, REDUCED ? 600 : down + 900);
+  } else if (performance.now() > foe.hold) {
+    const hurt = play(foe, 'hurt', { speed: 2.4 });
+    foe.hold = performance.now() + hurt;
+    setTimeout(() => { if (performance.now() >= foe.hold - 5) play(foe, 'idle', { loop: true }); }, hurt);
+  }
   dmRender();
+  await wait(REDUCED ? 0 : dur * (move === 'ball' ? 0.3 : 0.45));
+  play(boy, 'idle', { loop: true });
+  if (!combo) await tween(boy, boy.home, 160);
+  return ko;
 }
 function dmRender() {
   $('#dm-kv').innerHTML = DM.hits ? tile(T('dmg.dmHits'), fmt(DM.hits)) + tile(T('dmg.dmTotal'), fmt(DM.total)) + tile(T('dmg.dmAvg'), fmt(DM.total / DM.hits, 1)) + tile(T('dmg.dmMax'), fmt(DM.max)) + tile(T('dmg.dmCrits'), `${fmt(DM.crits)} <small>(${fmt(DM.hits ? DM.crits / DM.hits * 100 : 0, 0)}%)</small>`) : '';
@@ -160,12 +244,13 @@ function dmRender() {
   $('#dm-hist').innerHTML = bins.map(c => `<i style="height:${peak ? (c / peak) * 100 : 0}%"></i>`).join('');
   $('#dm-note').textContent = T('dmg.dmNote', { n: DM.recent.length, a: fmt(lo), b: fmt(hi) });
 }
-$('#dm-hit').addEventListener('click', dmHit);
+const busy = on => { dmBusy = on; $('#dm-hit').disabled = on; $('#dm-hit10').disabled = on; };
+$('#dm-hit').addEventListener('click', async () => { if (dmBusy) return; busy(true); try { await dmHit(); } finally { busy(false); } });
 $('#dm-hit10').addEventListener('click', async () => {
-  if (dmBusy) return; dmBusy = true; $('#dm-hit10').disabled = true;
-  for (let i = 0; i < 10; i++) { dmHit(); await new Promise(r => setTimeout(r, REDUCED ? 30 : 140)); }
-  dmBusy = false; $('#dm-hit10').disabled = false;
+  if (dmBusy) return; busy(true);
+  try { for (let i = 0; i < 10; i++) await dmHit({ combo: true }); await tween(ACT.boy, ACT.boy.home, 160); } finally { busy(false); }
 });
-$('#dm-reset').addEventListener('click', () => { Object.assign(DM, { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [] }); $('#dm-hp').style.width = '100%'; dmRender(); });
+$('#dm-reset').addEventListener('click', () => { Object.assign(DM, { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [] }); resetPool(); dmRender(); });
 $('#dm-crit').addEventListener('input', () => { $('#dm-crit-v').textContent = num('dm-crit') + '%'; });
-$('#pane-phys').addEventListener('input', e => { if (e.target.closest('.dummy-card')) return; dmRender(); });
+$('#pane-phys').addEventListener('input', e => { if (e.target.closest('.dummy-card')) return; resetPool(); dmRender(); });
+['dm-mode', 'dm-boss'].forEach(id => $('#' + id).addEventListener('change', resetPool));
