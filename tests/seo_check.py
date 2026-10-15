@@ -29,7 +29,8 @@ for p in pages:
     if not (50 <= len(desc) <= 170): issues.append(f'{rel}: 描述長度 {len(desc)}')
     if h1 != 1: issues.append(f'{rel}: H1 數量 {h1}')
     if imgs_no_alt: issues.append(f'{rel}: {imgs_no_alt} 張圖片沒有 alt')
-    if set(alts) != {'zh-TW', 'ko', 'x-default'}: issues.append(f'{rel}: hreflang {alts}')
+    solo_post = rel.startswith('/posts/') and rel != '/posts/' and set(alts) == {'zh-TW', 'x-default'}     # 只有中文版的心得，不必有韓文 hreflang
+    if set(alts) != {'zh-TW', 'ko', 'x-default'} and not solo_post: issues.append(f'{rel}: hreflang {alts}')
     rows.append(f'{rel:<16} {lang:<10} H1={h1} title={len(title):>2} desc={len(desc):>3} ld={",".join(types)}')
 # hreflang 互指
 for rel, (c, alts) in canon.items():

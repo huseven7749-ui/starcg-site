@@ -19,6 +19,8 @@ const SITE = String(args.site || 'https://starcg.online').replace(/\/+$/, '');
 const OUT = path.join(ROOT, PREVIEW ? 'preview' : 'dist');
 const SRC = path.join(ROOT, 'src');
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
+const TODAY_TW = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);     // 台灣今天；心得日期晚於今天的先不發佈（排程上線）
+const SHOW_FUTURE = process.argv.includes('--future');
 const REGISTER_URL = 'https://member.starcg.net/register.php?ref=Hsu12rDUCzP.PwC3';
 const GOOGLE_VERIFY = args.google || '';      // Search Console 驗證碼（可留空，改用 DNS 驗證）
 const NAVER_VERIFY = args.naver || '';        // Naver Search Advisor 驗證碼
@@ -215,7 +217,7 @@ function jsonLd(lang, page, t) {
       '@type': 'BlogPosting', headline: p.title, description: p.desc, url, mainEntityOfPage: url,
       datePublished: p.date, dateModified: p.updated || p.date, inLanguage: t('lang.hreflang'),
       keywords: p.tags.join(', ') || undefined, wordCount: p.chars,
-      image: `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+      image: p.cover ? `${SITE}/posts/img/${p.cover.replace(/^(\.\/)?(img\/)?/, '')}` : `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
       author: { '@id': SITE + '/#org' }, publisher: { '@id': SITE + '/#org' },
     });
   } else if (page.id !== 'home' && page.id !== '404') {
@@ -267,6 +269,7 @@ function loadPosts() {
     if (!meta.title) throw new Error(`心得缺少 title：${f}`);
     const lang = /\.ko\.md$/.test(f) || meta.lang === 'ko' ? 'ko' : 'zh';
     const date = isDate(meta.date) ? meta.date : BUILD_DATE;
+    if (date > TODAY_TW && !SHOW_FUTURE) continue;
     let slug = String(meta.slug || f.replace(/(\.ko)?\.md$/, '')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
     if (!slug) slug = 'p-' + date.replace(/-/g, '');
     let key = `${lang}:${slug}`, n = 2;
@@ -291,7 +294,8 @@ const postImg = fromPath => src => /^(https?:)?\/\//.test(src) ? src : (PREVIEW 
 function postCard(p, lang, fromPath, t) {
   const foreign = p.lang !== lang;
   const tags = p.tags.length ? `<span class="post-tags">${p.tags.slice(0, 3).map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</span>` : '';
-  return `<article class="post-card"><a href="${pageHref(p.lang, postPath(p), fromPath)}"${foreign ? ` hreflang="${LANGS[p.lang].dict['lang.hreflang']}"` : ''}>` +
+  const thumb = p.cover ? `<img class="post-card-cover" src="${postImg(fromPath)(p.cover)}" width="1200" height="630" alt="" loading="lazy" decoding="async">` : '';
+  return `<article class="post-card"><a href="${pageHref(p.lang, postPath(p), fromPath)}"${foreign ? ` hreflang="${LANGS[p.lang].dict['lang.hreflang']}"` : ''}>` + thumb +
     `<span class="post-card-meta"><time datetime="${p.date}">${p.date}</time>${foreign ? `<span class="badge b-sky">${esc(LANGS[p.lang].dict['lang.name'])}</span>` : ''}</span>` +
     `<h2${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.title)}</h2><p${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.desc)}</p>${tags}</a></article>`;
 }
@@ -304,6 +308,7 @@ function postVars(page, lang, fromPath, t) {
   const other = Object.keys(LANGS).find(l => l !== lang && p.langs.includes(l));
   return {
     postTitle: esc(p.title),
+    postCover: p.cover ? `<img class="post-cover" src="${postImg(fromPath)(p.cover)}" width="1200" height="630" alt="${esc(p.title)}" fetchpriority="high" decoding="async">` : '',
     postDate: p.date,
     postUpdated: p.updated ? `<span>${esc(t('posts.updated'))} <time datetime="${p.updated}">${p.updated}</time></span>` : '',
     postRead: esc(t('posts.read').replace('{n}', minutes)),
@@ -346,7 +351,7 @@ function buildPages() {
         canonical: absUrl(lang, page.path),
         altZh: absUrl('zh', page.path), altKo: absUrl('ko', page.path),
         ogLocale: t('lang.og'), ogLocaleAlt: LANGS[other].dict['lang.og'],
-        ogImage: `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+        ogImage: page.post && page.post.cover ? `${SITE}/posts/img/${page.post.cover.replace(/^(\.\/)?(img\/)?/, '')}` : `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
         otherLangHref: pageHref(other, otherPath, fromPath), otherLangName: LANGS[other].dict['lang.name'],
         otherLangCode: other, otherLangShort: LANGS[other].dict['lang.short'],
         zhHref: pageHref('zh', lang === 'zh' ? page.path : otherPath, fromPath), koHref: pageHref('ko', lang === 'ko' ? page.path : otherPath, fromPath),
