@@ -1536,6 +1536,8 @@ html[data-view="mobile"] .dummy-ctl .btn.primary { flex: 1; }
 .sim-verdict.lucky { background: var(--mint-l); border-color: var(--mint); color: var(--mint-d); }
 .sim-verdict.unlucky { background: var(--lav-l); border-color: var(--lav); color: var(--lav-d); }
 .sim-verdict.normal { background: var(--lemon-l); border-color: var(--lemon); color: var(--lemon-d); }
+.sim-verdict.good { background: var(--sky-l); border-color: var(--sky); color: var(--sky-d); }
+.sim-verdict.bad { background: var(--coral-l); border-color: var(--coral); color: var(--coral-d); }
 html[data-view="mobile"] .sim-legend { margin-left: 0; width: 100%; }
 @media (prefers-reduced-motion: reduce) { .dummy-actor.go, .dummy-target.hit, .sim-grid .sr { animation: none; } .dm-pop { animation-duration: .7s; } }
 

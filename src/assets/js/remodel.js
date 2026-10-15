@@ -321,8 +321,9 @@ function simRender(t, o, per, n, done) {
   const act = c.count + t.stones * 3, exp = expCards.target + per.mean * t.runs * 3;
   const ratio = exp > 0 ? act / exp : 1;
   const pct = Math.round(Math.abs(ratio - 1) * 100);
-  const kind = exp >= 2 && ratio >= 1.5 ? 'lucky' : exp >= 2 && ratio <= 0.5 ? 'unlucky' : 'normal';
-  vd.textContent = T(kind === 'lucky' ? 'rm.simLucky' : kind === 'unlucky' ? 'rm.simUnlucky' : 'rm.simNormal', { p: kind === 'normal' ? Math.round(ratio * 100) : pct });
+  // 五段：歐皇 ≥150%、小歐 110～149%、普通 90～109%、小非 51～89%、非酋 ≤50%（樣本太少時一律算普通）
+  const kind = exp < 2 ? 'normal' : ratio >= 1.5 ? 'lucky' : ratio >= 1.1 ? 'good' : ratio > 0.9 ? 'normal' : ratio > 0.5 ? 'bad' : 'unlucky';
+  vd.textContent = T({ lucky: 'rm.simLucky', good: 'rm.simGood', normal: 'rm.simNormal', bad: 'rm.simBad', unlucky: 'rm.simUnlucky' }[kind], { p: kind === 'normal' ? Math.round(ratio * 100) : pct });
   vd.className = 'sim-verdict ' + kind;
   track('remodel.sim'); if (kind === 'lucky') track('remodel.lucky'); if (kind === 'unlucky') track('remodel.unlucky');
 }

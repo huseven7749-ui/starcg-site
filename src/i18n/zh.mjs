@@ -407,6 +407,8 @@ export default {
   'rm.simLucky': '🍀 歐洲人！比期望多了 {p}%',
   'rm.simUnlucky': '🌧️ 非洲人…比期望少了 {p}%',
   'rm.simNormal': '🙂 運氣普通，跟期望值差不多（{p}%）',
+  'rm.simGood': '😄 小歐一下，比期望多了 {p}%',
+  'rm.simBad': '😮‍💨 有點背，比期望少了 {p}%',
   'rm.simRunning': '模擬中… 第 {i}／{n} 場',
   'rm.tier.normal': '普卡',
   'rm.tier.silver': '銀卡',

@@ -408,6 +408,8 @@ export default {
   'rm.simLucky': '🍀 유럽인! 기대값보다 {p}% 많아요',
   'rm.simUnlucky': '🌧️ 아프리카인… 기대값보다 {p}% 적어요',
   'rm.simNormal': '🙂 평범한 운, 기대값과 비슷해요({p}%)',
+  'rm.simGood': '😄 운이 좋네요, 기대값보다 {p}% 많아요',
+  'rm.simBad': '😮‍💨 조금 아쉬워요, 기대값보다 {p}% 적어요',
   'rm.simRunning': '시뮬레이션 중… {i}/{n}판',
   'rm.tier.normal': '노멀',
   'rm.tier.silver': '실버',
