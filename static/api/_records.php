@@ -38,6 +38,16 @@ function records_ingest(int $maxPages): array
             if ($lastId === 0 && $page >= 3) $done = true; // 第一次只回補最近幾頁
             if (!$done) usleep(250000);
         }
+        // 順便學中韓名稱對照：把第 1 頁再用韓文抓一次，依紀錄 id 配對（給韓文站搜尋用）
+        if ($new) {
+            [$ko] = fetch_pages(fn($p) => history_url('all', $p, '', '30d', 'ko'), [1]);
+            $pairs = [];
+            foreach (($ko[1]['logs'] ?? []) as $l) {
+                if (!is_array($l) || !($r = parse_log($l)) || $r['id'] === null || !isset($new[$r['id']])) continue;
+                $pairs[] = [null, $new[$r['id']]['n'], $r['n']];
+            }
+            if ($pairs) dict_learn($pairs);
+        }
         if ($new) {
             ksort($new);
             $byDay = [];

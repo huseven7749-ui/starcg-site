@@ -1397,3 +1397,4 @@ html[data-view="mobile"] .mz-zoom button[data-z="full"] { display: none; }
 html[data-view="mobile"] .mz-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 html[data-view="mobile"] .mz-info .stat-tile:last-child { grid-column: 1 / -1; }
 @media (prefers-reduced-motion: reduce) { .mz-dot.live { animation: none; } }
+.mk-zh { display: block; font-size: .78rem; font-weight: 500; color: var(--ink-3); margin-top: 2px; }

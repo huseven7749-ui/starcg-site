@@ -102,6 +102,6 @@ api('hot').then(d => {
   const list = (d.items || []).slice(0, 10);
   if (!list.length) return;
   const box = $('#hot');
-  $('.chips', box).innerHTML = list.map(k => `<a class="chip" href="${BASE}${LANG === 'ko' ? 'ko/' : ''}market/${PREVIEW ? 'index.html' : ''}?q=${encodeURIComponent(k)}">${esc(k)}</a>`).join('');
+  $('.chips', box).innerHTML = list.map(k => { const n = typeof k === 'string' ? k : k.n, label = typeof k === 'string' ? k : (k.kn || k.n); return `<a class="chip" href="${BASE}${LANG === 'ko' ? 'ko/' : ''}market/${PREVIEW ? 'index.html' : ''}?q=${encodeURIComponent(n)}">${esc(label)}</a>`; }).join('');
   box.hidden = false;
 }).catch(() => {});

@@ -35,3 +35,17 @@ function mock_stalls(): array {
     }
     return $out;
 }
+// 假的中韓對照（模擬官方 lang=ko 回傳韓文名；沒有對照的名稱維持中文）
+function mock_ko(string $n): string {
+    static $d = ['水的水晶碎片' => '물의 수정 조각', '火的水晶碎片' => '불의 수정 조각', '地的水晶碎片' => '땅의 수정 조각', '風的水晶碎片' => '바람의 수정 조각',
+        '硬皮靴' => '가죽 부츠', '皮靴' => '부츠', '格鬥劍' => '격투검', '長鍔劍' => '장검', '寵物改造圖A' => '펫 개조도 A', '重來的種子' => '다시 시작의 씨앗',
+        '年獸' => '연수', '赤焰年獸' => '적염 연수', '紫水晶' => '자수정', '藍色靈魂石' => '푸른 영혼석'];
+    $core = preg_replace('/^\[(.*)\]$/u', '$1', $n);
+    if (!isset($d[$core])) return $n;
+    return $core === $n ? $d[$core] : '[' . $d[$core] . ']';
+}
+function mock_lang_match(string $zh, string $q, string $lang): bool {
+    if ($q === '') return true;
+    if (str_contains($zh, $q)) return true;
+    return $lang === 'ko' && str_contains(mock_ko($zh), $q);
+}

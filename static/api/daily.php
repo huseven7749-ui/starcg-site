@@ -13,4 +13,8 @@ if (time() - (int)($state['at'] ?? 0) > 600 && rate_allow()) records_ingest(2);
 
 [$data] = cached_get('daily', "d|$day", 600, false, fn() => daily_summary($day), false);
 if (!$data) fail('unavailable', 502);
+if (api_lang() === 'ko') {
+    require_once __DIR__ . '/_market.php';
+    foreach (['hot', 'up', 'down'] as $k) foreach (($data[$k] ?? []) as $i => $row) { if (isset($row['n']) && ($kn = dict_ko((string)$row['n'])) !== '') $data[$k][$i]['kn'] = $kn; }
+}
 json_out(with_age($data), 200, 120);

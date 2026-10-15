@@ -72,6 +72,8 @@ export function normName(s) {
 }
 export const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+/** 顯示用名稱：韓文站有韓文名就用韓文，否則中文（資料比對一律用中文的 n） */
+export const dn = r => (LANG === 'ko' && r && r.kn) ? r.kn : (r?.n ?? '');
 
 // ───── 匯率（全站共用，存在瀏覽器）─────
 // 預設：1 台幣 = 40 魔晶；3,000 魔晶 = 100 萬魔幣。其他法幣依每日匯率由台幣換算。
@@ -134,6 +136,7 @@ export async function api(name, params = {}, { timeout = 30000 } = {}) {
     if (Array.isArray(v)) v.forEach(x => sp.append(k + '[]', x));
     else if (v !== '' && v != null) sp.append(k, v);
   }
+  if (LANG === 'ko') sp.append('lang', 'ko');   // 韓文站：名稱附韓文（kn），關鍵字可用韓文
   const qs = sp.toString();
   const url = `${BASE}api/${name}.php${qs ? '?' + qs : ''}`;
   const ctl = new AbortController();

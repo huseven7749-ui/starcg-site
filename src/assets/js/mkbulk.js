@@ -1,5 +1,5 @@
 // 批次採購：多項商品一次查價，依分流／幣別規劃購買攤位與路線
-import { $, $$, T, api, esc, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState } from './core.js';
+import { $, $$, T, api, esc, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState, LANG } from './core.js';
 import { loadCatalog, EQ_CATS, CRYSTALS, eqCatName, raceName } from './catalog.js';
 import { plan, parseLoc, START_POINTS, TOWN } from './route.js';
 import { drawMap } from './mkmap.js';
@@ -143,7 +143,7 @@ async function go() {
         if (stripBr(normName(r.n)) !== want) return;
         const st = d.stalls[r.s] || {};
         const loc = parseLoc(st.loc, st.x, st.y);
-        listings.push({ name: x.n, p: r.p, q, c: r.c, stall: { key: `${st.sv}|${st.n}|${loc.x},${loc.y}`, n: st.n || '—', x: loc.x, y: loc.y, map: loc.map, sv: st.sv, loc: st.loc } });
+        listings.push({ name: x.n, kn: r.kn || '', p: r.p, q, c: r.c, stall: { key: `${st.sv}|${st.n}|${loc.x},${loc.y}`, n: st.n || '—', x: loc.x, y: loc.y, map: loc.map, sv: st.sv, loc: st.loc } });
       };
       (d.items || []).forEach(r => add(r, Math.max(1, r.q || 1)));
       (d.pets || []).forEach(r => add(r, 1));
@@ -202,7 +202,7 @@ function groupCard(g, gi, isBest) {
   const steps = p.steps.map(s => `<li class="bk-step">
       <span class="bk-no">${s.i}</span>
       <div class="bk-step-main"><b>${esc(s.stall.n)}</b><span class="muted small">${esc(T('bk.at', { x: s.stall.x, y: s.stall.y }))} · ${esc(T('bk.stepDist', { d: s.d, w: s.walked }))}</span>
-        <ul class="bk-buys">${s.buys.map(b => `<li><span lang="zh-Hant">${esc(stripBr(b.name))}</span> × ${fmt(b.k)}<span class="muted"> @ ${fmt(b.price)}${S.basis === 'stack' ? esc(T('bk.perStack')) : ''}</span><b>${fmt(b.cost)}</b></li>`).join('')}</ul></div>
+        <ul class="bk-buys">${s.buys.map(b => `<li><span lang="${LANG === 'ko' && b.kn ? 'ko' : 'zh-Hant'}">${esc(stripBr(LANG === 'ko' && b.kn ? b.kn : b.name))}</span> × ${fmt(b.k)}<span class="muted"> @ ${fmt(b.price)}${S.basis === 'stack' ? esc(T('bk.perStack')) : ''}</span><b>${fmt(b.cost)}</b></li>`).join('')}</ul></div>
       <div class="bk-step-cost">${money(s.cost)}</div></li>`).join('');
   const unmet = um.length ? `<div class="notice"><svg class="ic"><use href="#i-search"/></svg><span>${esc(T('bk.unmetList'))}${um.map(u => ` <b>${esc(u.name)} ×${fmt(u.qty)}</b>`).join('')}</span></div>` : '';
   const over = p.over.length ? `<p class="small muted">${esc(T('bk.over'))}${p.over.map(u => ` ${esc(u.name)} +${fmt(u.qty)}`).join('、')}</p>` : '';

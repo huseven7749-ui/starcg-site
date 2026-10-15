@@ -1,5 +1,5 @@
 // 市場查價器：市價比較、批次採購、資料管理
-import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml } from './core.js';
+import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG } from './core.js';
 import { decodeAlloc, gradeMeta, tierOf } from './petcalc.js';
 import { lineChart } from './chart.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, inPeriod, stripBr, twTime, FEE } from './mkstats.js';
@@ -38,6 +38,8 @@ const nameMatch = (name, q, exact) => {
   const a = stripBr(normName(name)), b = stripBr(normName(q));
   return exact ? a === b : a.includes(b);
 };
+// 中文名或韓文名其中一個符合就算（韓文站可用韓文關鍵字）
+const rowMatch = (r, q, exact) => nameMatch(r.n, q, exact) || (!!r.kn && nameMatch(r.kn, q, exact));
 const coinEq = (price, cur) => (cur === 1 ? rates.crystalToCoin(price) : price);
 const curName = c => T(c ? 'common.crystal' : 'common.coin');
 function priceHtml(p, cur, conv = true) {
@@ -224,7 +226,7 @@ function flatten(d) {
   const rows = [];
   const want = new Set(S.browseNames.map(n => normName(n)));
   for (const it of d.items || []) {
-    if (S.mode === 'query' && !nameMatch(it.n, S.q, S.exact)) continue;
+    if (S.mode === 'query' && !rowMatch(it, S.q, S.exact)) continue;
     if (S.mode === 'browse-equip' && !want.has(stripBr(normName(it.n)))) continue;
     const isEq = c?.isEquip(stripBr(it.n));
     if (S.kind === 'equip' && !isEq) continue;      // 依裝備名錄判斷
@@ -232,7 +234,7 @@ function flatten(d) {
     rows.push({ ...it, pet: false, st: it.st || {}, rs: it.rs || {}, stall: stalls[it.s] || {} });
   }
   for (const p of d.pets || []) {
-    if (S.mode === 'query' && !nameMatch(p.n, S.q, S.exact)) continue;
+    if (S.mode === 'query' && !rowMatch(p, S.q, S.exact)) continue;
     if (S.kind === 'equip' || S.kind === 'item') continue;
     const r = { ...p, pet: true, stall: stalls[p.s] || {} };
     const gp = c?.petByName.get(normName(p.n));
@@ -336,7 +338,7 @@ function render() {
     if (!groups.has(r.name)) groups.set(r.name, []);
     groups.get(r.name).push(r);
   }
-  const list = [...groups.entries()].map(([name, rs]) => ({ name, all: rs, rs: S.view === 'all' ? sortRows(rs) : applyView(sortRows(rs)), min: Math.min(...rs.map(r => r.val)) }));
+  const list = [...groups.entries()].map(([name, rs]) => ({ name, kn: rs.find(r => r.kn)?.kn || '', all: rs, rs: S.view === 'all' ? sortRows(rs) : applyView(sortRows(rs)), min: Math.min(...rs.map(r => r.val)) }));
   list.sort((a, b) => a.min - b.min);
   const bestVal = Math.min(...rows.map(r => r.val));
   const showMax = 60;
@@ -417,7 +419,7 @@ function groupHtml(g, bestVal) {
   }
   return `<article class="mk-group">
     <div class="mk-group-head">
-      <h3>${img}<span>${esc(g.name)}</span></h3>
+      <h3>${img}<span>${esc(LANG === 'ko' && g.kn ? stripBr(g.kn) : g.name)}</span>${LANG === 'ko' && g.kn ? `<small class="mk-zh" lang="zh-Hant">${esc(g.name)}</small>` : ''}</h3>
       <span class="badge ${kindBadge}">${esc(kindTxt)}</span>
       <span class="badge b-gray">${esc(T('listings', { n: g.all.length }))}</span>
       <div class="meta">
@@ -484,7 +486,7 @@ async function loadHistory(token, more = false) {
   try {
     const d = await api('history', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', pages: S.histPages, range: S.range });
     if (token !== S.token) return;
-    S.hist = { ...d, logs: (d.logs || []).filter(l => nameMatch(l.n, S.q, S.exact)) };
+    S.hist = { ...d, logs: (d.logs || []).filter(l => rowMatch(l, S.q, S.exact)) };
     afterHistory();
   } catch {
     if (token !== S.token) return;
@@ -493,12 +495,13 @@ async function loadHistory(token, more = false) {
 }
 function afterHistory() {
   const h = S.hist;
-  h.logs = inPeriod(h.logs.map(l => ({ ...l, n: stripBr(l.n) })), RANGE_DAYS[S.range]);
+  h.logs = inPeriod(h.logs.map(l => ({ ...l, n: stripBr(l.n), kn: l.kn ? stripBr(l.kn) : '' })), RANGE_DAYS[S.range]);
+  h.kn = new Map(); for (const l of h.logs) if (l.kn && !h.kn.has(l.n)) h.kn.set(l.n, l.kn);
   // 預設商品：與關鍵字同名者，否則成交最多者（避免不同商品價格混在一起）
   const counts = new Map();
   for (const l of h.logs) counts.set(l.n, (counts.get(l.n) || 0) + 1);
   h.names = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([n]) => n);
-  if (!S.histName || !counts.has(S.histName)) S.histName = h.names.find(n => normName(n) === stripBr(normName(S.q))) || h.names[0] || '';
+  if (!S.histName || !counts.has(S.histName)) S.histName = h.names.find(n => normName(n) === stripBr(normName(S.q)) || normName(h.kn.get(n) || '') === stripBr(normName(S.q))) || h.names[0] || '';
   renderHistory();
   renderPricing();
   if (S.data) renderSummary(filteredRows());
@@ -511,8 +514,9 @@ function histStats() {
 }
 function productSelect(id) {
   const names = S.hist?.names || [];
-  if (names.length < 2) return names.length ? `<b class="mk-prod">${esc(names[0])}</b>` : '';
-  return `<label class="field field-inline mk-prod-sel"><span>${esc(T('mk.product'))}</span><select class="input sm" id="${id}">${names.map(n => `<option value="${esc(n)}"${n === S.histName ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`;
+  const show = n => (LANG === 'ko' && S.hist?.kn?.get(n)) || n;
+  if (names.length < 2) return names.length ? `<b class="mk-prod">${esc(show(names[0]))}</b>` : '';
+  return `<label class="field field-inline mk-prod-sel"><span>${esc(T('mk.product'))}</span><select class="input sm" id="${id}">${names.map(n => `<option value="${esc(n)}"${n === S.histName ? ' selected' : ''}>${esc(show(n))}</option>`).join('')}</select></label>`;
 }
 function renderHistory() {
   const h = S.hist;
@@ -610,7 +614,7 @@ async function loadDaily() {
   try {
     const r = await api('daily', { day: d });
     const t = r.totals || {};
-    const item = (x, extra) => `<li><button type="button" class="dl-name" data-goto="${esc(x.n)}" data-exact="1">${esc(x.n)}</button>${extra}</li>`;
+    const item = (x, extra) => `<li><button type="button" class="dl-name" data-goto="${esc(x.n)}" data-exact="1">${esc(dn(x))}</button>${extra}</li>`;
     const medTxt = m => [0, 1].filter(c => m?.[c] != null).map(c => `<span class="price ${c ? 'crystal' : 'coin'}"><svg class="ic"><use href="#i-${c ? 'crystal' : 'coin'}"/></svg>${fmt(m[c])}</span>`).join(' ');
     const move = m => item(m, `<span class="dl-move ${m.chg > 0 ? 'up' : 'down'}">${esc(pct(m.chg, 0))}</span><span class="dl-sub">${esc(curName(m.c))} ${fmt(m.before)} → <b>${fmt(m.now)}</b></span>`);
     const cov = r.coverage?.from ? T('mk.daily.cov', { a: twTime(r.coverage.from).slice(11), b: twTime(r.coverage.to).slice(11), n: fmt(t.trades) }) : '';
@@ -636,7 +640,7 @@ function toggleWatch(n, kind) {
   else {
     const rs = S.rows.filter(r => r.name === n);
     const minOf = c => { const a = rs.filter(r => r.c === c).map(r => r.p); return a.length ? Math.min(...a) : null; };
-    w.unshift({ n, kind, coin: minOf(0), crystal: minOf(1), t: Date.now() });
+    w.unshift({ n, kn: rs.find(r => r.kn)?.kn || '', kind, coin: minOf(0), crystal: minOf(1), t: Date.now() });
     w = w.slice(0, 30);
   }
   store.set(WATCH_KEY, w);
@@ -648,7 +652,7 @@ function renderWatch() {
   cnt.hidden = !w.length; cnt.textContent = w.length;
   if (!w.length) { el.watch.innerHTML = emptyState('adv-sit', T('watchEmpty')); return; }
   el.watch.innerHTML = `<div class="row end" style="margin-bottom:10px"><button class="btn sm sky" type="button" data-watch-all><svg class="ic"><use href="#i-refresh"/></svg>${esc(T('watchRefresh'))}</button></div>
-  <ul class="watch-list">${w.map(x => `<li class="watch-item"><a href="?q=${encodeURIComponent(x.n)}&exact=1" data-goto="${esc(x.n)}" data-exact="1">${esc(x.n)}</a>
+  <ul class="watch-list">${w.map(x => `<li class="watch-item"><a href="?q=${encodeURIComponent(x.n)}&exact=1" data-goto="${esc(x.n)}" data-exact="1">${esc(dn(x))}</a>
     <span class="watch-prices">${x.coin != null ? priceHtml(x.coin, 0, false) : ''}${x.crystal != null ? priceHtml(x.crystal, 1, false) : ''}${x.coin == null && x.crystal == null ? '<span class="muted">–</span>' : ''}</span>
     <span class="muted small">${esc(twTime(Math.floor(x.t / 1000)).slice(5))}</span>
     <button class="btn sm icon ghost" type="button" data-unwatch="${esc(x.n)}" aria-label="${esc(T('watchRemove'))}"><svg class="ic"><use href="#i-trash"/></svg></button></li>`).join('')}</ul>`;

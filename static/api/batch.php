@@ -14,18 +14,19 @@ if (count($names) > $max) fail("too many names (max $max)");
 $type = (string)($_GET['type'] ?? 'all');
 if (!in_array($type, ['all', 'item', 'pet'], true)) $type = 'all';
 $fresh = ($_GET['fresh'] ?? '') === '1';
+$lang = api_lang(); $sfx = $lang === 'ko' ? '|ko' : '';
 
 // 全部都有快取就不扣次數；需要向官方抓取時才算一次
 $needFetch = false;
 foreach ($names as $n) {
-    $c = cache_read(cache_path('market', "m|$type|1|$n"));
+    $c = cache_read(cache_path('market', "m|$type|1|$n" . $sfx));
     if (!$c || time() - (int)$c['fetchedAt'] >= ($fresh ? (int)cfg('fresh_min_age', 20) : (int)cfg('market_ttl', 60))) { $needFetch = true; break; }
 }
 if ($needFetch && !rate_allow()) fail('too many requests, please wait a minute', 429);
 
 $out = []; $failed = [];
 foreach ($names as $n) {
-    [$d] = cached_get('market', "m|$type|1|$n", (int)cfg('market_ttl', 60), $fresh, fn() => market_fetch($n, $type, true), false);
+    [$d] = cached_get('market', "m|$type|1|$n" . $sfx, (int)cfg('market_ttl', 60), $fresh, fn() => market_fetch($n, $type, true, null, $lang), false);
     if ($d) $out[$n] = with_age($d); else $failed[] = $n;
 }
 if (!$out) fail('upstream unavailable', 502);

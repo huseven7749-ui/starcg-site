@@ -73,7 +73,7 @@ export function plan(o) {
     else { k = Math.min(want, avail); cost = k * l.p; }
     left.set(l, avail - k);
     const v = visits.get(l.stall.key) || { stall: l.stall, buys: [] };
-    v.buys.push({ name: l.name, k, unit: unit(l), price: l.p, cost });
+    v.buys.push({ name: l.name, kn: l.kn || '', k, unit: unit(l), price: l.p, cost });
     visits.set(l.stall.key, v);
     return k;
   };

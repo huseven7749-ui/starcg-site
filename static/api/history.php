@@ -11,8 +11,9 @@ $range = (string)($_GET['range'] ?? '30d');
 if (!in_array($range, ['7d', '30d', '90d', 'all'], true)) $range = '30d';
 $pages = max(1, min((int)cfg('history_max_pages', 10), (int)($_GET['pages'] ?? 2)));
 if ($q === '') fail('missing q');
+$lang = api_lang(); $sfx = $lang === 'ko' ? '|ko' : '';
 
-[$data, $code] = cached_get('history', "h|$type|$range|$pages|$q", (int)cfg('history_ttl', 180), false,
-    fn() => history_fetch($q, $type, $pages, $range));
+[$data, $code] = cached_get('history', "h|$type|$range|$pages|$q" . $sfx, (int)cfg('history_ttl', 180), false,
+    fn() => history_fetch($q, $type, $pages, $range, $lang));
 if (!$data) fail($code === 429 ? 'too many requests, please wait a minute' : 'upstream unavailable', $code);
 json_out(with_age($data), 200, 60);

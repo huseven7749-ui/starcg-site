@@ -109,11 +109,36 @@ async def run(b, vname, opts):
     check(not errs, '無主控台錯誤' + ('：' + ' | '.join(errs[:3]) if errs else ''))
     await ctx.close()
 
+# 韓文站：可用韓文關鍵字搜尋，名稱顯示韓文（中文小字），成交行情與批次採購也跟著
+async def run_ko(b):
+    print('\n[ko]')
+    ctx = await b.new_context(locale='ko-KR', timezone_id='Asia/Seoul', viewport={'width': 1200, 'height': 900})
+    await ctx.add_init_script("try{localStorage.setItem('sc.langHint','1');localStorage.setItem('sc.welcome','1')}catch(e){}")
+    pg = await ctx.new_page(); errs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    await pg.goto(BASE + '/ko/market/'); await pg.wait_for_timeout(500)
+    await pg.fill('#mk-q', '수정'); await pg.click('#mk-form button[type=submit]')
+    await pg.wait_for_selector('.mk-group', timeout=30000); await pg.wait_for_timeout(400)
+    h3 = await pg.inner_text('.mk-group h3')
+    check('수정' in h3, '韓文關鍵字搜得到，名稱顯示韓文')
+    check('水晶' in h3, '韓文名下方附中文名')
+    await pg.click('#tab-history'); await pg.wait_for_timeout(2500)
+    check('수정' in await pg.inner_text('#pane-history .mk-hist-head'), '成交行情商品名顯示韓文')
+    await pg.goto(BASE + '/ko/market/?q=%E6%B0%B4%E6%99%B6'); await pg.wait_for_selector('.mk-group', timeout=30000); await pg.wait_for_timeout(300)
+    check('수정' in await pg.inner_text('.mk-group h3'), '韓文站用中文關鍵字也顯示韓文名')
+    await pg.click('#tab-main-bulk'); await pg.wait_for_timeout(500); await pg.click('#bk-kind button[value=item]'); await pg.wait_for_timeout(400)
+    await pg.click('#bk-cands [data-pick="水的水晶碎片"]'); await pg.click('#bk-go')
+    await pg.wait_for_selector('#bk-results .bk-group, #bk-results .notice', timeout=40000); await pg.wait_for_timeout(300)
+    check('수정' in await pg.inner_text('#bk-results .bk-buys li'), '批次採購路線的商品名顯示韓文')
+    check(not errs, '無主控台錯誤' + ('：' + ' | '.join(errs[:3]) if errs else ''))
+    await ctx.close()
+
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         await run(b, 'desk', {'viewport': {'width': 1366, 'height': 900}})
         await run(b, 'mob', {'viewport': {'width': 390, 'height': 844}, 'is_mobile': True, 'has_touch': True, 'device_scale_factor': 2})
+        await run_ko(b)
         await b.close()
     print('\n' + ('全部通過' if not fails else f'失敗 {len(fails)} 項'))
     sys.exit(1 if fails else 0)

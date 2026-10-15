@@ -2,7 +2,9 @@
 // 假官方成交紀錄：每 6 分鐘一筆，id 隨時間遞增，可用關鍵字與 range 篩選（新到舊）
 @file_put_contents(sys_get_temp_dir() . '/mock_hits.log', $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND);
 usleep(60000);
+require_once __DIR__ . '/_data.php';
 $q = (string)($_GET['search'] ?? '');
+$lang = (string)($_GET['lang'] ?? 'zh');
 $page = max(1, (int)($_GET['page'] ?? 1));
 $range = (string)($_GET['range'] ?? '30d');
 $days = ['7d' => 7, '30d' => 30, '90d' => 90, 'all' => 120][$range] ?? 30;
@@ -17,7 +19,7 @@ $logs = [];
 for ($s = $cur; $s > $from; $s--) {
     $h = crc32("slot$s");
     $it = $pool[$h % count($pool)];
-    if ($q !== '' && !str_contains($it[0], $q)) continue;
+    if (!mock_lang_match($it[0], $q, $lang)) continue;
     $ageDays = ($cur - $s) * $slot / 86400;
     $trend = 1 - $it[3] * $ageDays;
     $crystal = $it[2] > 0 && ($h >> 8) % 4 === 0;
@@ -26,7 +28,7 @@ for ($s = $cur; $s > $from; $s--) {
     $gross = max(1, (int)round($base * $trend * (0.85 + (($h >> 16) % 30) / 100)));
     $t = $s * $slot + ($h % 300);
     $logs[] = ['id' => $s, 'time' => $t, 'buff' => "購買{$qty}個：" . $it[0], 'price' => (int)floor($gross * $qty * ($crystal ? 0.94 : 0.9)),
-        'pricetype' => $crystal ? 1 : 0, 'time_text' => date('Y-m-d H:i:s', $t + 8 * 3600 - (int)date('Z')), 'ts' => $t, 'qty' => $qty, 'item_name' => $it[0],
+        'pricetype' => $crystal ? 1 : 0, 'time_text' => date('Y-m-d H:i:s', $t + 8 * 3600 - (int)date('Z')), 'ts' => $t, 'qty' => $qty, 'item_name' => $lang === 'ko' ? mock_ko($it[0]) : $it[0],
         'gross_price' => $gross * $qty, 'unit_price' => (int)floor($gross * ($crystal ? 0.94 : 0.9)), 'unit_gross_price' => $gross, 'currency_label' => $crystal ? '魔晶' : '金幣'];
 }
 $total = count($logs);
