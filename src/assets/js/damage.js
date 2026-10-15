@@ -126,7 +126,7 @@ load();
 renderPhys();
 renderMagic();
 
-// ───── 痛打 01：選一個角色出手，在算出的範圍內隨機傷害，看實際分布；01 會反擊 ─────
+// ───── 痛打 GM01：選一個角色出手，在算出的範圍內隨機傷害，看實際分布；GM01 會反擊 ─────
 const DM = { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [], hp: 1, pool: 1, countered: 0, myHp: 1, myPool: 1 };
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FKEY = 'sc.dmFighter';
@@ -229,7 +229,7 @@ async function counter() {
   if (DM.myHp <= 0) {
     DM.myHp = 0; bar('#dm-myhp', 0); sfx('ko');
     const down = play(ME, 'down'); ME.hold = performance.now() + down + 1200;
-    pop(T('dmg.dmMeDown', { n: T('dmg.f.' + ME.key) }), W * 0.3, 'ko');
+    pop(T('dmg.dmMeDown'), W * 0.3, 'ko');
     idleLater(FOE, play(FOE, 'happy', { loop: true }) * 2); sfx('cheer');
     await wait(down + 1000);
     resetMine(); idleLater(ME, play(ME, 'angry'));
@@ -295,8 +295,7 @@ function dmRender() {
 
 // ── 選角色 ──
 function renderPick() {
-  $('#dm-pick').innerHTML = SPRITES.order.map((k, i) => `<button type="button" role="radio" aria-checked="${k === fighter}" data-fighter="${k}" title="${esc(T('dmg.f.' + k))}"><i style="background-position:${-i * 48}px 0"></i><span>${esc(T('dmg.f.' + k))}</span></button>`).join('');
-  $('#dm-myname').textContent = T('dmg.f.' + fighter);
+  $('#dm-pick').innerHTML = SPRITES.order.map((k, i) => `<button type="button" role="radio" aria-checked="${k === fighter}" data-fighter="${k}" aria-label="${esc(T('dmg.f.' + k))}"><i style="background-position:${-i * 48}px 0"></i></button>`).join('');
 }
 function setFighter(k) {
   if (dmBusy || k === fighter || !SPRITES.fighters[k]) return;
