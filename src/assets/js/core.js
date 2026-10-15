@@ -260,7 +260,8 @@ document.addEventListener('error', e => {
 let petsPromise = null;
 export function loadPets() {
   if (!petsPromise) {
-    petsPromise = fetch(`${BASE}data/pets.json`, { cache: 'no-cache' }).then(r => r.json()).then(list => list.map(p => ({
+    // 走 api/pets.php：資料超過一天沒更新時伺服器會先向攻略網同步再回；失敗再退回靜態檔
+    petsPromise = fetch(`${BASE}api/pets.php`, { cache: 'no-cache' }).then(r => r.ok ? r : Promise.reject(r.status)).catch(() => fetch(`${BASE}data/pets.json`, { cache: 'no-cache' })).then(r => r.json()).then(list => list.map(p => ({
       ...p,
       imageId: String(p.imageId ?? '').match(/\d+/)?.[0] || '',
       cardTier: p.cardTier || '',

@@ -26,7 +26,7 @@
 5. **權限**：確認 `cache/`、`img/pets/`、`data/` 三個資料夾權限是 755（PHP 要能寫入快取、寵物圖片與每日圖鑑）。
 6. **快取設定**：Site Tools → Speed → Caching → Dynamic Cache，把 `/api/*` 加進排除清單（API 自己會控制快取）。
 7. **排程（Cron Jobs）**：Site Tools → Devs → Cron Jobs 新增（路徑依你的帳號調整）：
-   - 每日同步寵物圖鑑（必要）：`10 5 * * *` → `php /home/customer/www/starcg.online/public_html/cron/sync-pets.php`
+   - 每日同步寵物圖鑑（建議）：`10 5 * * *` → `php /home/customer/www/starcg.online/public_html/cron/sync-pets.php`（會順便補抓缺的寵物圖片；沒設也行，`api/pets.php` 在圖鑑超過一天沒更新時會自動向攻略網同步一次，每次部署也會同步）
    - 收集成交紀錄、產生「每日市場動態」（建議）：`*/10 * * * *` → `php /home/customer/www/starcg.online/public_html/cron/ingest.php`（每次只抓新增的 1～幾頁；沒設也能用，會在有人看每日動態時順便補抓，最多每 10 分鐘一次）
    - 預熱熱門搜尋（選用）：`*/5 * * * *` → `php /home/customer/www/starcg.online/public_html/cron/warm.php`
 8. **上線檢查**：
@@ -37,7 +37,7 @@
 
 ## 二之一、之後的更新怎麼做（GitHub 自動部署）
 
-程式碼放在 GitHub 倉庫，推到 `main` 分支後，`.github/workflows/deploy.yml` 會自動建置、跑單元測試，再用 SSH（rsync）把 `dist/` 同步到 SiteGround 的 `public_html`，約 1～2 分鐘完成。快取（`cache/`）、寵物圖片（`img/pets/`）與本機設定檔不會被覆蓋或刪除。
+程式碼放在 GitHub 倉庫，推到 `main` 分支後，`.github/workflows/deploy.yml` 會自動建置、跑單元測試，再用 SSH（rsync）把 `dist/` 同步到 SiteGround 的 `public_html`，約 1～2 分鐘完成。快取（`cache/`）、寵物圖片（`img/pets/`）、伺服器上同步的寵物圖鑑（`data/pets.json`）與本機設定檔不會被覆蓋或刪除；部署完會在伺服器上跑一次 `cron/sync-pets.php`，Actions 紀錄裡看得到「已更新圖鑑：N 筆」。
 
 一次性設定：
 1. GitHub 建私人倉庫，把整個專案推上去（或由 Claude 推）。
@@ -96,6 +96,7 @@
 - **贊助站長連結**：預設是 BobaBoba 贊助頁（`build.mjs` 內 `SPONSOR`），可用 `--sponsor=` / `--sponsor-ko=` 或 GitHub Variables `SPONSOR_URL` / `SPONSOR_URL_KO` 覆蓋。首頁「贊助站長」卡片會先跳出彈窗：請大家到教學影片下留言，想贊助再點連結。
 - **新手彈窗的教學影片**：`node build.mjs --video=YouTube網址或mp4網址`。第一次來的人會看到歡迎彈窗（依裝置顯示加到我的最愛／加到主畫面的步驟），影片放在彈窗上方；沒給時顯示「教學影片準備中」。看過會記在瀏覽器裡不再跳出，設定面板有「再看一次新手教學」。
 - **新增大量新文字後**：先 `node build.mjs`，再重新產生字型子集 `python3 tools/subset-fonts.py dist <粉圓.ttf> <GowunDodum.ttf>`，然後再建置一次（會一併收錄腳本字典與 `data/` 內的名稱；沒做也能正常顯示，只是新字會改用系統字型）。字型原檔：jf open 粉圓 GitHub releases、Gowun Dodum（yangheeryu/Gowun-Dodum）。
+- **寵物圖鑑**：來源是星詠攻略網的 `guide.starcg.net/data/pets.json`（`api/config.php` 的 `upstream_pets`）。伺服器上的 `data/pets.json` 由 cron／部署／`api/pets.php`（超過一天沒更新時）同步，倉庫裡的 `static/data/pets.json` 只是第一次部署的種子，不會覆蓋伺服器的版本；若攻略網缺某隻寵物，本站也會缺，要等上游補。同步狀態在 `cache/pets-sync.json`。
 - **官方市場格式若改版**：只需調整 `static/api/_market.php` 的整理邏輯。
 
 ## 五之一、心得分享（寫文章）
