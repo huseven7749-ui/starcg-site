@@ -17,7 +17,7 @@ import base64
 SPR = SRC / 'assets' / 'img' / 'sprites'
 b64 = lambda p: 'data:image/png;base64,' + base64.b64encode(p.read_bytes()).decode()
 RAT = b64(SPR / 'ratking-face.png')          # 51×54
-DIVA = b64(SPR / 'diva-still.png')            # 125×195
+DIVA = b64(SPR / 'diva-still.png')            # 182×231（原尺寸，勿非整數倍縮放）
 sprite = (SRC / 'partials' / 'sprite.svg').read_text(encoding='utf-8')
 dicts = json.loads(subprocess.check_output(['node', '-e', """
 Promise.all([import('./src/i18n/zh.mjs'),import('./src/i18n/ko.mjs')]).then(([z,k])=>process.stdout.write(JSON.stringify({zh:z.default,ko:{...z.default,...k.default}})))
@@ -63,7 +63,7 @@ body {{ margin:0; width:1200px; height:630px; overflow:hidden; font-family:{font
 h1 {{ font-size:{84 if len(title) < 9 else 66}px; line-height:1.15; margin:26px 0 16px; letter-spacing:2px; }}
 p {{ font-size:30px; line-height:1.5; margin:0; color:#7B5F43; }}
 .url {{ position:absolute; left:70px; bottom:62px; font-size:28px; font-weight:700; color:#fff; background:{accent}; padding:10px 26px; border-radius:999px; box-shadow:0 6px 0 #0003; font-family:system-ui,sans-serif; }}
-.diva {{ position:absolute; right:96px; bottom:40px; width:250px; height:390px; image-rendering:pixelated; }}
+.diva {{ position:absolute; right:96px; bottom:40px; width:364px; height:462px; image-rendering:pixelated; }}
 .glow {{ position:absolute; right:86px; bottom:30px; width:270px; height:70px; border-radius:50%; background: radial-gradient(closest-side, #E2AE4788, transparent); }}
 .rat {{ position:absolute; right:330px; bottom:44px; width:102px; height:108px; image-rendering:pixelated; }}
 .bubble {{ position:absolute; right:110px; top:150px; width:260px; height:260px; border-radius:64px; background:#FFFAEE; border:6px solid #D5B98A; box-shadow:0 10px 0 #D5B98A88; display:grid; place-items:center; color:{accent}; --ic2:#F9DFD3; }}
