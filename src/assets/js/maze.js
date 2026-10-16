@@ -480,7 +480,9 @@ function buildResult(run, pack) {
   const ms = Math.max(0, Date.now() - run.at);
   const score = floors * 10 + stairs * 3 + marks * 2 + cells / 60 + coverage * 15;
   const grade = score >= 60 ? 'S' : score >= 35 ? 'A' : score >= 15 ? 'B' : 'C';
-  return { floors, stairs, marks, cells, coverage, ms, grade, at: run.at };
+  // 每層資訊（存成圖片用）：樓層、探索率、樓梯與標記座標
+  const perFloor = pack.floors.map((pf, i) => { const c = coverageOf(fl[i]?.f.map); return { n: pf.n, cov: c ? c.seen / c.area : null, pts: pf.pts }; });
+  return { floors, stairs, marks, cells, coverage, ms, grade, at: run.at, perFloor };
 }
 // 結算卡上星野的動作：S 跳起來歡呼、A 歡呼、B 東張西望、C 坐下休息
 const RESULT_POSE = { S: 'adv-cheer', A: 'adv-cheer', B: 'adv-look', C: 'adv-sit' };
@@ -518,12 +520,24 @@ function confetti(host = $('#mz-stage'), n = 24) {
 // 存成圖片：用 canvas 畫一張結算卡
 async function resultImage() {
   const r = lastResult; if (!r) return;
-  const W = 720, H = 900, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const W = 720, c = document.createElement('canvas');
   const x = c.getContext('2d');
+  const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
+  // 每層資訊：先排版算高度
+  const CHIP_F = `600 19px ${font}`, CW = W - 140 - 40;
+  x.font = CHIP_F;
+  const floorsLay = (r.perFloor || []).map(fl => {
+    const chips = fl.pts.length ? fl.pts.map(p => ({ k: KIND_NAME(p.kind), t: `${p.note ? p.note : T('mz.k.' + KIND_NAME(p.kind))} ${xyShort(p.e, p.s)}` })) : [{ k: '', t: T('mz.p.none') }];
+    let cx = 0, lines = 1;
+    for (const ch of chips) { ch.w = Math.min(CW, x.measureText(ch.t).width + (ch.k ? 34 : 16)); if (cx && cx + ch.w > CW) { lines++; cx = 0; } ch.line = lines - 1; ch.x = cx; cx += ch.w + 8; }
+    return { ...fl, chips, h: 54 + lines * 38 };
+  });
+  const FY = 798, floorsH = floorsLay.length ? 56 + floorsLay.reduce((a, f) => a + f.h + 10, 0) : 0;
+  const H = FY + floorsH + 100;
+  c.width = W; c.height = H;
   const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#CFE4F4'); g.addColorStop(0.5, '#F7EBD2'); g.addColorStop(1, '#EFD9AE');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   x.strokeStyle = '#D9654A'; x.lineWidth = 8; x.beginPath(); x.roundRect(14, 14, W - 28, H - 28, 28); x.stroke();
-  const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
   x.fillStyle = '#4A3422'; x.textAlign = 'center'; x.font = `700 30px ${font}`; x.fillText(T('mz.r.title'), W / 2, 86);
   x.font = `500 20px ${font}`; x.fillStyle = '#7B5F43'; x.fillText(new Date(r.at).toLocaleString(LOC, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }), W / 2, 120);
   const gc = { S: '#D9654A', A: '#E2AE47', B: '#4E95D0', C: '#8A8A8A' }[r.grade];
@@ -542,6 +556,32 @@ async function resultImage() {
     x.textAlign = 'left'; x.fillStyle = '#7B5F43'; x.font = `600 22px ${font}`; x.fillText(k, 96, y + 38);
     x.textAlign = 'right'; x.fillStyle = '#4A3422'; x.font = `800 30px ${font}`; x.fillText(v, W - 96, y + 40);
   });
+  // 每層資訊
+  if (floorsLay.length) {
+    const KC = { up: '#3FA06A', down: '#E0603F', crystal: '#8B6CE0', warp: '#E2A93B', other: '#4E95D0', poi: '#D9A400', chest: '#B5742A', mob: '#C8364A', note: '#3B8FB5', npc: '#2B9C8C' };
+    x.textAlign = 'left'; x.fillStyle = '#4A3422'; x.font = `700 26px ${font}`; x.fillText(T('mz.r.perFloor'), 70, FY + 34);
+    let y = FY + 56;
+    for (const fl of floorsLay) {
+      x.fillStyle = 'rgba(255,250,238,.9)'; x.beginPath(); x.roundRect(70, y, W - 140, fl.h, 16); x.fill();
+      x.textAlign = 'left'; x.fillStyle = '#4A3422'; x.font = `800 23px ${font}`; x.fillText(T('mz.floorN', { n: fl.n }), 90, y + 36);
+      if (fl.cov != null) {
+        const p = Math.round(fl.cov * 100), bx = W - 90 - 160;
+        x.fillStyle = 'rgba(74,52,34,.15)'; x.beginPath(); x.roundRect(bx, y + 22, 110, 14, 7); x.fill();
+        if (p > 0) { x.fillStyle = '#7DAE5F'; x.beginPath(); x.roundRect(bx, y + 22, Math.max(14, 110 * p / 100), 14, 7); x.fill(); }
+        x.textAlign = 'right'; x.fillStyle = '#7B5F43'; x.font = `700 20px ${font}`; x.fillText(p + '%', W - 90, y + 36);
+      }
+      x.font = CHIP_F;
+      for (const ch of fl.chips) {
+        const cx = 90 + ch.x, cy = y + 52 + ch.line * 38;
+        x.fillStyle = ch.k ? 'rgba(74,52,34,.08)' : 'transparent'; x.beginPath(); x.roundRect(cx, cy, ch.w, 30, 15); x.fill();
+        if (ch.k) { x.fillStyle = KC[ch.k] || '#7B5F43'; x.beginPath(); x.arc(cx + 15, cy + 15, 8, 0, Math.PI * 2); x.fill(); }
+        x.textAlign = 'left'; x.fillStyle = ch.k ? '#4A3422' : '#A78C6C';
+        let t = ch.t; while (x.measureText(t).width > ch.w - (ch.k ? 34 : 16) && t.length > 1) t = t.slice(0, -1);
+        x.fillText(t === ch.t ? t : t.slice(0, -1) + '…', cx + (ch.k ? 28 : 8), cy + 22);
+      }
+      y += fl.h + 10;
+    }
+  }
   // 角色
   try {
     const spr = JSON.parse(document.body.dataset.sprites || '{}');

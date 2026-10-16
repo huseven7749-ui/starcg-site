@@ -1368,6 +1368,7 @@ export default {
   'mz.r.stairs': '找到的樓梯',
   'mz.r.marks': '自己的標記',
   'mz.r.coverage': '探索率',
+  'mz.r.perFloor': '每層資訊',
   'mz.r.coverageNote': '看過的地板與牆 ÷ 地圖大小（各層合計）',
   'mz.r.save': '存成圖片',
   'mz.r.toPack': '去打包分享',
