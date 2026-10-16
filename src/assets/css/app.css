@@ -485,6 +485,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .notice .ic { width: 20px; height: 20px; color: var(--warn); margin-top: 2px; }
 .notice.info { background: var(--sky-l); } .notice.info .ic { color: var(--sky-d); }
 .notice.bad { background: var(--coral-l); } .notice.bad .ic { color: var(--bad); }
+.err-box p { margin: 0; }
+.err-box .err-streak { margin-top: 6px; font-weight: 700; color: var(--coral-d); }
+.err-box .err-streak a { color: var(--pink-d); }
+.err-why { margin-top: 8px; font-size: .86rem; color: var(--ink-2); }
+.err-why summary { cursor: pointer; font-weight: 700; color: var(--pink-d); }
+.err-why p { margin-top: 6px; line-height: 1.65; }
+.err-why ol { margin: 4px 0 0; padding-left: 1.4em; line-height: 1.65; }
 .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .stat-tile { background: var(--card-2); border: 1.5px solid var(--line); border-radius: 18px; padding: 12px 14px; min-width: 0; }
 .stat-tile > span { font-size: .8rem; color: var(--ink-2); font-weight: 700; display: block; }

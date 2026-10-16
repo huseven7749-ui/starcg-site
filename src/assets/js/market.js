@@ -60,6 +60,16 @@ function parseExpire(s) {
 const ago = sec => (sec < 60 ? T('updatedAgo', { s: Math.max(0, Math.round(sec)) }) : T('updatedMin', { m: Math.round(sec / 60) }));
 const tile = (label, body, sub = '', hl = false) => `<div class="stat-tile${hl ? ' hl' : ''}"><span>${esc(label)}</span><b>${body}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
 const notice = (txt, cls = '', ic = 'sparkle') => `<div class="notice ${cls}"><svg class="ic"><use href="#i-${ic}"/></svg><span>${txt}</span></div>`;
+// 查價失敗時的提示：錯誤原因＋重試＋「為什麼查不到？怎麼辦？」說明（連續失敗多次時提醒可能是官方維護）
+let failStreak = 0;
+function errBox(e, retry = true) {
+  failStreak++;
+  const msg = e.status === 429 ? '⏳ ' + T('mk.rateLimited') : T('mk.upstreamDown');
+  const fixes = [1, 2, 3, 4].map(i => `<li>${esc(T('mk.errFix' + i))}</li>`).join('');
+  const streak = failStreak >= 3 ? `<p class="err-streak">${esc(T('mk.errStreak').replace('{n}', failStreak))} <a href="https://member.starcg.net/market.php" target="_blank" rel="noopener">${esc(T('mk.errOfficial'))}</a></p>` : '';
+  return `<div class="notice bad err-box"><svg class="ic"><use href="#i-close"/></svg><div><p>${esc(msg)}${retry ? ` <button class="btn sm" type="button" data-retry>${esc(T('retry'))}</button>` : ''}</p>${streak}` +
+    `<details class="err-why"><summary>${esc(T('mk.errWhyTitle'))}</summary><p><b>${esc(T('mk.errCauseTitle'))}</b>${esc(T('mk.errCause'))}</p><p><b>${esc(T('mk.errFixTitle'))}</b></p><ol>${fixes}</ol></details></div></div>`;
+}
 const pct = (x, d = 1) => (x == null || !isFinite(x) ? '–' : `${x > 0 ? '+' : ''}${fmt(x * 100, d)}%`);
 function seg(box, v) { $$('button', box).forEach(b => b.setAttribute('aria-pressed', String(b.value === String(v)))); }
 
@@ -189,6 +199,7 @@ async function search(fresh = false) {
       if (token === S.token) el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{s}', sec))}`;
     });
     if (token !== S.token) return;
+    failStreak = 0;
     S.data = d;
     S.rows = flatten(d);
     if (mode === 'query' && S.rows.length) track('market.search');
@@ -197,8 +208,7 @@ async function search(fresh = false) {
   } catch (e) {
     if (token !== S.token) return;
     el.status.hidden = true;
-    const msg = e.status === 429 ? '⏳ ' + T('mk.rateLimited') : T('mk.upstreamDown');
-    el.results.innerHTML = notice(`${esc(msg)} <button class="btn sm" type="button" data-retry>${esc(T('retry'))}</button>`, 'bad', 'close');
+    el.results.innerHTML = errBox(e);
   }
 }
 
@@ -511,7 +521,7 @@ async function loadHistory(token, more = false) {
     afterHistory();
   } catch (e) {
     if (token !== S.token) return;
-    el.hist.innerHTML = notice(esc(e.status === 429 ? '⏳ ' + T('mk.rateLimited') : T('mk.upstreamDown')), 'bad', 'close');
+    el.hist.innerHTML = errBox(e, false);
   }
 }
 function afterHistory() {
