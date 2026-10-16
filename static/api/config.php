@@ -23,9 +23,9 @@ $SC_CONFIG = [
     'batch_max_names'   => 30,    // 批次查價一次最多幾個商品
     'pet_browse_ttl'    => 300,   // 全部寵物攤位快取 5 分鐘
     'pet_browse_max_pages' => 50,
-    'concurrency'       => 6,     // 同時連線數
+    'concurrency'       => 4,     // 同時連線數（太多會被官方暫時擋下）
     'timeout'           => 12,    // 單頁逾時（秒）
-    'rate_limit_per_min'     => 20,   // 每個 IP 每分鐘最多觸發 20 次「實際向官方抓取」
+    'rate_limit_per_min'     => 40,   // 每個 IP 每分鐘最多觸發 40 次「實際向官方抓取」（連點熱門搜尋也不會被擋）
     'upstream_pages_per_min' => 240,  // 全站每分鐘最多向官方抓 240 頁
 
     // 熱門搜尋

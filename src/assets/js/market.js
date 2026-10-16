@@ -185,7 +185,9 @@ async function search(fresh = false) {
     let d;
     if (mode === 'browse-equip') d = mergeBatch(await api('batch', { n: names, type: 'item', fresh: fresh ? 1 : '' }, { timeout: 60000 }), names);
     else if (mode === 'browse-pet') d = await api('market', { q: '', type: 'pet', fresh: fresh ? 1 : '' }, { timeout: 60000 });
-    else d = await api('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' });
+    else d = await apiRetry('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' }, n => {
+      if (token === S.token) el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{n}', n))}`;
+    });
     if (token !== S.token) return;
     S.data = d;
     S.rows = flatten(d);
@@ -195,8 +197,19 @@ async function search(fresh = false) {
   } catch (e) {
     if (token !== S.token) return;
     el.status.hidden = true;
-    const msg = e.status === 429 ? '⏳ ' + T('mk.rateLimited') : T('error');
+    const msg = e.status === 429 ? '⏳ ' + T('mk.rateLimited') : T('mk.upstreamDown');
     el.results.innerHTML = notice(`${esc(msg)} <button class="btn sm" type="button" data-retry>${esc(T('retry'))}</button>`, 'bad', 'close');
+  }
+}
+
+/** 官方市場偶爾短暫沒回應：502／逾時／非 JSON 自動再試兩次（間隔 1.5、3 秒），429 不重試 */
+async function apiRetry(name, params, onRetry) {
+  for (let n = 0; ; n++) {
+    try { return await api(name, params); } catch (e) {
+      if (n >= 2 || e.status === 429 || e.status === 400) throw e;
+      onRetry?.(n + 1);
+      await new Promise(r => setTimeout(r, 1500 * (n + 1)));
+    }
   }
 }
 
@@ -486,13 +499,13 @@ async function loadHistory(token, more = false) {
   el.hist.innerHTML = `<div class="skel" style="height:240px"></div>`;
   if (S.src === 'import') { S.hist = { logs: importedRecords().filter(l => nameMatch(l.n, S.q, S.exact)), imported: true }; afterHistory(); return; }
   try {
-    const d = await api('history', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', pages: S.histPages, range: S.range });
+    const d = await apiRetry('history', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', pages: S.histPages, range: S.range });
     if (token !== S.token) return;
     S.hist = { ...d, logs: (d.logs || []).filter(l => rowMatch(l, S.q, S.exact)) };
     afterHistory();
-  } catch {
+  } catch (e) {
     if (token !== S.token) return;
-    el.hist.innerHTML = notice(esc(T('error')), 'bad', 'close');
+    el.hist.innerHTML = notice(esc(e.status === 429 ? '⏳ ' + T('mk.rateLimited') : T('mk.upstreamDown')), 'bad', 'close');
   }
 }
 function afterHistory() {

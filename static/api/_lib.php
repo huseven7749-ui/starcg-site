@@ -107,7 +107,7 @@ function client_ip(): string
 function rate_allow(): bool
 {
     if (PHP_SAPI === 'cli') return true;
-    $limit = (int)cfg('rate_limit_per_min', 20);
+    $limit = (int)cfg('rate_limit_per_min', 40);
     $file = rtrim((string)cfg('cache_dir'), '/') . '/rl/' . substr(sha1(client_ip()), 0, 16) . '.json';
     return (bool)locked_json($file, function (array $d) use ($limit) {
         $now = time();

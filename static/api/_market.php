@@ -94,26 +94,39 @@ function parse_log(array $l): ?array
     return ['id' => $id !== null ? (int)$id : null, 't' => $t, 'n' => $name, 'q' => $qty, 'p' => $p, 'c' => $c];
 }
 
-/** 抓一批頁面，失敗的再重試一次。回傳 [page => data]、失敗頁碼 */
+/** 抓一批頁面，失敗的最多再重試兩次（間隔 0.5 秒、1.5 秒，重試時降低並行數）。回傳 [page => data]、失敗頁碼 */
 function fetch_pages(callable $urlOf, array $pages): array
 {
     $got = [];
     $todo = $pages;
-    for ($round = 0; $round < 2 && $todo; $round++) {
-        if (!upstream_budget(count($todo))) break;
+    $waits = [500000, 1500000];
+    for ($round = 0; $round < 3 && $todo; $round++) {
+        if (!upstream_budget(count($todo))) { upstream_log('budget', 0, 'site page budget exhausted', ''); break; }
         $urls = [];
         foreach ($todo as $p) $urls[$p] = $urlOf($p);
-        $res = http_multi(array_values($urls));
+        $res = http_multi(array_values($urls), $round ? 2 : null);
         $next = [];
         foreach ($urls as $p => $u) {
             $r = $res[$u] ?? null;
             $d = ($r && $r['code'] === 200) ? parse_json_body($r['body']) : null;
-            if ($d !== null) $got[$p] = $d; else $next[] = $p;
+            if ($d !== null) { $got[$p] = $d; continue; }
+            $next[] = $p;
+            upstream_log("round$round", (int)($r['code'] ?? 0), (string)($r['err'] ?? ''), (string)($r['body'] ?? ''));
         }
         $todo = $next;
-        if ($todo) usleep(300000);
+        if ($todo && isset($waits[$round])) usleep($waits[$round]);
     }
     return [$got, $todo];
+}
+
+/** 官方抓取失敗紀錄（不含訪客資料），給 /api/status.php 看最近狀況 */
+function upstream_log(string $stage, int $code, string $err, string $body): void
+{
+    $file = rtrim((string)cfg('cache_dir'), '/') . '/upstream-log.json';
+    locked_json($file, function (array $d) use ($stage, $code, $err, $body) {
+        $d[] = ['t' => time(), 's' => $stage, 'c' => $code, 'e' => mb_substr($err, 0, 80), 'b' => mb_substr(preg_replace('/\s+/u', ' ', strip_tags($body)) ?? '', 0, 80)];
+        return [array_slice($d, -60), true];
+    });
 }
 
 /** 台灣時間字串 → Unix 秒 */
