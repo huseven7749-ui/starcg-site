@@ -8,6 +8,7 @@
   <button type="button" role="tab" id="tab-dex" aria-controls="pane-dex" aria-selected="true" data-tab="dex"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:pet.tab.dex}}<span class="count" id="dex-count" hidden></span></button>
   <button type="button" role="tab" id="tab-sim" aria-controls="pane-sim" aria-selected="false" data-tab="sim"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg>{{t:pet.tab.sim}}</button>
   <button type="button" role="tab" id="tab-cmp" aria-controls="pane-cmp" aria-selected="false" data-tab="cmp"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:pet.tab.cmp}}<span class="count" id="cmp-count" hidden></span></button>
+  <button type="button" role="tab" id="tab-battle" aria-controls="pane-battle" aria-selected="false" data-tab="battle"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:pc.tab}}<span class="count" id="card-count" hidden></span></button>
 </div>
 
 <section id="pane-dex" role="tabpanel" aria-labelledby="tab-dex">
@@ -69,6 +70,7 @@
         <div class="result-grid" id="result"></div>
         <div class="row end" style="margin-top:12px">
           <button class="btn sm ghost" type="button" id="share"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>{{t:pet.share}}</button>
+          <button class="btn sm ghost" type="button" id="add-card"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:pc.addFromSim}}</button>
           <button class="btn sm primary" type="button" id="add-cmp"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>{{t:pet.addCmp}}</button>
         </div>
       </section>
@@ -93,6 +95,37 @@
     <button class="btn sm ghost" type="button" id="cmp-csv"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:js.csv}}</button>
     <button class="btn sm ghost" type="button" id="cmp-clear"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>{{t:common.clear}}</button>
   </div>
+</section>
+
+<section id="pane-battle" role="tabpanel" aria-labelledby="tab-battle" hidden>
+  <section class="card">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:pc.arena}}<span class="sub">{{t:pc.arenaSub}}</span></h2>
+    <div class="arena" id="arena">
+      <div class="arena-slot" data-slot="0" tabindex="0" aria-label="{{t:pc.slotA}}"><span class="arena-ph">{{t:pc.dropHere}}</span></div>
+      <div class="arena-vs" aria-hidden="true">VS</div>
+      <div class="arena-slot" data-slot="1" tabindex="0" aria-label="{{t:pc.slotB}}"><span class="arena-ph">{{t:pc.dropHere}}</span></div>
+      <div class="arena-stage" id="arena-stage" hidden aria-live="polite"></div>
+    </div>
+    <div class="row" style="margin-top:12px;gap:10px;align-items:end">
+      <label class="field" style="width:120px"><span>{{t:common.lv}}</span><input class="input" id="pc-lv" type="number" min="1" max="160" value="100" inputmode="numeric"></label>
+      <button class="btn primary" type="button" id="pc-fight" disabled><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:pc.fight}}</button>
+      <button class="btn ghost" type="button" id="pc-swap">{{t:pc.swap}}</button>
+      <button class="btn ghost" type="button" id="pc-clear-arena">{{t:pc.clearArena}}</button>
+    </div>
+    <p class="small muted" style="margin:8px 0 0">{{t:pc.rule}}</p>
+    <ol class="arena-log small" id="arena-log"></ol>
+  </section>
+  <section class="card">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:pc.album}}<span class="sub" id="pc-album-info"></span></h2>
+    <div class="row" style="gap:8px;align-items:end">
+      <label class="field grow"><span>{{t:pc.addLabel}}</span>
+        <div class="input-wrap"><svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg><input class="input" id="pc-add-q" list="pet-names" placeholder="{{t:pet.pickPh}}" autocomplete="off"></div></label>
+      <button class="btn" type="button" id="pc-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>{{t:pc.add}}</button>
+      <button class="btn ghost" type="button" id="pc-random">{{t:pc.random}}</button>
+    </div>
+    <p class="small muted" style="margin:8px 0 12px">{{t:pc.albumHint}}</p>
+    <div class="pc-grid" id="pc-album"></div>
+  </section>
 </section>
 
 <section class="card faq help">

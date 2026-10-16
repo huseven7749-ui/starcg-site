@@ -2,6 +2,7 @@
 // 期望值為手算結果（見各行註解），用來確認程式與攻略站公布的公式一致。
 import assert from 'node:assert/strict';
 import { simulate, statsFromBp, petScore, decodeAlloc, gradeMeta, expectedTries, capManual, maxStarAdd, REMODEL, TIERS, freePoints, remodelPoints } from '../src/assets/js/petcalc.js';
+import { battleStats, runBattle, cardStars } from '../src/assets/js/petbattle.js';
 import { expected, simulate as farmSim, craft, stonePerRun, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven, LAYERS } from '../src/assets/js/farmcalc.js';
 import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective } from '../src/assets/js/dmgcalc.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, parseImport, mergeRecords, inPeriod } from '../src/assets/js/mkstats.js';
@@ -34,6 +35,22 @@ t('遊戲實測：赤焰年獸 Lv140 金卡 5 改、體力 26 力量 153（遊�
   assert.ok(Math.abs(s.total - 4472) <= 2, `score ${s.total}`);
 });
 
+t('寵物卡對戰：能力、爆點時改加體力、對戰結果合理', () => {
+  const nian = { name: '赤焰年獸', cardTier: '金卡', race: '野獸系', hp: 29, power: 54, defense: 17, speed: 23, magic: 6 };
+  const a = battleStats(nian, 140);
+  assert.equal(a.kind, 'phys');
+  assert.equal(a.manual.reduce((x, y) => x + y, 0), 139);      // 不改造：Lv140 自由點數 139 全部配完
+  assert.ok(a.manual[1] > 0 && a.manual[0] > 0);                // 力量爆點後改加體力
+  const mage = battleStats({ name: '測試法師', cardTier: '金卡', race: '人形系', hp: 20, power: 10, defense: 20, speed: 30, magic: 49 }, 100);
+  assert.equal(mage.kind, 'magic');
+  assert.ok(mage.mlv >= 1 && mage.mlv <= 10);
+  let seed = 1; const rng = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const r = runBattle(a, mage, rng);
+  assert.ok([0, 1, null].includes(r.winner));
+  assert.ok(r.turns >= 1 && r.turns <= 30 && r.log.length >= 1);
+  assert.ok(r.log.every(x => x.dmg >= 1 && x.left >= 0));
+  assert.equal(cardStars(nian), 5);                              // 金卡 129 = 104 + 25 → 五顆星
+});
 t('升級成長：BP 每級 + 檔次 ÷ 24（算滿等級），自由點數 Lv−1', () => {
   const r = simulate({ base: [24, 24, 24, 24, 24], rand: [0, 0, 0, 0, 0], level: 25, tier: '', remodel: 0, manual: [24, 0, 0, 0, 0] });
   // 4.8 + 24/24 × 25 = 29.8，體力再 +24

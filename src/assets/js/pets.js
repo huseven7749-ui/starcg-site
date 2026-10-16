@@ -1,6 +1,7 @@
 // 寵物圖鑑 + 成長模擬
 import { $, $$, T, esc, fmt, store, copy, toast, loadPets, petImgSrc, normName, downloadCsv, debounce, clamp, emptyState, spriteImg, LANG, BASE } from './core.js';
 import { track } from './game.js';
+import { initCards, addCard } from './petcards.js';
 import { simulate, petScore, maxStarAdd, tierOf, TIERS, REMODEL, STAT_KEYS, freePoints, RAND_TOTAL_MAX, DROP_TOTAL_MAX , remodelPoints, remodelLv, REMODEL_MAX } from './petcalc.js';
 
 const CMP_KEY = 'sc.petcmp';
@@ -48,7 +49,7 @@ const els = p => `<span class="els">${EL_KEYS.filter(k => p[k]).map(k => `<span 
 // ───────────────── 分頁 ─────────────────
 function setTab(tab) {
   $$('#pet-tabs [role=tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
-  ['dex', 'sim', 'cmp'].forEach(t => ($('#pane-' + t).hidden = t !== tab));
+  ['dex', 'sim', 'cmp', 'battle'].forEach(t => ($('#pane-' + t).hidden = t !== tab));
   if (tab === 'cmp') renderCmp();
 }
 $('#pet-tabs').addEventListener('click', e => { const b = e.target.closest('[role=tab]'); if (b) setTab(b.dataset.tab); });
@@ -329,6 +330,7 @@ $('#share').addEventListener('click', () => {
 
 // ───── 比較清單 ─────
 const getCmp = () => store.get(CMP_KEY, []) || [];
+$('#add-card').addEventListener('click', () => { if (S.pet) addCard(S.pet.name); else toast(T('pc.notFound')); });
 $('#add-cmp').addEventListener('click', () => {
   const l = S.last;
   if (!l) return;
@@ -375,6 +377,7 @@ loadPets().then(async list => {
   $('#pet-names').innerHTML = list.map(p => `<option value="${esc(p.kn || p.name)}">`).join('');
   $('#dex-count').hidden = false; $('#dex-count').textContent = list.length;
   renderDex();
+  initCards({ pets: list, map: byName });
   const params = new URLSearchParams(location.search);
   let restored = false;
   try {
