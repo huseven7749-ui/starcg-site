@@ -277,7 +277,7 @@ function jsonLd(lang, page, t) {
 // 檔名＝網址（英文、數字、連字號）；同名加 .ko.md 是韓文版，會自動互相連結。底線開頭的檔案不會發佈。
 const POSTS_DIR = path.join(SRC, 'posts');
 // 文章分類（frontmatter 的 category），順序＝分類頁籤順序；分類頁在 /posts/category/<id>/
-const POST_CATS = ['series', 'main', 'job', 'region', 'tutorial', 'other'];
+const POST_CATS = ['leveling', 'series', 'main', 'job', 'region', 'tutorial', 'other'];
 const catPath = c => `/posts/category/${c}/`;
 const isDate = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
 function loadPosts() {
