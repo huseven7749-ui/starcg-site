@@ -23,7 +23,7 @@ const TODAY_TW = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);  
 const SHOW_FUTURE = process.argv.includes('--future');
 const REGISTER_URL = 'https://member.starcg.net/register.php?ref=Hsu12rDUCzP.PwC3';
 const GOOGLE_VERIFY = args.google || '';      // Search Console 驗證碼（可留空，改用 DNS 驗證）
-const NAVER_VERIFY = args.naver || '';        // Naver Search Advisor 驗證碼
+const NAVER_VERIFY = args.naver || 'd576b4c44e8480d1da926bb2a85446fafdcdd298';   // Naver Search Advisor 驗證碼（公開的 meta 值；GitHub 變數 NAVER_VERIFY 有設時以它為準）
 // 教學影片（中／韓各一支）：新手彈窗內嵌播放，贊助彈窗也會請大家到影片下留言
 // 可用 --video=網址 --video-ko=網址 --sponsor=網址 --sponsor-ko=網址 覆蓋；留空就用下面的預設
 const VIDEO = { zh: args.video || 'https://youtu.be/2dk9OO-lSmw?si=jf8WyNkAkoCsPtGg', ko: args['video-ko'] || 'https://youtu.be/vv5wRaEuV-Y?si=rjLWOqEwNbzLjZGu' };
