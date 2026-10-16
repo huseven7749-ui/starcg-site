@@ -15,6 +15,14 @@ const S = {
   level: 1, tier: '', remodel: 0, slots: 6, fullSlot: false, maxStar: false,
 };
 const raceLabel = r => { const k = 'race.' + r; const v = T(k); return v === k ? r : v; };
+// 取得方式：攻略網資料可能是字串、{text,url} 或兩者混合的陣列；統一成 [{text,url}]，去重、只留 http(s) 連結
+function obtainList(o) {
+  const seen = new Set();
+  const textOf = x => x.text || x.name || x.title || x.label || x.desc || Object.values(x).find(v => typeof v === 'string' && !/^https?:\/\//.test(v)) || '';
+  return (Array.isArray(o) ? o : [o]).map(x => typeof x === 'string' ? { text: x } : (x && typeof x === 'object') ? { text: textOf(x), url: x.url || x.href || '' } : { text: '' })
+    .map(x => ({ text: String(x.text).trim(), url: /^https?:\/\//.test(x.url || '') ? x.url : '' }))
+    .filter(x => x.text && !seen.has(x.text) && seen.add(x.text));
+}
 // 韓文站：寵物名優先顯示遊戲韓文介面的名稱（data/pet-names-ko.json，imageId → 韓文），中文名縮小放旁邊
 const nameHtml = (p, tag = 'b') => (LANG === 'ko' && p.kn)
   ? `<${tag}>${esc(p.kn)} <small class="muted" lang="zh-Hant">${esc(p.name)}</small></${tag}>`
@@ -117,11 +125,12 @@ function fillInputs() {
 function renderHead() {
   const p = S.pet;
   if (!p) { $('#sim-head').innerHTML = `<p class="muted small" style="grid-column:1/-1;margin:0">${esc(T('pet.custom'))}</p>`; return; }
-  const skins = (p.skins || []).map(s => `<span class="badge b-lav" title="${esc(s.obtainInfo || '')}" lang="zh-Hant">${esc(s.name)}</span>`).join(' ');
+  const skins = (p.skins || []).map(s => `<span class="badge b-lav" title="${esc(obtainList(s.obtainInfo).map(x => x.text).join(' / '))}" lang="zh-Hant">${esc(s.name)}</span>`).join(' ');
+  const obtain = obtainList(p.obtainInfo);
   $('#sim-head').innerHTML = `<span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.name)}" width="96" height="96">` : ''}</span>
     <div>${nameHtml(p, 'h2')}
       <div class="row" style="gap:6px">${tierBadge(tierOf(p.cardTier))}<span class="badge b-gray">${esc(raceLabel(p.race))}</span><span class="badge b-sky">${esc(T('pet.slot', { n: p.skillSlots }))}</span>${els(p)}</div>
-      ${p.obtainInfo ? `<p class="small muted" style="margin:6px 0 0" lang="zh-Hant">${esc(p.obtainInfo)}</p>` : ''}
+      ${obtain.length ? `<p class="small muted" style="margin:6px 0 0" lang="zh-Hant">${obtain.map(x => x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>` : esc(x.text)).join('、')}</p>` : ''}
       ${skins ? `<p class="small" style="margin:6px 0 0">${skins}</p>` : ''}</div>`;
 }
 function selectPet(name) {
@@ -156,6 +165,7 @@ function compute() {
   pb.innerHTML = `<span>${esc(T('pet.points'))}</span><span class="num">${fmt(r.used)} / ${fmt(r.limit)}</span><span class="badge ${r.limit - r.used ? 'b-warn' : 'b-ok'}">${esc(T('pet.remain', { n: fmt(r.limit - r.used) }))}</span>
     <span class="small muted">${esc(T('pet.pointsFrom', { lv: Math.max(0, S.level - 1), rm: remodelPoints(S.tier, S.remodel) }))}</span>
     ${S.remodel && S.level < rmNeed ? `<span class="badge b-coral">${esc(T('pet.rmNeed', { n: S.remodel, lv: rmNeed }))}</span>` : ''}`;
+  renderPointHint(r);
   // 警示
   const randSum = S.rand.reduce((a, b) => a + b, 0), dropSum = S.drop.reduce((a, b) => a + b, 0);
   const warns = [];
@@ -171,6 +181,45 @@ function compute() {
   renderLvTable();
   saveState();
 }
+// ───── 爆點提示 ─────
+// 規則：單項 BP 不能超過其他四項 BP 總和。某項到頂後再加也加不上去（點數會被吃掉），
+// 這裡算出每一項「目前還能再加幾點」，有剩點又有能力值到頂時提示，並給一鍵加到其他能力值的按鈕。
+function headroom(r) {
+  const cur = r.bpGrow.map((b, i) => b + r.manual[i]);
+  const tot = cur.reduce((a, b) => a + b, 0), rest = Math.max(0, r.limit - r.used);
+  return cur.map(c => Math.max(0, Math.min(rest, Math.floor(tot - 2 * c + 1e-9))));
+}
+function renderPointHint(r) {
+  const box = $('#point-hint'), rest = Math.max(0, r.limit - r.used), room = headroom(r);
+  const capped = [0, 1, 2, 3, 4].filter(i => rest > 0 && r.manual[i] > 0 && room[i] === 0);
+  $$('tr', tbody).forEach(tr => {
+    const i = Number(tr.dataset.i), on = capped.includes(i), inp = $('[data-k=manual]', tr);
+    tr.classList.toggle('at-cap', on); inp.classList.toggle('at-cap', on);
+    inp.title = on ? T('pet.capTip', { n: r.manual[i] }) : '';
+    const cell = $('td.bp-stat', tr);
+    let note = $('.cap-note', cell);
+    if (on) {
+      if (!note) { note = document.createElement('a'); note.className = 'cap-note'; note.href = '#point-hint'; cell.append(note); }
+      note.textContent = T('pet.capNote', { n: fmt(rest) });
+    } else note?.remove();
+  });
+  $('#points').classList.toggle('warn', capped.length > 0);
+  if (!capped.length) { box.hidden = true; box.innerHTML = ''; return; }
+  const name = i => T('bp.' + i);
+  const can = [0, 1, 2, 3, 4].filter(i => room[i] > 0);
+  box.hidden = false;
+  box.innerHTML = `<b><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> ${esc(T('pet.capTitle', { s: capped.map(name).join('、') }))}</b>
+    <p>${esc(T('pet.capBody', { n: fmt(rest) }))}</p>
+    ${can.length ? `<div class="chips">${can.map(i => `<button class="btn sm" type="button" data-add="${i}" data-n="${room[i]}">${esc(T('pet.capAdd', { s: name(i), n: room[i] }))}</button>`).join('')}</div>`
+      : `<p class="small">${esc(T('pet.capNone'))}</p>`}`;
+}
+$('#point-hint').addEventListener('click', e => {
+  const b = e.target.closest('[data-add]');
+  if (!b) return;
+  S.manual[Number(b.dataset.add)] += Number(b.dataset.n);
+  compute(); fillInputs();
+});
+
 function allocFor(limit, strategy, ratio) {
   if (strategy === 'none' || limit <= 0) return zero();
   if (strategy !== 'ratio') { const a = zero(); a[Number(strategy)] = limit; return a; }

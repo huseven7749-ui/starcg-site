@@ -592,6 +592,13 @@ html[data-view="mobile"] .mk-filters .field select { flex: 1; }
 .points-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 16px; background: var(--card-2); border: 1.5px solid var(--line); }
 .points-bar .num { font-weight: 800; font-size: 1.1rem; }
 .points-bar.over { border-color: var(--bad); background: var(--coral-l); }
+.points-bar.warn { border-color: var(--bad); }
+.point-hint { margin-top: 8px; padding: 10px 14px; border-radius: 16px; background: var(--coral-l); border: 1.5px solid var(--bad); color: var(--ink); }
+.point-hint > b { display: flex; align-items: center; gap: 6px; }
+.point-hint p { margin: 4px 0 0; font-size: .9rem; }
+.point-hint .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.bp-table .cap-note { display: inline-block; margin-left: 6px; font-size: .74rem; font-weight: 700; color: var(--bad); text-decoration: none; white-space: nowrap; }
+.bp-table .input.at-cap { border-color: var(--bad); background: var(--coral-l); box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 25%, transparent); }
 
 /* ───── 改造／匯率 ───── */
 .conv-box { display: grid; grid-template-columns: 1fr; gap: 10px; }
@@ -1000,6 +1007,12 @@ html[data-view="mobile"] .bp-table td.bp-stat { grid-column: 1 / -1; font-size: 
 html[data-view="mobile"] .bp-table td.bp-stat::before { content: none; }
 html[data-view="mobile"] .bp-table .input { min-width: 0; width: 100%; }
 html[data-view="mobile"] .bp-table output { padding: 6px 0; }
+html[data-view="mobile"] .bp-table tr.at-cap { border-color: var(--bad); background: var(--coral-l); }
+html[data-view="mobile"] .bp-table td.bp-stat { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+html[data-view="mobile"] .point-hint .chips .btn { flex: 1 1 calc(50% - 6px); }
+/* 手機版：剩餘點數列黏在畫面底部，捲到哪都看得到還剩幾點 */
+html[data-view="mobile"] #points { position: sticky; bottom: calc(var(--tabbar-h) + 8px + env(safe-area-inset-bottom)); z-index: 5; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+html[data-view="mobile"] #points.warn { background: var(--coral-l); }
 /* 手機：其他 */
 .mk-view-row { flex-wrap: wrap; }
 .mk-view-row select { flex: 1 1 180px; }
