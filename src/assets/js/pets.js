@@ -207,14 +207,37 @@ function renderPointHint(r) {
   $('#points').classList.toggle('warn', capped.length > 0);
   if (!capped.length) { box.hidden = true; box.innerHTML = ''; return; }
   const name = i => T('bp.' + i);
+  const c = capped[0];
   const can = [0, 1, 2, 3, 4].filter(i => room[i] > 0);
+  // 推薦：其他能力值每加 1 點，到頂那項上限就多 1 點 → 一半給別項、一半繼續加到頂那項（主屬性最高）
+  const splits = can.map(p => ({ p, ...splitFor(r, c, p, rest) })).filter(x => x.b > 0);
   box.hidden = false;
   box.innerHTML = `<b><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> ${esc(T('pet.capTitle', { s: capped.map(name).join('、') }))}</b>
-    <p>${esc(T('pet.capBody', { n: fmt(rest) }))}</p>
-    ${can.length ? `<div class="chips">${can.map(i => `<button class="btn sm" type="button" data-add="${i}" data-n="${room[i]}">${esc(T('pet.capAdd', { s: name(i), n: room[i] }))}</button>`).join('')}</div>`
+    <p>${esc(T('pet.capBody2', { s: name(c), n: fmt(rest) }))}</p>
+    ${splits.length ? `<p class="small" style="margin-top:8px"><b>${esc(T('pet.capSplitHead', { s: name(c) }))}</b></p>
+      <div class="chips">${splits.map(x => `<button class="btn sm primary" type="button" data-split="${x.p}" data-a="${x.a}" data-c="${c}" data-b="${x.b}">${esc(T('pet.capSplit', { p: name(x.p), a: x.a, s: name(c), b: x.b, max: x.top }))}</button>`).join('')}</div>` : ''}
+    ${can.length ? `<p class="small" style="margin-top:8px">${esc(T('pet.capAllHead'))}</p><div class="chips">${can.map(i => `<button class="btn sm" type="button" data-add="${i}" data-n="${room[i]}">${esc(T('pet.capAdd', { s: name(i), n: room[i] }))}</button>`).join('')}</div>`
       : `<p class="small">${esc(T('pet.capNone'))}</p>`}`;
 }
+// 剩餘 rest 點：a 點給 p、其餘給到頂的 c，找讓 c 加最多又不爆點的分法
+function splitFor(r, c, p, rest) {
+  const ok = m => {
+    const cur = r.bpGrow.map((b, i) => b + m[i]), tot = cur.reduce((x, y) => x + y, 0);
+    return cur.every(v => v <= tot - v + 1e-6);
+  };
+  for (let a = 0; a <= rest; a++) {
+    const m = [...r.manual]; m[p] += a; m[c] += rest - a;
+    if (ok(m)) return { a, b: rest - a, top: m[c] };
+  }
+  return { a: rest, b: 0, top: r.manual[c] };
+}
 $('#point-hint').addEventListener('click', e => {
+  const s = e.target.closest('[data-split]');
+  if (s) {
+    S.manual[Number(s.dataset.split)] += Number(s.dataset.a);
+    S.manual[Number(s.dataset.c)] += Number(s.dataset.b);
+    compute(); fillInputs(); return;
+  }
   const b = e.target.closest('[data-add]');
   if (!b) return;
   S.manual[Number(b.dataset.add)] += Number(b.dataset.n);

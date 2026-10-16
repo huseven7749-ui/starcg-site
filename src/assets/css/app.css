@@ -1010,6 +1010,7 @@ html[data-view="mobile"] .bp-table output { padding: 6px 0; }
 html[data-view="mobile"] .bp-table tr.at-cap { border-color: var(--bad); background: var(--coral-l); }
 html[data-view="mobile"] .bp-table td.bp-stat { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
 html[data-view="mobile"] .point-hint .chips .btn { flex: 1 1 calc(50% - 6px); }
+html[data-view="mobile"] .point-hint .chips .btn.primary { flex-basis: 100%; }
 /* 手機版：剩餘點數列黏在畫面底部，捲到哪都看得到還剩幾點 */
 html[data-view="mobile"] #points { position: sticky; bottom: calc(var(--tabbar-h) + 8px + env(safe-area-inset-bottom)); z-index: 5; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
 html[data-view="mobile"] #points.warn { background: var(--coral-l); }
