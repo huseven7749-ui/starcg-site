@@ -1107,6 +1107,16 @@ html[data-view="mobile"] .day.is-active { visibility: visible; }
 .ph-posts .ph-ic { background: var(--pink-l); color: var(--pink-d); box-shadow: var(--pop) color-mix(in srgb, var(--pink) 45%, transparent); }
 .section-more { margin-left: auto; font-size: .9rem; font-weight: 700; }
 .post-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+/* 文章分類頁籤 */
+.cat-tabs { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 18px; padding: 2px 2px 6px; scrollbar-width: none; }
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tabs a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: .92rem;
+  color: var(--ink-2); background: var(--card); border: 1.5px solid var(--line); text-decoration: none !important; transition: border-color .15s, transform .15s; }
+.cat-tabs a:hover { border-color: var(--pink); transform: translateY(-1px); }
+.cat-tabs a small { font-size: .74rem; font-weight: 800; color: var(--ink-3); background: var(--card-3); border-radius: 999px; padding: 1px 7px; }
+.cat-tabs a[aria-current="page"] { background: var(--pink); border-color: var(--pink); color: #fff; }
+.cat-tabs a[aria-current="page"] small { background: rgba(255, 255, 255, .25); color: #fff; }
+.post-cat { font-family: var(--font-body, inherit); font-weight: 800; color: var(--pink-d); text-decoration: none; padding: 0 8px; border-radius: 999px; background: var(--pink-ll); }
 .post-list-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .post-card { min-width: 0; }
 .post-card > a { display: flex; flex-direction: column; gap: 8px; height: 100%; padding: 18px 20px; background: var(--card); border: 1.5px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; transition: transform .18s, border-color .18s; }

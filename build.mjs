@@ -218,7 +218,8 @@ function jsonLd(lang, page, t) {
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: t('nav.home'), item: home },
         { '@type': 'ListItem', position: 2, name: t('nav.posts'), item: absUrl(lang, '/posts/') },
-        { '@type': 'ListItem', position: 3, name: p.title, item: url },
+        { '@type': 'ListItem', position: 3, name: t('posts.cat.' + p.category), item: absUrl(lang, catPath(p.category)) },
+        { '@type': 'ListItem', position: 4, name: p.title, item: url },
       ],
     });
     graph.push({
@@ -227,6 +228,15 @@ function jsonLd(lang, page, t) {
       keywords: p.tags.join(', ') || undefined, wordCount: p.chars,
       image: p.cover ? postImgAbs(p.cover) : `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
       author: { '@id': SITE + '/#org' }, publisher: { '@id': SITE + '/#org' },
+    });
+  } else if (page.cat) {
+    graph.push({
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: t('nav.home'), item: home },
+        { '@type': 'ListItem', position: 2, name: t('nav.posts'), item: absUrl(lang, '/posts/') },
+        { '@type': 'ListItem', position: 3, name: t('posts.cat.' + page.cat), item: url },
+      ],
     });
   } else if (page.id !== 'home' && page.id !== '404') {
     graph.push({
@@ -240,7 +250,7 @@ function jsonLd(lang, page, t) {
   if (page.id === 'posts') {
     graph.push({
       '@type': 'Blog', name: t('page.posts.h1'), url, inLanguage: t('lang.hreflang'), publisher: { '@id': SITE + '/#org' },
-      blogPost: postsFor(lang).filter(p => p.lang === lang).slice(0, 20).map(p => ({ '@type': 'BlogPosting', headline: p.title, url: absUrl(lang, postPath(p)), datePublished: p.date })),
+      blogPost: postsFor(lang).filter(p => p.lang === lang && (!page.cat || p.category === page.cat)).slice(0, 20).map(p => ({ '@type': 'BlogPosting', headline: p.title, url: absUrl(lang, postPath(p)), datePublished: p.date })),
     });
   }
   if (page.app) {
@@ -266,6 +276,9 @@ function jsonLd(lang, page, t) {
 // ───────────────────────── 心得分享（src/posts/*.md）─────────────────────────
 // 檔名＝網址（英文、數字、連字號）；同名加 .ko.md 是韓文版，會自動互相連結。底線開頭的檔案不會發佈。
 const POSTS_DIR = path.join(SRC, 'posts');
+// 文章分類（frontmatter 的 category），順序＝分類頁籤順序；分類頁在 /posts/category/<id>/
+const POST_CATS = ['series', 'main', 'job', 'region', 'tutorial', 'other'];
+const catPath = c => `/posts/category/${c}/`;
 const isDate = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
 function loadPosts() {
   if (!fs.existsSync(POSTS_DIR)) return [];
@@ -288,6 +301,7 @@ function loadPosts() {
       file: f, lang, slug, title: meta.title, date, updated: isDate(meta.updated) && meta.updated > date ? meta.updated : '',
       desc: meta.desc || meta.description || (text.length > 110 ? text.slice(0, 108) + '…' : text),
       tags: (meta.tags || '').split(/[,，、]/).map(x => x.trim()).filter(Boolean), cover: meta.cover || '', body, chars: text.length,
+      category: POST_CATS.includes(meta.category) ? meta.category : 'other',
     });
   }
   for (const p of list) p.langs = Object.keys(LANGS).filter(l => list.some(q => q.slug === p.slug && q.lang === l));
@@ -331,6 +345,7 @@ function postVars(page, lang, fromPath, t) {
   const other = Object.keys(LANGS).find(l => l !== lang && p.langs.includes(l));
   return {
     postTitle: esc(p.title),
+    postCat: `<a class="post-cat" href="${pageHref(lang, catPath(p.category), fromPath)}">${esc(t('posts.cat.' + p.category))}</a>`,
     postCover: p.cover ? `<img class="post-cover" src="${postImg(fromPath)(p.cover)}" width="1200" height="630" alt="${esc(p.title)}" fetchpriority="high" decoding="async">` : '',
     postDate: p.date,
     postUpdated: p.updated ? `<span>${esc(t('posts.updated'))} <time datetime="${p.updated}">${p.updated}</time></span>` : '',
@@ -354,7 +369,8 @@ function buildPages() {
     const fullDict = { ...LANGS.zh.dict, ...LANGS[lang].dict };
     const dictFor = id => { const re = new RegExp(`^(js|common|day|guide|wel|game${DICT_GROUPS[id] ? '|' + DICT_GROUPS[id] : ''})\\.`); return Object.fromEntries(Object.entries(fullDict).filter(([k]) => re.test(k) && !/(_html|\.faq\.)/.test(k))); };
     const postPages = POSTS.filter(p => p.lang === lang).map(p => ({ id: 'post', path: postPath(p), tpl: 'post', js: null, post: p, langs: p.langs }));
-    for (const page of [...PAGES, ...postPages]) {
+    const catPages = POST_CATS.filter(c => postsFor(lang).some(p => p.category === c)).map(c => ({ id: 'posts', path: catPath(c), tpl: 'posts', js: null, cat: c }));
+    for (const page of [...PAGES, ...catPages, ...postPages]) {
       if (page.id === '404' && lang !== 'zh') continue; // 404 只需一份
       const fromPath = LANGS[lang].prefix + page.path;
       const ctx = { lang, t, fromPath, vars: {} };
@@ -364,8 +380,8 @@ function buildPages() {
       const otherPath = langsAvail.includes(other) ? page.path : '/posts/';
       Object.assign(v, {
         lang, htmlLang: t('lang.code'), pageId: page.id,
-        title: esc(page.post ? `${page.post.title}｜${t('site.name')}` : t(`page.${page.id}.title`)),
-        description: esc(page.post ? page.post.desc : t(`page.${page.id}.desc`)),
+        title: esc(page.post ? `${page.post.title}｜${t('site.name')}` : page.cat ? t('posts.catTitle').replace('{c}', t('posts.cat.' + page.cat)) : t(`page.${page.id}.title`)),
+        description: esc(page.post ? page.post.desc : page.cat ? t('posts.catDesc.' + page.cat) : t(`page.${page.id}.desc`)),
         alternates: langsAvail.map(l => `<link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, page.path)}">`).join('\n') +
           `\n<link rel="alternate" hreflang="x-default" href="${absUrl(langsAvail.includes('zh') ? 'zh' : langsAvail[0], page.path)}">`,
         ogType: page.post ? 'article' : 'website',
@@ -395,13 +411,21 @@ function buildPages() {
         verify: (GOOGLE_VERIFY ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFY)}">` : '') +
           (NAVER_VERIFY ? `<meta name="naver-site-verification" content="${esc(NAVER_VERIFY)}">` : ''),
         breadcrumb: page.id === 'home' || page.id === '404' ? '' : page.post ?
-          `<nav class="crumbs" aria-label="${esc(t('a11y.breadcrumb'))}"><a href="${pageHref(lang, '/', fromPath)}">${esc(t('nav.home'))}</a><span aria-hidden="true">›</span><a href="${pageHref(lang, '/posts/', fromPath)}">${esc(t('nav.posts'))}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(page.post.title)}</span></nav>` :
+          `<nav class="crumbs" aria-label="${esc(t('a11y.breadcrumb'))}"><a href="${pageHref(lang, '/', fromPath)}">${esc(t('nav.home'))}</a><span aria-hidden="true">›</span><a href="${pageHref(lang, '/posts/', fromPath)}">${esc(t('nav.posts'))}</a><span aria-hidden="true">›</span><a href="${pageHref(lang, catPath(page.post.category), fromPath)}">${esc(t('posts.cat.' + page.post.category))}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(page.post.title)}</span></nav>` :
+          page.cat ?
+          `<nav class="crumbs" aria-label="${esc(t('a11y.breadcrumb'))}"><a href="${pageHref(lang, '/', fromPath)}">${esc(t('nav.home'))}</a><span aria-hidden="true">›</span><a href="${pageHref(lang, '/posts/', fromPath)}">${esc(t('nav.posts'))}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(t('posts.cat.' + page.cat))}</span></nav>` :
           `<nav class="crumbs" aria-label="${esc(t('a11y.breadcrumb'))}"><a href="${pageHref(lang, '/', fromPath)}">${esc(t('nav.home'))}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(t('nav.' + page.id))}</span></nav>`,
       });
       if (page.post) Object.assign(v, postVars(page, lang, fromPath, t));
       const plist = postsFor(lang);
-      v.postList = plist.length ? `<div class="post-list">${plist.map(p => postCard(p, lang, fromPath, t)).join('')}</div>` :
-        `<div class="empty card">${pic('adv-sit', fromPath)}<b>${esc(t('posts.empty'))}</b></div>`;
+      const shown = page.cat ? plist.filter(p => p.category === page.cat) : plist;
+      const catTabs = `<nav class="cat-tabs" aria-label="${esc(t('posts.catNav'))}">` +
+        [['', t('posts.cat.all'), plist.length], ...POST_CATS.map(c => [c, t('posts.cat.' + c), plist.filter(p => p.category === c).length]).filter(x => x[2])]
+          .map(([c, label, n]) => `<a href="${pageHref(lang, c ? catPath(c) : '/posts/', fromPath)}"${page.id === 'posts' && (page.cat || '') === c ? ' aria-current="page"' : ''}>${esc(label)}<small>${n}</small></a>`).join('') + '</nav>';
+      v.postList = catTabs + (shown.length ? `<div class="post-list">${shown.map(p => postCard(p, lang, fromPath, t)).join('')}</div>` :
+        `<div class="empty card">${pic('adv-sit', fromPath)}<b>${esc(t('posts.empty'))}</b></div>`);
+      v.postsH1 = esc(page.cat ? t('posts.catH1').replace('{c}', t('posts.cat.' + page.cat)) : t('page.posts.h1'));
+      v.postsLead = esc(page.cat ? t('posts.catDesc.' + page.cat) : t('page.posts.lead'));
       v.latestPosts = page.id === 'home' && plist.length ?
         `<h2 class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg>${esc(t('home.postsTitle'))}<a class="section-more" href="${pageHref(lang, '/posts/', fromPath)}">${esc(t('home.postsMore'))}</a></h2><div class="post-list post-list-3">${plist.slice(0, 3).map(p => postCard(p, lang, fromPath, t)).join('')}</div>` : '';
       // 導覽列
@@ -469,7 +493,10 @@ function buildSeoFiles() {
     const alts = Object.keys(LANGS).map(l => `<xhtml:link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, p.path)}"/>`).join('') +
       `<xhtml:link rel="alternate" hreflang="x-default" href="${absUrl('zh', p.path)}"/>`;
     return Object.keys(LANGS).map(l => `<url><loc>${absUrl(l, p.path)}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority>${alts}</url>`).join('\n');
-  }).concat(POSTS.map(p => {
+  }).concat(POST_CATS.filter(c => POSTS.some(p => p.category === c)).map(c =>
+    Object.keys(LANGS).map(l => `<url><loc>${absUrl(l, catPath(c))}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority>` +
+      Object.keys(LANGS).map(x => `<xhtml:link rel="alternate" hreflang="${LANGS[x].dict['lang.hreflang']}" href="${absUrl(x, catPath(c))}"/>`).join('') + '</url>').join('\n')
+  )).concat(POSTS.map(p => {
     const alts = p.langs.length > 1 ? p.langs.map(l => `<xhtml:link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, postPath(p))}"/>`).join('') +
       `<xhtml:link rel="alternate" hreflang="x-default" href="${absUrl(p.langs.includes('zh') ? 'zh' : p.lang, postPath(p))}"/>` : '';
     return `<url><loc>${absUrl(p.lang, postPath(p))}</loc><lastmod>${p.updated || p.date}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority>${alts}</url>`;
