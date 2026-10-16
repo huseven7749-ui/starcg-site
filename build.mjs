@@ -369,7 +369,7 @@ function buildPages() {
     // 腳本字典：共用部分每頁都帶，各工具的字串只放在該頁（首頁、心得頁不用載市場／迷宮的字串）
     const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc', remodel: 'rm', exchange: 'ex', damage: 'dmg', maze: 'mz' };
     const fullDict = { ...LANGS.zh.dict, ...LANGS[lang].dict };
-    const dictFor = id => { const re = new RegExp(`^(js|common|day|guide|wel|game${DICT_GROUPS[id] ? '|' + DICT_GROUPS[id] : ''})\\.`); return Object.fromEntries(Object.entries(fullDict).filter(([k]) => re.test(k) && !/(_html|\.faq\.)/.test(k))); };
+    const dictFor = id => { const re = new RegExp(`^(js|common|day|guide|tour|wel|game${DICT_GROUPS[id] ? '|' + DICT_GROUPS[id] : ''})\\.`); return Object.fromEntries(Object.entries(fullDict).filter(([k]) => re.test(k) && !/(_html|\.faq\.)/.test(k))); };
     const postPages = POSTS.filter(p => p.lang === lang).map(p => ({ id: 'post', path: postPath(p), tpl: 'post', js: null, post: p, langs: p.langs }));
     const catPages = POST_CATS.filter(c => postsFor(lang).some(p => p.category === c)).map(c => ({ id: 'posts', path: catPath(c), tpl: 'posts', js: null, cat: c }));
     for (const page of [...PAGES, ...catPages, ...postPages]) {

@@ -1648,3 +1648,32 @@ html[data-view="mobile"] .dummy-pick { grid-template-columns: repeat(2, minmax(0
 
 .foot-stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .foot-stats[hidden] { display: none; }
+
+/* 星野導覽：聚光框＋星野與對話框；右下角「問星野」 */
+.tour { position: fixed; inset: 0; z-index: 120; opacity: 0; transition: opacity .25s; }
+.tour.in { opacity: 1; }
+.tour.out { opacity: 0; pointer-events: none; }
+.tour-spot { position: fixed; border-radius: 16px; box-shadow: 0 0 0 200vmax rgba(28, 18, 10, .55); outline: 3px dashed var(--pink); outline-offset: 2px;
+  transition: left .35s cubic-bezier(.4,.1,.2,1), top .35s cubic-bezier(.4,.1,.2,1), width .35s, height .35s; animation: tour-pulse 1.4s ease-in-out infinite; pointer-events: none; }
+@keyframes tour-pulse { 50% { outline-color: var(--lemon, #F3B63F); } }
+.tour-guide { position: fixed; left: 50%; bottom: calc(18px + var(--safe-b)); transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); display: flex; align-items: flex-end; gap: 4px; pointer-events: none; }
+.tour.guide-top .tour-guide { bottom: auto; top: calc(var(--topbar-h, 68px) + 12px); }
+.tour-sprite { flex: none; height: 110px; width: auto; image-rendering: pixelated; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .3)); animation: tour-walk .9s cubic-bezier(.3,.7,.3,1) both; }
+@keyframes tour-walk { from { transform: translateX(-60vw); } to { transform: none; } }
+.tour-bubble { position: relative; flex: 1; min-width: 0; margin-bottom: 26px; padding: 14px 16px 12px; border-radius: 20px; background: var(--card); color: var(--ink); border: 3px solid var(--pink); box-shadow: var(--shadow); pointer-events: auto; }
+.tour-bubble::before { content: ""; position: absolute; left: -14px; bottom: 22px; border: 9px solid transparent; border-right: 13px solid var(--pink); }
+.tour-name { position: absolute; top: -13px; left: 14px; padding: 1px 12px; border-radius: 999px; background: var(--pink); color: #fff; font-size: .78rem; font-weight: 800; letter-spacing: 1px; }
+.tour-text { margin: 4px 0 10px; font-size: 1rem; line-height: 1.6; font-weight: 700; }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-step { margin-right: auto; font-size: .8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ask-hoshino { position: fixed; right: 16px; bottom: calc(18px + var(--safe-b)); z-index: 60; display: flex; align-items: center; gap: 4px; padding: 4px 14px 4px 6px; border-radius: 999px;
+  background: var(--card); color: var(--ink); border: 2px solid var(--pink); box-shadow: var(--shadow-sm); font: inherit; font-size: .85rem; font-weight: 800; cursor: pointer; }
+.ask-hoshino img { width: 34px; height: 34px; object-fit: contain; image-rendering: pixelated; }
+.ask-hoshino:hover { background: var(--pink-ll); }
+html[data-view="mobile"] .ask-hoshino { bottom: calc(var(--tabbar-h) + 10px + var(--safe-b)); right: 10px; padding: 3px 10px 3px 4px; font-size: .78rem; }
+html[data-view="mobile"] .ask-hoshino img { width: 28px; height: 28px; }
+html[data-view="mobile"] .tour-guide { bottom: calc(var(--tabbar-h) + 10px + var(--safe-b)); }
+html[data-view="mobile"] .tour-sprite { height: 84px; }
+html[data-view="mobile"] .tour-text { font-size: .93rem; }
+@media (prefers-reduced-motion: reduce) { .tour, .tour-spot { transition: none; animation: none; } .tour-sprite { animation: none; } }
+@media print { .ask-hoshino, .tour { display: none !important; } }
