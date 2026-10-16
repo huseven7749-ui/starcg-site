@@ -464,6 +464,8 @@ function minifyHtml(html) {
   return html.replace(/<!--(?!\[)[\s\S]*?-->/g, '').replace(/>\s+</g, '><').replace(/\n\s*/g, '\n').trim();
 }
 
+// 星期圓章：中文用「月火水…」，韓文用「월화수…」
+const dayMark = (s, d, lang) => (lang === 'ko' ? '일월화수목금토'[d] : s.kanji[d]);
 function renderSchedule(s, t, lang) {
   // 依星期一到星期日輸出，JS 會再補上「今天／進行中」狀態
   const order = [1, 2, 3, 4, 5, 6, 0];
@@ -471,7 +473,7 @@ function renderSchedule(s, t, lang) {
   const tabs = `<div class="week-tabs" role="tablist" aria-label="${esc(t('home.scheduleTitle'))}">` + order.map(d => {
     const n = (s.days[d] || []).length;
     return `<button type="button" role="tab" class="wt day-${d}" data-day="${d}" aria-selected="false" aria-controls="day-${d}">` +
-      `<span class="day-kanji">${s.kanji[d]}</span><small>${esc(t('day.' + d))}</small>` +
+      `<span class="day-kanji">${dayMark(s, d, lang)}</span><small>${esc(t('day.' + d))}</small>` +
       `<span class="wt-dots" aria-hidden="true">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`;
   }).join('') + '</div>';
   return tabs + `<div class="week" data-schedule='${esc(JSON.stringify(s.days))}'>` + order.map(d => {
@@ -484,7 +486,7 @@ function renderSchedule(s, t, lang) {
         `<svg class="ic ev-ic" aria-hidden="true"><use href="#i-ev-${e.icon}"/></svg>` +
         `<div class="ev-body"><b>${esc(t('ev.' + e.id))}</b>${orig}<span class="ev-time">${esc(time)}</span>${extra}<span class="ev-badge" hidden></span></div></li>`;
     }).join('') : `<li class="ev ev-rest"><div class="ev-body"><span>${esc(t('home.restDay'))}</span></div></li>`;
-    return `<section class="day day-${d}" id="day-${d}" data-day="${d}" role="tabpanel"><h3><span class="day-kanji" aria-hidden="true">${s.kanji[d]}</span>${esc(t('day.' + d))}<span class="today-pill" hidden>${esc(t('home.today'))}</span></h3><ul>${items}</ul></section>`;
+    return `<section class="day day-${d}" id="day-${d}" data-day="${d}" role="tabpanel"><h3><span class="day-kanji" aria-hidden="true">${dayMark(s, d, lang)}</span>${esc(t('day.' + d))}<span class="today-pill" hidden>${esc(t('home.today'))}</span></h3><ul>${items}</ul></section>`;
   }).join('') + '</div>';
 }
 

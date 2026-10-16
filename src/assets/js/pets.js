@@ -20,18 +20,26 @@ function obtainList(o) {
   const seen = new Set();
   const textOf = x => x.text || x.name || x.title || x.label || x.desc || Object.values(x).find(v => typeof v === 'string' && !/^https?:\/\//.test(v)) || '';
   return (Array.isArray(o) ? o : [o]).map(x => typeof x === 'string' ? { text: x } : (x && typeof x === 'object') ? { text: textOf(x), url: x.url || x.href || '' } : { text: '' })
-    .map(x => ({ text: String(x.text).trim(), url: /^https?:\/\//.test(x.url || '') ? x.url : '' }))
+    .map(x => ({ text: koText(String(x.text).trim()), url: /^https?:\/\//.test(x.url || '') ? x.url : '' }))
     .filter(x => x.text && !seen.has(x.text) && seen.add(x.text));
 }
 // 韓文站：寵物名優先顯示遊戲韓文介面的名稱（data/pet-names-ko.json，imageId → 韓文），中文名縮小放旁邊
 const nameHtml = (p, tag = 'b') => (LANG === 'ko' && p.kn)
   ? `<${tag}>${esc(p.kn)} <small class="muted" lang="zh-Hant">${esc(p.name)}</small></${tag}>`
   : `<${tag} lang="zh-Hant">${esc(p.name)}</${tag}>`;
+// 韓文站：取得方式、皮膚名稱等攻略網中文資料的韓文對照（data/pet-obtain-ko.json，中文原句 → 韓文）
+let OBTAIN_KO = {};
+const koText = s => (LANG === 'ko' && OBTAIN_KO[s]) || s;
 async function loadKoNames(list) {
   if (LANG !== 'ko') return;
   try {
-    const kn = await fetch(`${BASE}data/pet-names-ko.json`).then(r => r.ok ? r.json() : {});
-    list.forEach(p => { if (kn[p.imageId]) p.kn = kn[p.imageId]; });
+    const [kn, ob] = await Promise.all([
+      fetch(`${BASE}data/pet-names-ko.json`).then(r => r.ok ? r.json() : {}),
+      fetch(`${BASE}data/pet-obtain-ko.json`).then(r => r.ok ? r.json() : {}),
+    ]);
+    OBTAIN_KO = ob || {};
+    // 先用圖鑑圖號對，對不到再用中文名（伺服器資料的圖號偶爾和遊戲抄下來的不同）
+    list.forEach(p => { const k = kn[p.imageId] || kn['n:' + p.name]; if (k) p.kn = k; });
   } catch { /* 沒有韓文名就只顯示中文 */ }
 }
 const tierBadge = tier => tier ? `<span class="badge b-${TIER_KEY[tier]}">${esc(T('card.' + TIER_KEY[tier]))}</span>` : '';
@@ -125,12 +133,12 @@ function fillInputs() {
 function renderHead() {
   const p = S.pet;
   if (!p) { $('#sim-head').innerHTML = `<p class="muted small" style="grid-column:1/-1;margin:0">${esc(T('pet.custom'))}</p>`; return; }
-  const skins = (p.skins || []).map(s => `<span class="badge b-lav" title="${esc(obtainList(s.obtainInfo).map(x => x.text).join(' / '))}" lang="zh-Hant">${esc(s.name)}</span>`).join(' ');
+  const skins = (p.skins || []).map(s => `<span class="badge b-lav" title="${esc(obtainList(s.obtainInfo).map(x => x.text).join(' / '))}"${koText(s.name) === s.name ? ' lang="zh-Hant"' : ''}>${esc(koText(s.name))}</span>`).join(' ');
   const obtain = obtainList(p.obtainInfo);
   $('#sim-head').innerHTML = `<span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.name)}" width="96" height="96">` : ''}</span>
     <div>${nameHtml(p, 'h2')}
       <div class="row" style="gap:6px">${tierBadge(tierOf(p.cardTier))}<span class="badge b-gray">${esc(raceLabel(p.race))}</span><span class="badge b-sky">${esc(T('pet.slot', { n: p.skillSlots }))}</span>${els(p)}</div>
-      ${obtain.length ? `<p class="small muted" style="margin:6px 0 0" lang="zh-Hant">${obtain.map(x => x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>` : esc(x.text)).join('、')}</p>` : ''}
+      ${obtain.length ? `<p class="small muted" style="margin:6px 0 0"${LANG === 'ko' ? '' : ' lang="zh-Hant"'}>${obtain.map(x => x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>` : esc(x.text)).join(LANG === 'ko' ? ' · ' : '、')}</p>` : ''}
       ${skins ? `<p class="small" style="margin:6px 0 0">${skins}</p>` : ''}</div>`;
 }
 function selectPet(name) {

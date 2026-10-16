@@ -99,13 +99,19 @@ setInterval(updateSchedule, 60e3);
 
 // ───── 熱門搜尋 ─────
 let searchEx = T('guide.searchEx').split('|').filter(Boolean);
-api('hot').then(d => {
+// 韓文站：熱門搜尋若沒有官方韓文名（kn），寵物名改用遊戲韓文介面抄下的名稱
+const petKo = LANG === 'ko' ? fetch(`${BASE}data/pet-names-ko.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})) : Promise.resolve({});
+Promise.all([api('hot'), petKo]).then(([d, pk]) => {
   const list = (d.items || []).slice(0, 10);
   if (!list.length) return;
   const box = $('#hot');
-  $('.chips', box).innerHTML = list.map(k => { const n = typeof k === 'string' ? k : k.n, label = typeof k === 'string' ? k : (k.kn || k.n); return `<a class="chip" href="${BASE}${LANG === 'ko' ? 'ko/' : ''}market/${PREVIEW ? 'index.html' : ''}?q=${encodeURIComponent(n)}">${esc(label)}</a>`; }).join('');
+  const labelOf = k => { const n = typeof k === 'string' ? k : k.n, kn = typeof k === 'string' ? '' : k.kn; return (kn && kn !== n ? kn : '') || pk['n:' + n] || n; };
+  $('.chips', box).innerHTML = list.map(k => { const n = typeof k === 'string' ? k : k.n; return `<a class="chip" href="${BASE}${LANG === 'ko' ? 'ko/' : ''}market/${PREVIEW ? 'index.html' : ''}?q=${encodeURIComponent(n)}">${esc(labelOf(k))}</a>`; }).join('');
   box.hidden = false;
-  searchEx = list.slice(0, 6).map(k => typeof k === 'string' ? k : k.n);
+  // 韓文站：輪播的搜尋範例只用有韓文名的熱門詞，沒有就保留預設的韓文範例
+  const ex = list.slice(0, 6).map(k => LANG === 'ko' ? labelOf(k) : (typeof k === 'string' ? k : k.n));
+  const exOk = LANG === 'ko' ? ex.filter(s => /[가-힣]/.test(s)) : ex;
+  if (exOk.length) searchEx = exOk;
 }).catch(() => {});
 
 // ───── 主視覺互動 ─────
