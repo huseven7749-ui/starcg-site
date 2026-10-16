@@ -382,7 +382,7 @@ function buildPages() {
       const otherPath = langsAvail.includes(other) ? page.path : '/posts/';
       Object.assign(v, {
         lang, htmlLang: t('lang.code'), pageId: page.id,
-        title: esc(page.post ? `${page.post.title}｜${t('site.name')}` : page.cat ? t('posts.catTitle').replace('{c}', t('posts.cat.' + page.cat)) : t(`page.${page.id}.title`)),
+        title: esc(page.post ? ((page.post.title + '｜' + t('site.name')).length > 65 ? page.post.title : `${page.post.title}｜${t('site.name')}`) : page.cat ? t('posts.catTitle').replace('{c}', t('posts.cat.' + page.cat)) : t(`page.${page.id}.title`)),
         description: esc(page.post ? page.post.desc : page.cat ? t('posts.catDesc.' + page.cat) : t(`page.${page.id}.desc`)),
         alternates: langsAvail.map(l => `<link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, page.path)}">`).join('\n') +
           `\n<link rel="alternate" hreflang="x-default" href="${absUrl(langsAvail.includes('zh') ? 'zh' : langsAvail[0], page.path)}">`,
