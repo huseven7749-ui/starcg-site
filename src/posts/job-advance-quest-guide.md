@@ -12,6 +12,12 @@ cover: img/job-advance-quest-guide-cover.jpg
 
 > 本文整理自 [星詠魔力攻略網](https://guide.starcg.net/) 的職業晉級系列頁面與四轉連戰詳細攻略，並參考水藍魔力攻略 wiki 的三轉頁面，用我們自己的方式重新排序與改寫，沒有逐字照搬。BOSS 血量與數值是約略值，實際以遊戲內為準；遊戲更新後內容可能變動。
 
+**分篇詳細攻略**：每一轉都有獨立的一篇，步驟、BOSS 資料與打法寫得更完整：
+- [一轉：樹精長老的末日](/posts/job-advance-1-quest-guide/)
+- [二轉：挑戰神獸](/posts/job-advance-2-quest-guide/)
+- [三轉：詛咒的迷宮](/posts/job-advance-3-quest-guide/)
+- [四轉：四轉連戰（含玩家實戰配置）](/posts/job-advance-4-quest-guide/)
+
 ![職業晉級任務四章一覽：一轉樹精長老的末日、二轉挑戰神獸、三轉詛咒的迷宮、四轉連戰的推薦等級與升階資格，以及樹精長老、大地翼龍、凱法、李貝留斯等怪物](img/job-advance-quest-guide-flow.jpg)
 
 ## 職業晉級系列是什麼？先看整體順序

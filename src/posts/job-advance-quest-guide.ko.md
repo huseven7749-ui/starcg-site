@@ -12,6 +12,12 @@ cover: img/job-advance-quest-guide-cover.jpg
 
 > 이 글은 [StarCG 공략 사이트](https://guide.starcg.net/)의 직업 승급 시리즈 페이지와 4차 연속 전투 상세 공략을 바탕으로 水藍魔力 공략 wiki의 3차 페이지를 참고해 저희 방식대로 순서를 다시 정리하고 새로 쓴 것으로, 그대로 옮기지 않았어요. 보스 HP와 수치는 대략적인 값이니 실제 게임을 기준으로 해 주세요. 게임 업데이트 후 내용이 바뀔 수 있어요.
 
+**단계별 상세 공략**: 전직마다 따로 정리한 글이 있어요. 진행, 보스 정보, 공략법을 더 자세히 담았어요.
+- [1차: 트리플 장로의 종말](/ko/posts/job-advance-1-quest-guide/)
+- [2차: 신수 도전](/ko/posts/job-advance-2-quest-guide/)
+- [3차: 저주의 미로](/ko/posts/job-advance-3-quest-guide/)
+- [4차: 4차 연속 전투(유저 실전 세팅 포함)](/ko/posts/job-advance-4-quest-guide/)
+
 ![직업 승급 퀘스트 4장 한눈에 보기: 1차 트리플 장로의 종말, 2차 신수 도전, 3차 저주의 미로, 4차 연속 전투의 권장 레벨과 승급 자격, 그리고 트리플 장로, 와이번, 케파, 리벨리우스 등 몬스터](img/job-advance-quest-guide-flow.jpg)
 
 ## 직업 승급 시리즈란? 먼저 전체 순서부터
