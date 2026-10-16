@@ -1765,3 +1765,15 @@ html[data-view="mobile"] .tour-text { font-size: .93rem; }
 @media (max-width: 640px) { .pc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .pc-inner { height: 220px; } .arena { gap: 6px; padding: 10px; } .arena-vs { font-size: 1.2rem; } .ft-img img { max-width: 84px; max-height: 96px; } .ft-img { height: 100px; } }
 html[data-view="mobile"] .pc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 @media (prefers-reduced-motion: reduce) { .pc-inner, .ft-hp i, .ft.down .ft-img { transition: none; } .ft .ft-img, .ft-pop, .ft-banner { animation: none !important; } }
+
+.ft-match { grid-column: 1 / -1; margin: 0; text-align: center; font-size: .8rem; color: var(--ink-3); }
+.ft-match.on { color: var(--pink-d); font-weight: 700; }
+.ft-pop small { display: block; font-size: .7rem; color: var(--pink-d); text-align: center; }
+.ft-pop.race { color: var(--pink-d); }
+.pc-ghost { position: fixed; left: 0; top: 0; z-index: 301; width: 80px; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; border-radius: 16px;
+  background: var(--card); border: 2px solid var(--pink); box-shadow: var(--shadow); opacity: .92; }
+.pc-ghost img { max-width: 64px; max-height: 64px; object-fit: contain; } .pc-ghost small { font-size: .62rem; color: var(--ink-2); white-space: nowrap; }
+.pc-card .pc-inner { -webkit-touch-callout: none; user-select: none; }
+.pc-dropbar { position: fixed; left: 12px; right: 12px; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 300; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; animation: ft-in .2s ease-out; }
+.pc-drop { display: grid; place-items: center; min-height: 84px; border-radius: 18px; border: 2.5px dashed var(--pink); background: var(--card); color: var(--ink); font-weight: 800; box-shadow: var(--shadow); }
+.pc-drop.over { background: var(--pink-l); border-style: solid; }

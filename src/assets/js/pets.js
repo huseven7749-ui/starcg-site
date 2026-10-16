@@ -377,7 +377,7 @@ loadPets().then(async list => {
   $('#pet-names').innerHTML = list.map(p => `<option value="${esc(p.kn || p.name)}">`).join('');
   $('#dex-count').hidden = false; $('#dex-count').textContent = list.length;
   renderDex();
-  initCards({ pets: list, map: byName });
+  initCards({ pets: list, map: byName, setTab });
   const params = new URLSearchParams(location.search);
   let restored = false;
   try {

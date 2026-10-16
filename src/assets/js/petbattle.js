@@ -1,11 +1,25 @@
 // 寵物卡對戰（純函式，瀏覽器與 Node 測試共用）
 // 能力值用 petcalc 的成長公式；傷害用 dmgcalc 的物理／寵物魔法公式。
-// 簡化：圖鑑滿檔、隨機檔各 2、不改造、不算技能與種族剋制；力量比魔法高的走物理，否則走寵物單體魔法。
+// 簡化：圖鑑滿檔、隨機檔各 2、不改造、不算技能；有算種族剋制；力量比魔法高的走物理，否則走寵物單體魔法。
 import { simulate, tierOf, TIERS } from './petcalc.js';
 import { physical, magic, requiredSpirit } from './dmgcalc.js';
 
 export const CRIT_RATE = 0.1;      // 物理必殺率（寵物圖鑑沒有必殺值，取 10%）
 export const MAX_TURNS = 30;
+
+// 種族剋制（魔力寶貝官網寵物說明）：半剋 +10%、全剋 +20%；被剋的一方對剋制方傷害相對減少
+const HALF = ['人形系', '昆蟲系', '植物系', '特殊系', '龍系', '野獸系', '飛行系', '不死系', '金屬系'];   // 依序半剋下一個，最後一個剋第一個
+const FULL = [['人形系', '野獸系', '植物系', '不死系'], ['昆蟲系', '特殊系', '金屬系', '龍系', '飛行系']];
+const next = (ring, r) => { const i = ring.indexOf(r); return i < 0 ? null : ring[(i + 1) % ring.length]; };
+/** 攻擊方對防禦方的種族剋制加成（-0.2～+0.2） */
+export function raceBonus(att, def) {
+  if (!att || !def || att === def) return 0;
+  let v = 0;
+  if (next(HALF, att) === def) v += 0.1;
+  if (next(HALF, def) === att) v -= 0.1;
+  for (const ring of FULL) { if (next(ring, att) === def) v += 0.2; if (next(ring, def) === att) v -= 0.2; }
+  return Math.max(-0.2, Math.min(0.2, v));
+}
 
 const bpOf = p => p.bp || [p.hp, p.power, p.defense, p.speed, p.magic].map(Number);
 
@@ -36,15 +50,16 @@ export function battleStats(pet, level = 100) {
 export function hitDamage(att, def, rng = Math.random) {
   const pet = { tier: att.tierKey, full: true, remodel: 0, beast: att.beast };
   let range, crit = false;
+  const race = raceBonus(att.race, def.race);
   if (att.kind === 'magic') {
-    range = magic({ caster: 'pet', type: 'single', level: att.mlv, spirit: att.spt, targetSpirit: def.spt, crystal: 0, race: 0, pet }).pk;
+    range = magic({ caster: 'pet', type: 'single', level: att.mlv, spirit: att.spt, targetSpirit: def.spt, crystal: 0, race, pet }).pk;
   } else {
-    const r = physical({ atk: att.atk, def: def.def, atkLv: att.level, defLv: def.level, weapon: 0, crystal: 0, race: 0, skill: 1, pet });
+    const r = physical({ atk: att.atk, def: def.def, atkLv: att.level, defLv: def.level, weapon: 0, crystal: 0, race, skill: 1, pet });
     crit = rng() < CRIT_RATE;
     range = crit ? r.attack.crit : r.attack.normal;
   }
   const dmg = Math.max(1, Math.round(range.min + rng() * (range.max - range.min)));
-  return { dmg, crit, need: att.kind === 'magic' ? requiredSpirit(att.mlv) : 0 };
+  return { dmg, crit, race, need: att.kind === 'magic' ? requiredSpirit(att.mlv) : 0 };
 }
 
 /**
@@ -63,7 +78,7 @@ export function runBattle(a, b, rng = Math.random, maxTurns = MAX_TURNS) {
       if (att.cur <= 0 || tgt.cur <= 0) continue;
       const h = hitDamage(att, tgt, rng);
       tgt.cur = Math.max(0, tgt.cur - h.dmg);
-      log.push({ turn, from: i, dmg: h.dmg, crit: h.crit, left: tgt.cur });
+      log.push({ turn, from: i, dmg: h.dmg, crit: h.crit, race: h.race, left: tgt.cur });
     }
   }
   const dead = P.map(p => p.cur <= 0);

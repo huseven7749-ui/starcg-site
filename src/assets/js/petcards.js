@@ -1,12 +1,12 @@
 // 寵物養成卡＋擂台：可翻面的收藏卡（圖、星級、五檔雷達圖），拖兩張到擂台，用傷害公式跑簡短動畫對戰
-import { $, $$, T, esc, fmt, store, toast, petImgSrc, normName, spriteImg, LANG } from './core.js';
-import { battleStats, runBattle, cardStars } from './petbattle.js';
+import { $, $$, T, esc, fmt, store, toast, copy, petImgSrc, normName, spriteImg, LANG } from './core.js';
+import { battleStats, runBattle, cardStars, raceBonus } from './petbattle.js';
 import { tierOf } from './petcalc.js';
 
 const KEY = 'sc.petcards', MAX = 40;
 const TIER_KEY = { '金': 'gold', '銀': 'silver', '普': 'normal' };
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let PETS = [], byName = new Map(), arena = [null, null], busy = false;
+let PETS = [], byName = new Map(), arena = [null, null], busy = false, showTab = () => {};
 const dn = p => (LANG === 'ko' && p.kn) ? p.kn : p.name;
 const getAlbum = () => (store.get(KEY, []) || []).filter(n => byName.has(normName(n)));
 const setAlbum = list => { store.set(KEY, list.slice(0, MAX)); renderAlbum(); };
@@ -109,7 +109,10 @@ async function fight() {
   const stage = $('#arena-stage'), logEl = $('#arena-log');
   $('#arena').classList.add('fighting');
   stage.hidden = false;
-  stage.innerHTML = fighterHtml(A, 0) + `<div class="ft-mid"><span class="ft-turn"></span></div>` + fighterHtml(B, 1);
+  const nm = x => dn(byName.get(normName(x.name)) || x);
+  const ra = raceBonus(A.race, B.race);
+  const match = ra > 0 ? T('pc.matchUp', { a: nm(A), b: nm(B), v: Math.round(ra * 100) }) : ra < 0 ? T('pc.matchUp', { a: nm(B), b: nm(A), v: Math.round(-ra * 100) }) : T('pc.matchNone');
+  stage.innerHTML = `<p class="ft-match${ra ? ' on' : ''}">${esc(match)}</p>` + fighterHtml(A, 0) + `<div class="ft-mid"><span class="ft-turn"></span></div>` + fighterHtml(B, 1);
   logEl.innerHTML = '';
   const S = [A, B];
   for (const e of res.log) {
@@ -119,14 +122,15 @@ async function fight() {
     await sleep(260);
     tgt.classList.remove('hit'); void tgt.offsetWidth; tgt.classList.add('hit');
     const pop = document.createElement('span');
-    pop.className = 'ft-pop' + (e.crit ? ' crit' : '');
+    pop.className = 'ft-pop' + (e.crit ? ' crit' : '') + (e.race > 0 ? ' race' : '');
     pop.textContent = (e.crit ? T('pc.crit') + ' ' : '') + fmt(e.dmg);
+    if (e.race) { const t = document.createElement('small'); t.textContent = T(e.race > 0 ? 'pc.raceUp' : 'pc.raceDown'); pop.append(t); }
     $('.ft-img', tgt).append(pop); setTimeout(() => pop.remove(), 900);
     const max = S[1 - e.from].hp;
     $('.ft-hp i', tgt).style.width = `${(e.left / max) * 100}%`;
     $('.ft-hpv', tgt).textContent = `${fmt(e.left)} / ${fmt(max)}`;
     const li = document.createElement('li');
-    li.textContent = T(e.crit ? 'pc.logCrit' : 'pc.log', { t: e.turn, a: dn(byName.get(normName(S[e.from].name)) || S[e.from]), b: dn(byName.get(normName(S[1 - e.from].name)) || S[1 - e.from]), d: fmt(e.dmg) });
+    li.textContent = T(e.crit ? 'pc.logCrit' : 'pc.log', { t: e.turn, a: dn(byName.get(normName(S[e.from].name)) || S[e.from]), b: dn(byName.get(normName(S[1 - e.from].name)) || S[1 - e.from]), d: fmt(e.dmg) }) + (e.race ? T('pc.logRace', { r: T(e.race > 0 ? 'pc.raceUp' : 'pc.raceDown') }) : '');
     logEl.prepend(li);
     await sleep(420);
   }
@@ -140,8 +144,81 @@ async function fight() {
   busy = false; renderArena();
 }
 
-export function initCards({ pets, map }) {
-  PETS = pets; byName = map;
+// ───── 分享卡組：把收藏的寵物名放進連結（?cards=名,名），朋友打開就匯入 ─────
+function shareDeck() {
+  const list = getAlbum();
+  if (!list.length) { toast(T('pc.shareEmpty')); return; }
+  const u = new URL(location.href);
+  u.search = ''; u.hash = '';
+  u.searchParams.set('cards', list.join(','));
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { navigator.share({ title: T('pc.share'), url: u.toString() }).catch(() => {}); return; }
+  copy(u.toString()).then(() => toast(T('pc.shared'), 2600));
+}
+function importFromUrl() {
+  const q = new URLSearchParams(location.search).get('cards');
+  if (!q) return;
+  const have = new Set(getAlbum().map(normName));
+  const add = [...new Set(q.split(',').map(n => n.trim()).filter(Boolean))]
+    .map(n => byName.get(normName(n))).filter(p => p && !have.has(normName(p.name))).map(p => p.name);
+  const list = [...add, ...getAlbum()].slice(0, MAX);
+  store.set(KEY + '.init', 1);
+  setAlbum(list);
+  toast(add.length ? T('pc.imported', { n: add.length }) : T('pc.importNone'), 3000);
+  const u = new URL(location.href); u.searchParams.delete('cards'); history.replaceState(null, '', u);
+  showTab('battle');
+}
+// 手機：按住卡片 0.3 秒後可以拖到擂台（HTML5 拖曳在觸控螢幕上不能用）
+function touchDrag(album) {
+  let timer = 0, start = null, ghost = null, name = '', over = null, bar = null;
+  const cancel = () => { clearTimeout(timer); timer = 0; start = null; };
+  const slotAt = (x, y) => document.elementFromPoint(x, y)?.closest('#arena .arena-slot, .pc-drop');
+  // 拖曳時畫面上方出現「放左邊／放右邊」：擂台不在畫面內也能放
+  const showBar = () => {
+    bar = document.createElement('div'); bar.className = 'pc-dropbar';
+    bar.innerHTML = [0, 1].map(i => `<div class="pc-drop" data-slot="${i}">${esc(T(i ? 'pc.dropRight' : 'pc.dropLeft'))}</div>`).join('');
+    document.body.append(bar);
+  };
+  album.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch' || busy) return;
+    const card = e.target.closest('.pc-card'); if (!card || e.target.closest('.pc-actions')) return;
+    start = { x: e.clientX, y: e.clientY }; name = card.dataset.name;
+    timer = setTimeout(() => {
+      timer = 0;
+      const img = card.querySelector('.pc-img img');
+      ghost = document.createElement('div'); ghost.className = 'pc-ghost';
+      ghost.innerHTML = `${img ? `<img src="${img.src}" alt="">` : ''}<small>${esc(T('pc.dragHint'))}</small>`;
+      showBar(); document.body.append(ghost); card.classList.add('dragging');
+      ghost.style.transform = `translate(${start.x - 40}px, ${start.y - 40}px)`;
+      navigator.vibrate?.(15);
+    }, 300);
+  });
+  album.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (timer && start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) cancel();   // 在捲動，不是拖曳
+    if (!ghost) return;
+    e.preventDefault();
+    ghost.style.transform = `translate(${t.clientX - 40}px, ${t.clientY - 40}px)`;
+    const s = slotAt(t.clientX, t.clientY);
+    if (s !== over) { over?.classList.remove('over'); over = s; over?.classList.add('over'); }
+  }, { passive: false });
+  const finish = e => {
+    if (ghost) {
+      const t = e.changedTouches?.[0];
+      const s = t && slotAt(t.clientX, t.clientY);
+      ghost.remove(); ghost = null; bar?.remove(); bar = null; over?.classList.remove('over'); over = null;
+      $$('.pc-card.dragging', album).forEach(c => c.classList.remove('dragging'));
+      if (s) putInArena(name, Number(s.dataset.slot));
+      e.preventDefault();
+    }
+    cancel();
+  };
+  album.addEventListener('touchend', finish, { passive: false });
+  album.addEventListener('touchcancel', finish, { passive: false });
+  album.addEventListener('contextmenu', e => { if (e.target.closest('.pc-card') && (ghost || start)) e.preventDefault(); });
+}
+
+export function initCards({ pets, map, setTab }) {
+  PETS = pets; byName = map; if (setTab) showTab = setTab;
   renderAlbum(); renderArena();
   const album = $('#pc-album');
   album.addEventListener('click', e => {
@@ -160,6 +237,8 @@ export function initCards({ pets, map }) {
     el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); const n = e.dataTransfer.getData('text/plain'); if (n) putInArena(n, i); });
     el.addEventListener('click', e => { if (e.target.closest('[data-act="out"]') && !busy) { arena[i] = null; $('#arena-stage').hidden = true; $('#arena').classList.remove('fighting'); renderArena(); } });
   });
+  touchDrag(album);
+  $('#pc-share').addEventListener('click', shareDeck);
   $('#pc-fight').addEventListener('click', fight);
   $('#pc-swap').addEventListener('click', () => { if (busy) return; arena = [arena[1], arena[0]]; renderArena(); });
   $('#pc-clear-arena').addEventListener('click', () => { if (busy) return; arena = [null, null]; $('#arena-stage').hidden = true; $('#arena').classList.remove('fighting'); $('#arena-log').innerHTML = ''; renderArena(); });
@@ -174,6 +253,7 @@ export function initCards({ pets, map }) {
   // 第一次打開：送三張起始卡
   if (!store.get(KEY + '.init')) {
     store.set(KEY + '.init', 1);
-    if (!getAlbum().length) ['普', '銀', '金'].forEach(t => { const p = PETS.find(x => tierOf(x.cardTier) === t && x.imageId); if (p) addCard(p.name, true); });
+    if (!getAlbum().length && !new URLSearchParams(location.search).has('cards')) ['普', '銀', '金'].forEach(t => { const p = PETS.find(x => tierOf(x.cardTier) === t && x.imageId); if (p) addCard(p.name, true); });
   }
+  importFromUrl();
 }

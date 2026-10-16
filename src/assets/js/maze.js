@@ -481,7 +481,7 @@ function buildResult(run, pack) {
   const score = floors * 10 + stairs * 3 + marks * 2 + cells / 60 + coverage * 15;
   const grade = score >= 60 ? 'S' : score >= 35 ? 'A' : score >= 15 ? 'B' : 'C';
   // 每層資訊（存成圖片用）：樓層、探索率、樓梯與標記座標
-  const perFloor = pack.floors.map((pf, i) => { const c = coverageOf(fl[i]?.f.map); return { n: pf.n, cov: c ? c.seen / c.area : null, pts: pf.pts }; });
+  const perFloor = pack.floors.map((pf, i) => { const c = coverageOf(fl[i]?.f.map); return { n: pf.n, cov: c ? c.seen / c.area : null, pts: pf.pts, map: fl[i]?.f.map || null }; });
   return { floors, stairs, marks, cells, coverage, ms, grade, at: run.at, perFloor };
 }
 // 結算卡上星野的動作：S 跳起來歡呼、A 歡呼、B 東張西望、C 坐下休息
@@ -517,6 +517,26 @@ function confetti(host = $('#mz-stage'), n = 24) {
     host.appendChild(p); setTimeout(() => p.remove(), 2400);
   }
 }
+// 結算圖上的每層小地圖：看過的地板淺色、牆深色、沒探索透明，樓梯與標記畫成圓點
+function miniMap(x, m, pts, ox, oy, size, KC) {
+  if (!m?.tile?.length || !m.width || !m.height) return;
+  const c = document.createElement('canvas'); c.width = m.width; c.height = m.height;
+  const g = c.getContext('2d'), img = g.createImageData(m.width, m.height), d = img.data;
+  for (let i = 0; i < m.tile.length; i++) {
+    const t = m.tile[i]; if (t === 0) continue;
+    const [r, gg, b] = t === 100 ? [126, 98, 72] : [246, 231, 195];
+    d[i * 4] = r; d[i * 4 + 1] = gg; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const k = Math.min(size / m.width, size / m.height), w = m.width * k, h = m.height * k;
+  const px = ox + (size - w) / 2, py = oy + (size - h) / 2;
+  x.fillStyle = '#45372B'; x.beginPath(); x.roundRect(ox - 4, oy - 4, size + 8, size + 8, 12); x.fill();
+  x.imageSmoothingEnabled = false; x.drawImage(c, px, py, w, h);
+  for (const p of pts) {
+    x.fillStyle = KC[KIND_NAME(p.kind)] || '#fff'; x.strokeStyle = '#fff'; x.lineWidth = 1.5;
+    x.beginPath(); x.arc(px + (p.e + 0.5) * k, py + (p.s + 0.5) * k, 4.5, 0, Math.PI * 2); x.fill(); x.stroke();
+  }
+}
 // 存成圖片：用 canvas 畫一張結算卡
 async function resultImage() {
   const r = lastResult; if (!r) return;
@@ -524,13 +544,13 @@ async function resultImage() {
   const x = c.getContext('2d');
   const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
   // 每層資訊：先排版算高度
-  const CHIP_F = `600 19px ${font}`, CW = W - 140 - 40;
+  const CHIP_F = `600 19px ${font}`, TH = 132, CW = W - 140 - 40 - TH - 16;   // TH：右邊小地圖大小
   x.font = CHIP_F;
   const floorsLay = (r.perFloor || []).map(fl => {
     const chips = fl.pts.length ? fl.pts.map(p => ({ k: KIND_NAME(p.kind), t: `${p.note ? p.note : T('mz.k.' + KIND_NAME(p.kind))} ${xyShort(p.e, p.s)}` })) : [{ k: '', t: T('mz.p.none') }];
     let cx = 0, lines = 1;
     for (const ch of chips) { ch.w = Math.min(CW, x.measureText(ch.t).width + (ch.k ? 34 : 16)); if (cx && cx + ch.w > CW) { lines++; cx = 0; } ch.line = lines - 1; ch.x = cx; cx += ch.w + 8; }
-    return { ...fl, chips, h: 54 + lines * 38 };
+    return { ...fl, chips, h: Math.max(54 + lines * 38, (fl.map ? TH + 28 : 0)) };
   });
   const FY = 798, floorsH = floorsLay.length ? 56 + floorsLay.reduce((a, f) => a + f.h + 10, 0) : 0;
   const H = FY + floorsH + 100;
@@ -565,10 +585,10 @@ async function resultImage() {
       x.fillStyle = 'rgba(255,250,238,.9)'; x.beginPath(); x.roundRect(70, y, W - 140, fl.h, 16); x.fill();
       x.textAlign = 'left'; x.fillStyle = '#4A3422'; x.font = `800 23px ${font}`; x.fillText(T('mz.floorN', { n: fl.n }), 90, y + 36);
       if (fl.cov != null) {
-        const p = Math.round(fl.cov * 100), bx = W - 90 - 160;
+        const p = Math.round(fl.cov * 100), bx = 90 + CW - 160;
         x.fillStyle = 'rgba(74,52,34,.15)'; x.beginPath(); x.roundRect(bx, y + 22, 110, 14, 7); x.fill();
         if (p > 0) { x.fillStyle = '#7DAE5F'; x.beginPath(); x.roundRect(bx, y + 22, Math.max(14, 110 * p / 100), 14, 7); x.fill(); }
-        x.textAlign = 'right'; x.fillStyle = '#7B5F43'; x.font = `700 20px ${font}`; x.fillText(p + '%', W - 90, y + 36);
+        x.textAlign = 'right'; x.fillStyle = '#7B5F43'; x.font = `700 20px ${font}`; x.fillText(p + '%', 90 + CW, y + 36);
       }
       x.font = CHIP_F;
       for (const ch of fl.chips) {
@@ -579,14 +599,15 @@ async function resultImage() {
         let t = ch.t; while (x.measureText(t).width > ch.w - (ch.k ? 34 : 16) && t.length > 1) t = t.slice(0, -1);
         x.fillText(t === ch.t ? t : t.slice(0, -1) + '…', cx + (ch.k ? 28 : 8), cy + 22);
       }
+      if (fl.map) miniMap(x, fl.map, fl.pts, W - 90 - TH, y + (fl.h - TH) / 2, TH, KC);
       y += fl.h + 10;
     }
   }
-  // 角色
+  // 角色（分頁在背景時 decode 可能一直不回來，最多等 1.5 秒）
   try {
     const spr = JSON.parse(document.body.dataset.sprites || '{}');
     const pose = RESULT_POSE[r.grade];
-    if (spr[pose]) { const img = new Image(); img.src = spr[pose][1]; await img.decode(); x.imageSmoothingEnabled = false; const h = 150, w = img.naturalWidth * (h / img.naturalHeight); x.drawImage(img, 60, 190, w, h); }
+    if (spr[pose]) { const img = new Image(); await new Promise((ok, no) => { img.onload = ok; img.onerror = no; setTimeout(no, 1500); img.src = spr[pose][1]; }); x.imageSmoothingEnabled = false; const h = 150, w = img.naturalWidth * (h / img.naturalHeight); x.drawImage(img, 60, 190, w, h); }
   } catch { /* 略 */ }
   x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = `700 22px system-ui, sans-serif`;
   x.fillStyle = '#D9654A'; x.beginPath(); x.roundRect(W / 2 - 120, H - 84, 240, 44, 22); x.fill(); x.fillStyle = '#fff'; x.fillText('starcg.online', W / 2, H - 54);

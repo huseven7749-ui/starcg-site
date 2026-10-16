@@ -20,6 +20,13 @@ const TOURS = {
     { sel: '#tab-sim', key: 'tour.pets.2', pose: 'adv-look' },
     { sel: '#points', key: 'tour.pets.3', pose: 'adv-cheer', before: '#tab-sim' },
   ],
+  // 寵物頁的「寵物卡對戰」分頁：第一次切過去時另外導覽
+  'pets.battle': [
+    { sel: '#pc-album', key: 'tour.battle.1', pose: 'adv-look', before: '#tab-battle' },
+    { sel: '#arena', key: 'tour.battle.2', pose: 'adv-run' },
+    { sel: '#pc-fight', key: 'tour.battle.3', pose: 'adv-attack' },
+    { sel: '#pc-share', key: 'tour.battle.4', pose: 'adv-cheer' },
+  ],
   damage: [
     { sel: '#dmg-tabs', key: 'tour.damage.1', pose: 'adv-look', before: '#tab-phys' },
     { sel: '#p-atk', key: 'tour.damage.2', pose: 'adv-attack' },
@@ -38,6 +45,9 @@ const TOURS = {
 };
 const page = (document.body.className.match(/\bpage-([\w-]+)/) || [])[1];
 const steps = TOURS[page];
+// 目前要播哪一份：寵物頁停在對戰分頁時播對戰導覽
+const tourKey = () => (page === 'pets' && document.getElementById('pane-battle')?.hidden === false ? 'pets.battle' : page);
+let curKey = page;
 const SEEN_KEY = 'sc.tour';
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let SPR = {};
@@ -101,12 +111,17 @@ function show(i) {
   nb.textContent = T(i === list.length - 1 ? 'tour.done' : 'tour.next');
   nb.focus({ preventScroll: true });
   place();
-  setTimeout(place, 400);   // 平滑捲動結束後再對一次位置
+  setTimeout(() => {           // 平滑捲動結束後再對一次位置；版面高度變了導致目標跑出畫面就再捲一次
+    if (!root || !target) return;
+    const r = target.getBoundingClientRect();
+    if (r.bottom < 60 || r.top > innerHeight - 60) target.scrollIntoView({ block: 'center' });
+    place();
+  }, 450);
 }
 function next() { if (idx + 1 < list.length) show(idx + 1); else end(false); }
 function end() {
   const seen = store.get(SEEN_KEY, {}) || {};
-  seen[page] = 1;
+  seen[curKey] = 1;
   store.set(SEEN_KEY, seen);
   removeEventListener('resize', place); removeEventListener('scroll', place, true);
   root?.classList.add('out');
@@ -116,7 +131,8 @@ function end() {
 }
 export function startTour() {
   if (!steps || root) return;
-  list = steps.filter(s => { if (s.before) return document.querySelector(s.sel); return visible(document.querySelector(s.sel)); });
+  curKey = tourKey();
+  list = (TOURS[curKey] || steps).filter(s => { if (s.before) return document.querySelector(s.sel); return visible(document.querySelector(s.sel)); });
   if (!list.length) return;
   build();
   addEventListener('resize', place); addEventListener('scroll', place, true);
@@ -141,4 +157,8 @@ if (steps) {
     const wel = document.getElementById('sheet-welcome');
     setTimeout(() => { if (wel?.open) wel.addEventListener('close', go, { once: true }); else go(); }, 1400);
   }
+  // 第一次打開寵物卡對戰分頁
+  document.getElementById('tab-battle')?.addEventListener('click', () => {
+    if (!(store.get(SEEN_KEY, {}) || {})['pets.battle']) setTimeout(startTour, 600);
+  });
 }

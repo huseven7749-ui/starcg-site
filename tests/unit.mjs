@@ -2,7 +2,7 @@
 // 期望值為手算結果（見各行註解），用來確認程式與攻略站公布的公式一致。
 import assert from 'node:assert/strict';
 import { simulate, statsFromBp, petScore, decodeAlloc, gradeMeta, expectedTries, capManual, maxStarAdd, REMODEL, TIERS, freePoints, remodelPoints } from '../src/assets/js/petcalc.js';
-import { battleStats, runBattle, cardStars } from '../src/assets/js/petbattle.js';
+import { battleStats, runBattle, cardStars, raceBonus } from '../src/assets/js/petbattle.js';
 import { expected, simulate as farmSim, craft, stonePerRun, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven, LAYERS } from '../src/assets/js/farmcalc.js';
 import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective } from '../src/assets/js/dmgcalc.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, parseImport, mergeRecords, inPeriod } from '../src/assets/js/mkstats.js';
@@ -35,6 +35,16 @@ t('遊戲實測：赤焰年獸 Lv140 金卡 5 改、體力 26 力量 153（遊�
   assert.ok(Math.abs(s.total - 4472) <= 2, `score ${s.total}`);
 });
 
+t('寵物卡對戰：種族剋制（半剋 10%、全剋 20%，被剋相反）', () => {
+  assert.equal(raceBonus('人形系', '昆蟲系'), 0.1);
+  assert.equal(raceBonus('昆蟲系', '人形系'), -0.1);
+  assert.equal(raceBonus('人形系', '野獸系'), 0.2);
+  assert.equal(raceBonus('不死系', '人形系'), 0.2);
+  assert.equal(raceBonus('金屬系', '人形系'), 0.1);
+  assert.equal(raceBonus('飛行系', '昆蟲系'), 0.2);
+  assert.equal(raceBonus('人形系', '人形系'), 0);
+  assert.equal(raceBonus('人形系', '龍系'), 0);
+});
 t('寵物卡對戰：能力、爆點時改加體力、對戰結果合理', () => {
   const nian = { name: '赤焰年獸', cardTier: '金卡', race: '野獸系', hp: 29, power: 54, defense: 17, speed: 23, magic: 6 };
   const a = battleStats(nian, 140);
