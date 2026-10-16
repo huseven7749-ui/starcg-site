@@ -39,8 +39,8 @@ async function loadKoNames(list) {
       fetch(`${BASE}data/pet-obtain-ko.json`).then(r => r.ok ? r.json() : {}),
     ]);
     OBTAIN_KO = ob || {};
-    // 先用圖鑑圖號對，對不到再用中文名（伺服器資料的圖號偶爾和遊戲抄下來的不同）
-    list.forEach(p => { const k = kn[p.imageId] || kn['n:' + p.name]; if (k) p.kn = k; });
+    // 先用中文名對（官方圖鑑更新時圖號可能變），對不到再用圖號
+    list.forEach(p => { const k = kn['n:' + p.name] || kn[p.imageId]; if (k) p.kn = k; });
   } catch { /* 沒有韓文名就只顯示中文 */ }
 }
 const tierBadge = tier => tier ? `<span class="badge b-${TIER_KEY[tier]}">${esc(T('card.' + TIER_KEY[tier]))}</span>` : '';
