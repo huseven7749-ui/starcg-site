@@ -100,7 +100,7 @@
 - **說明文字**：頁面上只放最必要的字，補充說明用 `{{tip:字串鍵}}`（ⓘ 圖示，點了才展開）；長的使用方式、公式都收在可展開的區塊裡。
 - **角色圖**：放在 `src/assets/img/sprites/`（GIF 動畫＋同名 `-still.png` 靜態第一格，給設定「減少動態效果」的使用者）。新角色要在 `build.mjs` 的 `SPRITES` 登記；頁面樣板用 `{{pic:名稱 class}}`，腳本用 `spriteImg('名稱')`。目前的安排：鼠王＝各頁引導與官方市場卡；五色小鼠＝首頁各工具卡（顏色對應工具色）；飛車男孩（`car-*`，站長提供的 GIF 縮小到 60%）＝載入中的跑道（`car-run`）、傷害頁結果卡（`car-attack`）、迷宮 S／A 評級與批次採購最佳路線（`car-cheer`）；冒險者＝坐著（還沒有資料／等待）、四處張望（找不到、404）、奔跑（搜尋中、規劃路線中）、歡呼（註冊好禮、最划算方案、魔法結果）、攻擊（物理傷害結果）。
 - **重新建置**：`node build.mjs`（輸出到 `dist/`，再上傳）。換網域：`node build.mjs --site=https://新網域`。
-- **贊助站長連結**：預設是 BobaBoba 贊助頁（`build.mjs` 內 `SPONSOR`），可用 `--sponsor=` / `--sponsor-ko=` 或 GitHub Variables `SPONSOR_URL` / `SPONSOR_URL_KO` 覆蓋。首頁「贊助站長」卡片會先跳出彈窗：請大家到教學影片下留言，想贊助再點連結。
+- **贊助站長連結**：預設是 Ko-fi 贊助頁（https://ko-fi.com/hoshino7749）（`build.mjs` 內 `SPONSOR`），可用 `--sponsor=` / `--sponsor-ko=` 或 GitHub Variables `SPONSOR_URL` / `SPONSOR_URL_KO` 覆蓋。首頁「贊助站長」卡片會先跳出彈窗：請大家到教學影片下留言，想贊助再點連結。
 - **新手彈窗的教學影片**：`node build.mjs --video=YouTube網址或mp4網址`。第一次來的人會看到歡迎彈窗（依裝置顯示加到我的最愛／加到主畫面的步驟），影片放在彈窗上方；沒給時顯示「教學影片準備中」。看過會記在瀏覽器裡不再跳出，設定面板有「再看一次新手教學」。
 - **新增大量新文字後**：先 `node build.mjs`，再重新產生字型子集 `python3 tools/subset-fonts.py dist <粉圓.ttf> <GowunDodum.ttf>`，然後再建置一次（會一併收錄腳本字典與 `data/` 內的名稱；沒做也能正常顯示，只是新字會改用系統字型）。字型原檔：jf open 粉圓 GitHub releases、Gowun Dodum（yangheeryu/Gowun-Dodum）。
 - **寵物圖鑑**：來源是星詠攻略網的 `guide.starcg.net/data/pets.json`（`api/config.php` 的 `upstream_pets`）。伺服器上的 `data/pets.json` 由 cron／部署／`api/pets.php`（超過一天沒更新時）同步，倉庫裡的 `static/data/pets.json` 只是第一次部署的種子，不會覆蓋伺服器的版本；若攻略網缺某隻寵物，本站也會缺，要等上游補。同步狀態在 `cache/pets-sync.json`。

@@ -28,7 +28,7 @@ const NAVER_VERIFY = args.naver || '';        // Naver Search Advisor 驗證碼
 // 可用 --video=網址 --video-ko=網址 --sponsor=網址 --sponsor-ko=網址 覆蓋；留空就用下面的預設
 const VIDEO = { zh: args.video || 'https://youtu.be/2dk9OO-lSmw?si=jf8WyNkAkoCsPtGg', ko: args['video-ko'] || 'https://youtu.be/vv5wRaEuV-Y?si=rjLWOqEwNbzLjZGu' };
 // 贊助站長：BobaBoba 贊助頁（彈窗先請大家到影片下留言，想贊助再點）
-const SPONSOR = { zh: args.sponsor || 'https://hoshino77.bobaboba.me/', ko: args['sponsor-ko'] || 'https://hoshino77.bobaboba.me/' };
+const SPONSOR = { zh: args.sponsor || 'https://ko-fi.com/hoshino7749', ko: args['sponsor-ko'] || 'https://ko-fi.com/hoshino7749' };
 
 const LANGS = {
   zh: { prefix: '', dict: (await import('./src/i18n/zh.mjs')).default },
