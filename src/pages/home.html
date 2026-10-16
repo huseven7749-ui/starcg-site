@@ -2,7 +2,7 @@
   <div>
     <h1 id="hero-title">{{t:page.home.h1}} <span class="twinkle" aria-hidden="true">✦</span></h1>
     <p class="lead">{{t:page.home.lead}}</p>
-    <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}"><p class="bubble"><b>{{t:guide.name}}</b>{{t:guide.home}}</p></div>
+    <div class="guide"><img class="rat" src="{{asset:img/sprites/ratking.gif}}" width="58" height="70" alt="{{t:guide.name}}"><p class="bubble" id="guide-say" aria-live="polite"><b>{{t:guide.name}}</b><span class="say">{{t:guide.home}}</span><span class="say-dots" aria-hidden="true"></span></p></div>
     <form class="searchbar" action="{{href:/market/}}" method="get" role="search">
       <label class="sr-only" for="home-q">{{t:home.searchLabel}}</label>
       <div class="input-wrap">
@@ -13,8 +13,13 @@
     </form>
     <div class="hot" id="hot" hidden><span>{{t:home.hot}}</span><div class="chips"></div></div>
   </div>
-  <div class="hero-art" aria-hidden="true">
-    <img class="diva" src="{{asset:img/sprites/diva.gif}}" width="182" height="231" alt="" fetchpriority="high">
+  <div class="hero-art">
+    <button type="button" class="diva-btn" aria-label="{{t:guide.divaLabel}}">
+      <img class="diva" src="{{asset:img/sprites/diva.gif}}" width="182" height="231" alt="" fetchpriority="high">
+      <span class="diva-hint" aria-hidden="true">{{t:guide.divaHint}}</span>
+    </button>
+    <p class="diva-say" role="status" aria-live="polite" hidden></p>
+    <div class="notes" aria-hidden="true"></div>
   </div>
 </section>
 

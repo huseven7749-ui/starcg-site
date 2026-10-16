@@ -98,10 +98,91 @@ updateSchedule();
 setInterval(updateSchedule, 60e3);
 
 // ───── 熱門搜尋 ─────
+let searchEx = T('guide.searchEx').split('|').filter(Boolean);
 api('hot').then(d => {
   const list = (d.items || []).slice(0, 10);
   if (!list.length) return;
   const box = $('#hot');
   $('.chips', box).innerHTML = list.map(k => { const n = typeof k === 'string' ? k : k.n, label = typeof k === 'string' ? k : (k.kn || k.n); return `<a class="chip" href="${BASE}${LANG === 'ko' ? 'ko/' : ''}market/${PREVIEW ? 'index.html' : ''}?q=${encodeURIComponent(n)}">${esc(label)}</a>`; }).join('');
   box.hidden = false;
+  searchEx = list.slice(0, 6).map(k => typeof k === 'string' ? k : k.n);
 }).catch(() => {});
+
+// ───── 主視覺互動 ─────
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* 忽略 */ } } };
+const replay = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+
+// 歌姬：點一下會唱歌、冒音符、說一句話
+(() => {
+  const btn = $('.diva-btn');
+  if (!btn) return;
+  const say = $('.diva-say'), notes = $('.notes');
+  const lines = [1, 2, 3, 4, 5, 6].map(i => T('guide.diva' + i));
+  const colors = ['var(--pink)', 'var(--sky)', 'var(--mint)', 'var(--lemon)', 'var(--lav)'];
+  let n = 0, timer;
+  if (store.get('sc.divaSeen')) btn.classList.add('seen');
+  btn.addEventListener('click', () => {
+    n++;
+    btn.classList.add('seen'); store.set('sc.divaSeen', '1');
+    replay(btn, 'sing');
+    say.textContent = n % 7 === 0 ? T('guide.divaFan') : lines[(n - 1) % lines.length];
+    say.hidden = false; replay(say, 'pop');
+    clearTimeout(timer); timer = setTimeout(() => { say.hidden = true; }, 4000);
+    if (REDUCE) return;
+    for (let i = 0; i < 4 + Math.min(n, 6); i++) {
+      const s = document.createElement('span');
+      s.textContent = '♪♫♬♩'[i % 4];
+      s.style.left = (10 + Math.random() * 75) + '%';
+      s.style.setProperty('--dx', (Math.random() * 90 - 45).toFixed(0) + 'px');
+      s.style.animationDelay = (i * 90) + 'ms';
+      s.style.color = colors[i % colors.length];
+      notes.append(s);
+      setTimeout(() => s.remove(), 2400 + i * 90);
+    }
+  });
+})();
+
+// 鼠王：歡迎詞、最新攻略、下一個活動、小技巧輪播；點對話框換下一則
+(() => {
+  const box = $('#guide-say');
+  if (!box) return;
+  const span = $('.say', box), dots = $('.say-dots', box);
+  const msgs = [esc(T('guide.home'))];
+  const post = $('.post-list-3 .post-card a');
+  if (post) msgs.push(`${esc(T('guide.sayPost'))}<a href="${esc(post.getAttribute('href'))}">${esc($('h2', post).textContent)}</a>`);
+  const ev = $('#next-ev span');
+  if (ev && ev.textContent) msgs.push(esc(ev.textContent));
+  [1, 2, 3].forEach(i => msgs.push(esc(T('guide.sayTip' + i))));
+  dots.innerHTML = msgs.map(() => '<i></i>').join('');
+  let i = 0, paused = false;
+  const show = k => {
+    i = (k + msgs.length) % msgs.length;
+    span.innerHTML = msgs[i];
+    replay(span, 'in');
+    [...dots.children].forEach((d, j) => d.classList.toggle('on', j === i));
+  };
+  show(0);
+  box.addEventListener('click', e => { if (!e.target.closest('a')) show(i + 1); });
+  box.addEventListener('mouseenter', () => { paused = true; });
+  box.addEventListener('mouseleave', () => { paused = false; });
+  if (!REDUCE) setInterval(() => { if (!paused && !document.hidden) show(i + 1); }, 7000);
+})();
+
+// 搜尋框：打字機效果輪流示範關鍵字（聚焦或已輸入時停止）
+(() => {
+  const inp = $('#home-q');
+  if (!inp || REDUCE) return;
+  const orig = inp.placeholder, pre = T('guide.searchPre');
+  let w = 0, c = 0, del = false;
+  const tick = () => {
+    if (document.activeElement === inp || inp.value) { inp.placeholder = orig; c = 0; del = false; return setTimeout(tick, 1500); }
+    const word = searchEx[w % searchEx.length] || '';
+    c += del ? -1 : 1;
+    inp.placeholder = pre + word.slice(0, c);
+    let d = del ? 45 : 120;
+    if (!del && c >= word.length) { del = true; d = 1800; } else if (del && c <= 0) { del = false; w++; d = 400; }
+    setTimeout(tick, d);
+  };
+  setTimeout(tick, 2000);
+})();

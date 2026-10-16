@@ -286,6 +286,42 @@ html[data-theme="dark"] .hero { background: linear-gradient(180deg, #1D2C4E 0%, 
 .searchbar .btn { min-height: 52px; padding: 0 22px; font-size: 1rem; }
 .hot { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .hot > span { font-size: .85rem; color: var(--ink-2); font-weight: 700; }
+/* 熱門搜尋前三名 */
+.hot .chips { counter-reset: hot; }
+.hot .chip { counter-increment: hot; transition: transform .15s, border-color .15s; }
+.hot .chip:hover { transform: translateY(-2px); }
+.hot .chip:nth-child(-n+3)::before { content: counter(hot); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 50%;
+  font-size: .72rem; font-weight: 800; color: #fff; background: var(--coral); }
+.hot .chip:nth-child(1)::before { background: var(--coin); }
+/* 鼠王輪播 */
+#guide-say { cursor: pointer; user-select: none; -webkit-user-select: none; }
+#guide-say .say { display: block; min-height: 1.55em; }
+#guide-say .say.in { animation: say-in .35s ease-out; }
+#guide-say .say a { font-weight: 700; color: var(--pink-d); }
+.say-dots { display: flex; gap: 4px; margin-top: 5px; }
+.say-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); transition: width .2s, background .2s; }
+.say-dots i.on { width: 14px; border-radius: 3px; background: var(--pink); }
+@keyframes say-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* 歌姬：可以點 */
+.diva-btn { position: absolute; inset: 0; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 24px; -webkit-tap-highlight-color: transparent; }
+.diva-btn:focus-visible { outline: 3px solid var(--pink); outline-offset: 4px; }
+.diva-btn:hover .diva { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--lemon) 70%, transparent)); }
+.diva-btn.sing { animation: diva-hop .55s ease-out; }
+@keyframes diva-hop { 0% { transform: none; } 30% { transform: translateY(-14px) scale(1.04); } 60% { transform: translateY(2px) scale(.98); } 100% { transform: none; } }
+.diva-hint { position: absolute; top: 18px; left: -6px; padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 800; color: #fff;
+  background: var(--pink); box-shadow: var(--shadow-sm); animation: hint-bob 1.6s ease-in-out infinite; pointer-events: none; }
+.diva-btn.seen .diva-hint { display: none; }
+@keyframes hint-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.diva-say { position: absolute; right: calc(100% - 6px); top: 26px; width: max-content; max-width: 220px; margin: 0; padding: 8px 13px; z-index: 2;
+  background: var(--card); border: 2px solid var(--line-2); border-radius: 14px; font-size: .88rem; font-weight: 700; line-height: 1.5; color: var(--ink); box-shadow: var(--shadow-sm); }
+.diva-say::after { content: ""; position: absolute; right: -9px; top: 16px; width: 14px; height: 14px; background: var(--card);
+  border-right: 2px solid var(--line-2); border-top: 2px solid var(--line-2); transform: rotate(45deg); }
+.diva-say.pop { animation: say-pop .3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes say-pop { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+.notes { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.notes span { position: absolute; bottom: 45%; font-size: 22px; font-weight: 800; opacity: 0; text-shadow: 0 1px 0 #fff; animation: note-up 2s ease-out forwards; }
+@keyframes note-up { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx, 0), -140px) scale(1.15) rotate(18deg); } }
+@media (prefers-reduced-motion: reduce) { .diva-btn.sing, .diva-hint, #guide-say .say.in, .diva-say.pop { animation: none; } .notes { display: none; } }
 
 .tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .tool {
@@ -602,6 +638,10 @@ html[data-view="mobile"] .hero { grid-template-columns: 1fr; padding: 22px 18px 
 html[data-view="mobile"] .hero-art { position: absolute; width: 125px; height: 186px; right: 2px; top: 6px; margin: 0; }
 html[data-view="mobile"] .hero-art .diva { left: 0; width: 125px; height: 159px; image-rendering: auto; }
 html[data-view="mobile"] .hero-art::before { height: 30px; }
+html[data-view="mobile"] .hero-art { z-index: 2; }
+html[data-view="mobile"] .diva-say { right: 4px; top: calc(100% + 8px); max-width: 170px; font-size: .82rem; }
+html[data-view="mobile"] .diva-say::after { right: 40px; top: -9px; transform: rotate(-45deg); }
+html[data-view="mobile"] .diva-hint { top: 4px; left: -10px; font-size: .7rem; padding: 2px 8px; }
 html[data-view="mobile"] .hero::after { display: none; }
 html[data-view="mobile"] .hero h1 { padding-right: 112px; font-size: 1.55rem; }
 html[data-view="mobile"] .hero .lead { padding-right: 112px; font-size: .95rem; }
