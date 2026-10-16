@@ -29,5 +29,5 @@ foreach ($names as $n) {
     [$d] = cached_get('market', "m|$type|1|$n" . $sfx, (int)cfg('market_ttl', 60), $fresh, fn() => market_fetch($n, $type, true, null, $lang), false);
     if ($d) $out[$n] = with_age($d); else $failed[] = $n;
 }
-if (!$out) fail('upstream unavailable', 502);
+if (!$out) fail_upstream(upstream_cooldown() > 0 ? 503 : 502);
 json_out(['ok' => true, 'fetchedAt' => time(), 'results' => $out, 'failed' => $failed], 200, 15);

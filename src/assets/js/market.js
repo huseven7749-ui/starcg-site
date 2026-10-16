@@ -185,8 +185,8 @@ async function search(fresh = false) {
     let d;
     if (mode === 'browse-equip') d = mergeBatch(await api('batch', { n: names, type: 'item', fresh: fresh ? 1 : '' }, { timeout: 60000 }), names);
     else if (mode === 'browse-pet') d = await api('market', { q: '', type: 'pet', fresh: fresh ? 1 : '' }, { timeout: 60000 });
-    else d = await apiRetry('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' }, n => {
-      if (token === S.token) el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{n}', n))}`;
+    else d = await apiRetry('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' }, (n, sec) => {
+      if (token === S.token) el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{s}', sec))}`;
     });
     if (token !== S.token) return;
     S.data = d;
@@ -202,13 +202,19 @@ async function search(fresh = false) {
   }
 }
 
-/** 官方市場偶爾短暫沒回應：502／逾時／非 JSON 自動再試兩次（間隔 1.5、3 秒），429 不重試 */
+/** 官方市場偶爾沒回應或限流：
+ *  503（官方限流中）→ 照伺服器建議的秒數倒數後再試；502／逾時 → 1.5、3 秒後再試；最多再試兩次。429（本站限流）不重試 */
 async function apiRetry(name, params, onRetry) {
   for (let n = 0; ; n++) {
     try { return await api(name, params); } catch (e) {
       if (n >= 2 || e.status === 429 || e.status === 400) throw e;
-      onRetry?.(n + 1);
-      await new Promise(r => setTimeout(r, 1500 * (n + 1)));
+      let wait = e.status === 503 ? Math.min(30, Math.max(3, Number(e.data?.retryAfter) || 10)) : 1.5 * (n + 1);
+      while (wait > 0) {
+        onRetry?.(n + 1, Math.ceil(wait));
+        const step = Math.min(1, wait);
+        await new Promise(r => setTimeout(r, step * 1000));
+        wait -= step;
+      }
     }
   }
 }

@@ -707,7 +707,7 @@ export default {
   'mk.needFilter': '請先選擇裝備分類或級別，或直接輸入名稱',
   'mk.tooMany': '這個條件有 {n} 件裝備，請再選擇級別（一次最多 {max} 件）',
   'mk.rateLimited': '查詢太頻繁了，請稍等一分鐘再試',
-  'mk.retrying': '官方市場回應較慢，自動重試中（第 {n} 次）…',
+  'mk.retrying': '官方查詢服務正忙，{s} 秒後自動重試…',
   'mk.upstreamDown': '官方市場暫時沒有回應，請稍後按「重試」',
   'mk.filteredOut': '篩選太嚴格了，放寬看看。',
   'mk.groupsCut': '共 {n} 種商品，只顯示最便宜的前 {max} 種',

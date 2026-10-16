@@ -100,23 +100,50 @@ function fetch_pages(callable $urlOf, array $pages): array
     $got = [];
     $todo = $pages;
     $waits = [500000, 1500000];
+    // 官方限流冷卻中：剩不到 3 秒就等一下，否則直接放棄（呼叫端會改用舊快取）
+    $cool = upstream_cooldown();
+    if ($cool > 3) return [$got, $todo];
+    if ($cool > 0) usleep($cool * 1000000);
     for ($round = 0; $round < 3 && $todo; $round++) {
         if (!upstream_budget(count($todo))) { upstream_log('budget', 0, 'site page budget exhausted', ''); break; }
         $urls = [];
         foreach ($todo as $p) $urls[$p] = $urlOf($p);
         $res = http_multi(array_values($urls), $round ? 2 : null);
-        $next = [];
+        $next = []; $limited = 0;
         foreach ($urls as $p => $u) {
             $r = $res[$u] ?? null;
             $d = ($r && $r['code'] === 200) ? parse_json_body($r['body']) : null;
             if ($d !== null) { $got[$p] = $d; continue; }
             $next[] = $p;
-            upstream_log("round$round", (int)($r['code'] ?? 0), (string)($r['err'] ?? ''), (string)($r['body'] ?? ''));
+            $code = (int)($r['code'] ?? 0);
+            if ($code === 429 || $code === 503) {
+                $j = json_decode((string)($r['body'] ?? ''), true);
+                $limited = max($limited, (int)($j['retry_after'] ?? 0) ?: 10);
+            }
+            upstream_log("round$round", $code, (string)($r['err'] ?? ''), (string)($r['body'] ?? ''));
         }
         $todo = $next;
+        // 被官方限流：記下冷卻時間，不再重試（重試只會讓限流更久）
+        if ($limited) { upstream_cooldown_set(min(120, max(3, $limited))); break; }
         if ($todo && isset($waits[$round])) usleep($waits[$round]);
     }
     return [$got, $todo];
+}
+
+/** 官方限流冷卻剩餘秒數（0＝可以抓） */
+function upstream_cooldown(): int
+{
+    $file = rtrim((string)cfg('cache_dir'), '/') . '/upstream-cooldown.json';
+    $d = is_file($file) ? json_decode((string)@file_get_contents($file), true) : null;
+    return max(0, (int)($d['until'] ?? 0) - time());
+}
+function upstream_cooldown_set(int $sec): void
+{
+    $file = rtrim((string)cfg('cache_dir'), '/') . '/upstream-cooldown.json';
+    locked_json($file, function (array $d) use ($sec) {
+        $until = max((int)($d['until'] ?? 0), time() + $sec);
+        return [['until' => $until], true];
+    });
 }
 
 /** 官方抓取失敗紀錄（不含訪客資料），給 /api/status.php 看最近狀況 */
@@ -337,7 +364,14 @@ function cached_get(string $ns, string $key, int $ttl, bool $fresh, callable $fe
     });
     if ($res) return [$res, 200];
     if ($cached && $now - (int)$cached['fetchedAt'] < (int)cfg('stale_max_age', 3600)) return [$cached + ['cached' => true, 'stale' => true], 200];
-    return [null, 502];
+    return [null, upstream_cooldown() > 0 ? 503 : 502];
+}
+
+/** 抓取失敗時統一回應：503＝官方限流中（附建議等待秒數），429＝本站限流，其他＝官方沒回應 */
+function fail_upstream(int $code): void
+{
+    if ($code === 503) json_out(['ok' => false, 'error' => 'upstream busy', 'retryAfter' => max(3, upstream_cooldown())], 503);
+    fail($code === 429 ? 'too many requests, please wait a minute' : 'upstream unavailable', $code === 429 ? 429 : 502);
 }
 
 function with_age(array $d): array

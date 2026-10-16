@@ -18,6 +18,6 @@ $sfx = $lang === 'ko' ? '|ko' : '';
 [$data, $code] = $browse
     ? cached_get('market', 'm|pet|all' . $sfx, (int)cfg('pet_browse_ttl', 300), $fresh, fn() => market_fetch('', 'pet', false, (int)cfg('pet_browse_max_pages', 50), $lang))
     : cached_get('market', "m|$type|" . (int)$exact . "|$q" . $sfx, (int)cfg('market_ttl', 60), $fresh, fn() => market_fetch($q, $type, $exact, null, $lang));
-if (!$data) fail($code === 429 ? 'too many requests, please wait a minute' : 'upstream unavailable', $code);
+if (!$data) fail_upstream($code);
 if (!$browse && $lang === 'zh' && (!empty($data['items']) || !empty($data['pets']))) hot_record($q);
 json_out(with_age($data), 200, 15);

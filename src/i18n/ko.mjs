@@ -708,7 +708,7 @@ export default {
   'mk.needFilter': '장비 분류나 등급을 먼저 고르거나 이름을 입력하세요',
   'mk.tooMany': '이 조건에 장비가 {n}개 있어요. 등급도 골라 주세요 (한 번에 최대 {max}개)',
   'mk.rateLimited': '검색이 너무 잦아요. 1분 뒤에 다시 시도해 주세요',
-  'mk.retrying': '공식 시장 응답이 느려서 다시 시도하는 중이에요 ({n}번째)…',
+  'mk.retrying': '공식 조회 서비스가 바빠요. {s}초 후 자동으로 다시 시도해요…',
   'mk.upstreamDown': '공식 시장이 잠시 응답하지 않아요. 잠시 후 「다시 시도」를 눌러 주세요',
   'mk.filteredOut': '필터 조건을 넓혀 보세요.',
   'mk.groupsCut': '상품 {n}종 중 가장 싼 {max}종만 표시해요',

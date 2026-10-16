@@ -15,5 +15,5 @@ $lang = api_lang(); $sfx = $lang === 'ko' ? '|ko' : '';
 
 [$data, $code] = cached_get('history', "h|$type|$range|$pages|$q" . $sfx, (int)cfg('history_ttl', 180), false,
     fn() => history_fetch($q, $type, $pages, $range, $lang));
-if (!$data) fail($code === 429 ? 'too many requests, please wait a minute' : 'upstream unavailable', $code);
+if (!$data) fail_upstream($code);
 json_out(with_age($data), 200, 60);
