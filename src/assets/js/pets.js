@@ -1,5 +1,5 @@
 // 寵物圖鑑 + 成長模擬
-import { $, $$, T, esc, fmt, store, copy, toast, loadPets, petImgSrc, normName, downloadCsv, debounce, clamp, emptyState, spriteImg } from './core.js';
+import { $, $$, T, esc, fmt, store, copy, toast, loadPets, petImgSrc, normName, downloadCsv, debounce, clamp, emptyState, spriteImg, LANG, BASE } from './core.js';
 import { track } from './game.js';
 import { simulate, petScore, maxStarAdd, tierOf, TIERS, REMODEL, STAT_KEYS, freePoints, RAND_TOTAL_MAX, DROP_TOTAL_MAX , remodelPoints, remodelLv, REMODEL_MAX } from './petcalc.js';
 
@@ -15,6 +15,17 @@ const S = {
   level: 1, tier: '', remodel: 0, slots: 6, fullSlot: false, maxStar: false,
 };
 const raceLabel = r => { const k = 'race.' + r; const v = T(k); return v === k ? r : v; };
+// 韓文站：寵物名優先顯示遊戲韓文介面的名稱（data/pet-names-ko.json，imageId → 韓文），中文名縮小放旁邊
+const nameHtml = (p, tag = 'b') => (LANG === 'ko' && p.kn)
+  ? `<${tag}>${esc(p.kn)} <small class="muted" lang="zh-Hant">${esc(p.name)}</small></${tag}>`
+  : `<${tag} lang="zh-Hant">${esc(p.name)}</${tag}>`;
+async function loadKoNames(list) {
+  if (LANG !== 'ko') return;
+  try {
+    const kn = await fetch(`${BASE}data/pet-names-ko.json`).then(r => r.ok ? r.json() : {});
+    list.forEach(p => { if (kn[p.imageId]) p.kn = kn[p.imageId]; });
+  } catch { /* 沒有韓文名就只顯示中文 */ }
+}
 const tierBadge = tier => tier ? `<span class="badge b-${TIER_KEY[tier]}">${esc(T('card.' + TIER_KEY[tier]))}</span>` : '';
 const els = p => `<span class="els">${EL_KEYS.filter(k => p[k]).map(k => `<span class="el"><svg class="ic"><use href="#i-el-${k}"/></svg>${fmt(p[k] / 10, 1)}</span>`).join('')}</span>`;
 
@@ -34,7 +45,7 @@ function cardHtml(p) {
   const max = 60;
   return `<button type="button" class="pet-card" data-name="${esc(p.name)}">
       <span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.name)}" width="84" height="84" loading="lazy" decoding="async">` : ''}</span>
-      <b lang="zh-Hant">${esc(p.name)}</b>
+      ${nameHtml(p)}
       <span class="row" style="gap:4px;justify-content:center">${tierBadge(tierOf(p.cardTier))}<span class="badge b-gray">${esc(raceLabel(p.race))}</span></span>
       <span class="bars">${p.bp.map((v, i) => `<span class="bar"><span>${esc(T('bp.' + i))}</span><i style="--w:${Math.min(100, (v / max) * 100).toFixed(1)}%"></i><span>${fmt(v, 2)}</span></span>`).join('')}</span>
       <span class="small muted">${esc(T('pet.totalN', { n: fmt(p.bp.reduce((a, b) => a + b, 0), 2) }))} · ${esc(T('pet.slot', { n: p.skillSlots }))}</span>
@@ -50,7 +61,7 @@ function showMoreDex() {
 function renderDex() {
   const q = normName(F.q.value);
   const race = F.race.value, tier = F.tier.value, el = F.el.value, sort = F.sort.value;
-  let list = PETS.filter(p => (!q || normName(p.name).includes(q) || (p.skins || []).some(s => normName(s.name).includes(q)))
+  let list = PETS.filter(p => (!q || normName(p.name).includes(q) || (p.kn && normName(p.kn).includes(q)) || (p.skins || []).some(s => normName(s.name).includes(q)))
     && (!race || p.race === race) && (!tier || tierOf(p.cardTier) === tier) && (!el || p[el] > 0));
   const key = p => sort === 'total' ? p.bp.reduce((a, b) => a + b, 0) : sort === 'slots' ? p.skillSlots : sort === 'wash' ? p.washPrice : sort === 'id' ? -p.id : p.bp[Number(sort)];
   dexList = list.slice().sort((a, b) => (key(b) - key(a)) || a.id - b.id);
@@ -108,7 +119,7 @@ function renderHead() {
   if (!p) { $('#sim-head').innerHTML = `<p class="muted small" style="grid-column:1/-1;margin:0">${esc(T('pet.custom'))}</p>`; return; }
   const skins = (p.skins || []).map(s => `<span class="badge b-lav" title="${esc(s.obtainInfo || '')}" lang="zh-Hant">${esc(s.name)}</span>`).join(' ');
   $('#sim-head').innerHTML = `<span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.name)}" width="96" height="96">` : ''}</span>
-    <div><h2 lang="zh-Hant">${esc(p.name)}</h2>
+    <div>${nameHtml(p, 'h2')}
       <div class="row" style="gap:6px">${tierBadge(tierOf(p.cardTier))}<span class="badge b-gray">${esc(raceLabel(p.race))}</span><span class="badge b-sky">${esc(T('pet.slot', { n: p.skillSlots }))}</span>${els(p)}</div>
       ${p.obtainInfo ? `<p class="small muted" style="margin:6px 0 0" lang="zh-Hant">${esc(p.obtainInfo)}</p>` : ''}
       ${skins ? `<p class="small" style="margin:6px 0 0">${skins}</p>` : ''}</div>`;
@@ -274,12 +285,13 @@ $('#cmp-csv').addEventListener('click', () => downloadCsv('starcg-pets.csv', [
 // ───────────────── 啟動 ─────────────────
 buildTable();
 updateCmpCount();
-loadPets().then(list => {
+loadPets().then(async list => {
+  await loadKoNames(list);
   PETS = list;
-  list.forEach(p => byName.set(normName(p.name), p));
+  list.forEach(p => { byName.set(normName(p.name), p); if (p.kn) byName.set(normName(p.kn), p); });
   const races = [...new Set(list.map(p => p.race).filter(Boolean))].sort();
   F.race.insertAdjacentHTML('beforeend', races.map(r => `<option value="${esc(r)}">${esc(raceLabel(r))}</option>`).join(''));
-  $('#pet-names').innerHTML = list.map(p => `<option value="${esc(p.name)}">`).join('');
+  $('#pet-names').innerHTML = list.map(p => `<option value="${esc(p.kn || p.name)}">`).join('');
   $('#dex-count').hidden = false; $('#dex-count').textContent = list.length;
   renderDex();
   const params = new URLSearchParams(location.search);
