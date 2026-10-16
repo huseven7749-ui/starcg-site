@@ -1329,6 +1329,8 @@ export default {
   'mz.r.cells': '탐험한 칸',
   'mz.r.stairs': '찾은 계단',
   'mz.r.marks': '직접 표시',
+  'mz.r.coverage': '탐색률',
+  'mz.r.coverageNote': '본 바닥과 벽 ÷ 지도 크기 (모든 층 합계)',
   'mz.r.save': '이미지로 저장',
   'mz.r.toPack': '정리해서 공유',
   'mz.r.line.S': '대단해요, 완벽한 탐험!',

@@ -461,35 +461,55 @@ async function restoreRuns() {
 
 // ───── 探索結算：像遊戲結算畫面，評價＋數據，可存成圖片 ─────
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// 探索率：地圖檔裡 0 是「還沒探索」、100 是看過的牆，其他是地板 → 看過的格子 ÷ 地圖大小（各層合計）
+function coverageOf(m) {
+  if (!m?.tile?.length) return null;
+  let unseen = 0;
+  for (let i = 0; i < m.tile.length; i++) if (m.tile[i] === 0) unseen++;
+  return { seen: m.tile.length - unseen, area: m.tile.length };
+}
 function buildResult(run, pack) {
   const floors = pack.floors.length;
   const stairs = pack.floors.reduce((a, f) => a + f.pts.filter(p => p.kind === 1 || p.kind === 2).length, 0);
   const marks = (run.marks || []).length;
-  const cells = runFloors().reduce((a, { f }) => a + (f.map?.floor || 0), 0);
+  const fl = runFloors();
+  const cells = fl.reduce((a, { f }) => a + (f.map?.floor || 0), 0);
+  const cov = fl.map(({ f }) => coverageOf(f.map)).filter(Boolean);
+  const area = cov.reduce((a, c) => a + c.area, 0);
+  const coverage = area ? cov.reduce((a, c) => a + c.seen, 0) / area : 0;
   const ms = Math.max(0, Date.now() - run.at);
-  const score = floors * 10 + stairs * 3 + marks * 2 + cells / 60;
+  const score = floors * 10 + stairs * 3 + marks * 2 + cells / 60 + coverage * 15;
   const grade = score >= 60 ? 'S' : score >= 35 ? 'A' : score >= 15 ? 'B' : 'C';
-  return { floors, stairs, marks, cells, ms, grade, at: run.at };
+  return { floors, stairs, marks, cells, coverage, ms, grade, at: run.at };
 }
+// 結算卡上星野的動作：S 跳起來歡呼、A 歡呼、B 東張西望、C 坐下休息
+const RESULT_POSE = { S: 'adv-cheer', A: 'adv-cheer', B: 'adv-look', C: 'adv-sit' };
 const fmtDur = ms => { const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`; };
 let lastResult = null;
 function showResult(r) {
   lastResult = r;
   const d = $('#sheet-mzresult'); if (!d) return;
-  const pose = r.grade === 'S' || r.grade === 'A' ? 'car-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
+  d.dataset.g = r.grade;
   $('.mr-grade', d).textContent = r.grade; $('.mr-grade', d).dataset.g = r.grade;
-  $('.mr-sp', d).innerHTML = spriteImg(pose);
+  $('.mr-sp', d).innerHTML = spriteImg(RESULT_POSE[r.grade]);
   $('.mr-line', d).textContent = T('mz.r.line.' + r.grade);
+  // 探索率進度條：打開後從 0 長到實際比例
+  const pct = Math.round(r.coverage * 100);
+  $('.mr-cov', d).innerHTML = `<div class="mr-cov-head"><span>${esc(T('mz.r.coverage'))}</span><b>${pct}%</b></div>
+    <div class="mr-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${esc(T('mz.r.coverage'))}"><i style="width:0"></i></div>
+    <small>${esc(T('mz.r.coverageNote'))}</small>`;
   $('.mr-stats', d).innerHTML = [[T('mz.r.floors'), r.floors], [T('mz.r.time'), fmtDur(r.ms)], [T('mz.r.cells'), fmt(r.cells)], [T('mz.r.stairs'), r.stairs], [T('mz.r.marks'), r.marks]]
     .map(([k, v]) => `<div class="stat-tile"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('');
   openSheet('sheet-mzresult');
+  const bar = $('.mr-bar i', d);
+  setTimeout(() => { bar.style.width = pct + '%'; }, REDUCED ? 0 : 250);
+  if (r.stairs > 0) setTimeout(() => confetti(d, r.grade === 'S' ? 48 : 30), 400);   // 找到樓梯：結算卡放彩帶
   if (!REDUCED && (r.grade === 'S' || r.grade === 'A')) setTimeout(() => miceRun(r.grade === 'S' ? 5 : 3), 300);
 }
-function confetti() {
-  if (REDUCED) return;
-  const host = $('#mz-stage'); if (!host) return;
+function confetti(host = $('#mz-stage'), n = 24) {
+  if (REDUCED || !host) return;
   const colors = ['#D9654A', '#E2AE47', '#7DAE5F', '#4E95D0', '#8B6CE0', '#FFF6D8'];
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < n; i++) {
     const p = document.createElement('i'); p.className = 'mz-confetti';
     p.style.cssText = `left:${10 + Math.random() * 80}%;background:${colors[i % colors.length]};animation-delay:${Math.random() * 0.4}s;animation-duration:${1.2 + Math.random() * 0.8}s;transform:rotate(${Math.random() * 360}deg)`;
     host.appendChild(p); setTimeout(() => p.remove(), 2400);
@@ -509,9 +529,15 @@ async function resultImage() {
   const gc = { S: '#D9654A', A: '#E2AE47', B: '#4E95D0', C: '#8A8A8A' }[r.grade];
   x.fillStyle = gc; x.font = `900 180px ${font}`; x.fillText(r.grade, W / 2, 300);
   x.fillStyle = '#4A3422'; x.font = `700 26px ${font}`; x.fillText(T('mz.r.line.' + r.grade), W / 2, 360);
+  // 探索率進度條
+  const pct = Math.round((r.coverage || 0) * 100);
+  x.textAlign = 'left'; x.fillStyle = '#7B5F43'; x.font = `600 22px ${font}`; x.fillText(T('mz.r.coverage'), 70, 404);
+  x.textAlign = 'right'; x.fillStyle = '#4A3422'; x.font = `800 26px ${font}`; x.fillText(pct + '%', W - 70, 404);
+  x.fillStyle = 'rgba(74,52,34,.15)'; x.beginPath(); x.roundRect(70, 416, W - 140, 22, 11); x.fill();
+  if (pct > 0) { x.fillStyle = gc; x.beginPath(); x.roundRect(70, 416, Math.max(22, (W - 140) * pct / 100), 22, 11); x.fill(); }
   const rows = [[T('mz.r.floors'), String(r.floors)], [T('mz.r.time'), fmtDur(r.ms)], [T('mz.r.cells'), fmt(r.cells)], [T('mz.r.stairs'), String(r.stairs)], [T('mz.r.marks'), String(r.marks)]];
   rows.forEach(([k, v], i) => {
-    const y = 420 + i * 72;
+    const y = 458 + i * 66;
     x.fillStyle = 'rgba(255,250,238,.9)'; x.beginPath(); x.roundRect(70, y, W - 140, 58, 16); x.fill();
     x.textAlign = 'left'; x.fillStyle = '#7B5F43'; x.font = `600 22px ${font}`; x.fillText(k, 96, y + 38);
     x.textAlign = 'right'; x.fillStyle = '#4A3422'; x.font = `800 30px ${font}`; x.fillText(v, W - 96, y + 40);
@@ -519,7 +545,7 @@ async function resultImage() {
   // 角色
   try {
     const spr = JSON.parse(document.body.dataset.sprites || '{}');
-    const pose = r.grade === 'S' || r.grade === 'A' ? 'car-cheer' : r.grade === 'B' ? 'adv-look' : 'adv-sit';
+    const pose = RESULT_POSE[r.grade];
     if (spr[pose]) { const img = new Image(); img.src = spr[pose][1]; await img.decode(); x.imageSmoothingEnabled = false; const h = 150, w = img.naturalWidth * (h / img.naturalHeight); x.drawImage(img, 60, 190, w, h); }
   } catch { /* 略 */ }
   x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = `700 22px system-ui, sans-serif`;

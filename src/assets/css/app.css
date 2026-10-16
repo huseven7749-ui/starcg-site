@@ -1551,6 +1551,23 @@ html[data-view="mobile"] .game-btn { padding: 0; width: 40px; }
 .mr-line { text-align: center; font-weight: 700; color: var(--ink-2); margin: 0 0 12px; }
 .mr-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 .mr-actions { gap: 8px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+.sheet.mz-result { overflow-x: hidden; }
+.mr-cov { margin: 0 0 12px; }
+.mr-cov-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; color: var(--ink-2); }
+.mr-cov-head b { font-family: var(--font-data); font-size: 1.3rem; color: var(--ink); }
+.mr-bar { height: 14px; margin: 4px 0 2px; border-radius: 999px; background: var(--card-3); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .12); }
+.mr-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sky-d, #2E6FA8), var(--mint-d, #4E9A5C)); transition: width 1.1s cubic-bezier(.3,.7,.3,1); }
+.sheet.mz-result[data-g="S"] .mr-bar i { background: linear-gradient(90deg, var(--pink), var(--lemon-d, #C8901F)); }
+.sheet.mz-result[data-g="A"] .mr-bar i { background: linear-gradient(90deg, var(--lemon-d, #C8901F), var(--mint-d, #4E9A5C)); }
+.mr-cov small { color: var(--ink-3); font-size: .74rem; }
+/* 星野依評價做不同動作：S 跳起來、A 開心晃動、C 坐著輕輕嘆氣 */
+.sheet.mz-result[data-g="S"] .mr-sp img { animation: mr-hop .7s ease-in-out infinite; }
+.sheet.mz-result[data-g="A"] .mr-sp img { animation: mr-sway 1.4s ease-in-out infinite; }
+.sheet.mz-result[data-g="C"] .mr-sp img { animation: mr-sigh 2.4s ease-in-out infinite; }
+@keyframes mr-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-22px); } 60% { transform: translateY(-22px) rotate(-4deg); } }
+@keyframes mr-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes mr-sigh { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px) scaleY(.97); } }
+@media (prefers-reduced-motion: reduce) { .sheet.mz-result .mr-sp img { animation: none; } .mr-bar i { transition: none; } }
 .mz-confetti { position: absolute; top: -12px; width: 10px; height: 14px; border-radius: 2px; pointer-events: none; z-index: 5; animation: mzconf linear forwards; }
 @keyframes mzconf { to { transform: translateY(420px) rotate(720deg); opacity: 0; } }
 

@@ -1328,6 +1328,8 @@ export default {
   'mz.r.cells': '探索格數',
   'mz.r.stairs': '找到的樓梯',
   'mz.r.marks': '自己的標記',
+  'mz.r.coverage': '探索率',
+  'mz.r.coverageNote': '看過的地板與牆 ÷ 地圖大小（各層合計）',
   'mz.r.save': '存成圖片',
   'mz.r.toPack': '去打包分享',
   'mz.r.line.S': '太強了，這趟堪稱完美！',
