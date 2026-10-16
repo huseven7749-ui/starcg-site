@@ -188,6 +188,14 @@ function render(tpl, ctx) {
 }
 
 // ───────────────────────── 結構化資料 ─────────────────────────
+function postFaq(body) {
+  const m = body.match(/^##[^\n]*(常見問題|자주 묻는 질문|FAQ)[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m);
+  if (!m) return [];
+  const strip = s => s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`]/g, '').trim();
+  return [...m[2].matchAll(/^\*\*(.+?)\*\*[ \t]*(.+)$/gm)]
+    .map(([, q, a]) => ({ '@type': 'Question', name: strip(q), acceptedAnswer: { '@type': 'Answer', text: strip(a) } }))
+    .filter(x => x.name && x.acceptedAnswer.text);
+}
 function jsonLd(lang, page, t) {
   const url = absUrl(lang, page.path);
   const home = absUrl(lang, '/');
@@ -243,8 +251,8 @@ function jsonLd(lang, page, t) {
       publisher: { '@id': SITE + '/#org' },
     });
   }
-  // FAQ（樣板中有 faq 區塊者）
-  const faq = [];
+  // FAQ（樣板中有 faq 區塊者；文章則取「## …常見問題」段落裡的「**問題？** 答案」）
+  const faq = page.post ? postFaq(page.post.body) : [];
   for (let i = 1; i <= 6; i++) {
     const q = `${page.id}.faq.q${i}`, a = `${page.id}.faq.a${i}`;
     const d = LANGS[lang].dict;
