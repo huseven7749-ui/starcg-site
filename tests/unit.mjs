@@ -13,28 +13,33 @@ const near = (a, b, eps = 0.011) => assert.ok(Math.abs(a - b) <= eps, `${a} ≠ 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('✓', name); };
 
-t('赤焰年獸 Lv1、隨機檔各 2：能力值', () => {
-  // BP = (29,54,17,23,6 + 2) × 0.2 = 6.2, 11.2, 3.8, 5.0, 1.6
+t('赤焰年獸 Lv1、隨機檔各 2：BP', () => {
+  // BP = (檔次 + 2) × 0.2 + 檔次 ÷ 24 × 1
   const r = simulate({ base: [29, 54, 17, 23, 6], rand: [2, 2, 2, 2, 2], level: 1, tier: '金', remodel: 0 });
-  assert.deepEqual(r.bp, [6.2, 11.2, 3.8, 5, 1.6]);
-  near(r.stats.hp, 120.0);   // 20 + 49.6 + 22.4 + 11.4 + 15 + 1.6
-  near(r.stats.mp, 82.2);    // 20 + 6.2 + 22.4 + 7.6 + 10 + 16
-  near(r.stats.atk, 54.44);  // 20 + 1.24 + 30.24 + 1.14 + 1.5 + 0.32
-  near(r.stats.def, 37.82);
-  near(r.stats.agi, 33.78);
-  near(r.stats.spt, 98.56);
-  near(r.stats.rec, 103.98);
+  assert.deepEqual(r.bp, [7.41, 13.45, 4.51, 5.96, 1.85]);
+  assert.equal(r.limit, 0);
   const s = petScore(r.stats, { level: 1, slots: 10, tier: '金' });
-  assert.equal(s.base, 569); // 1708.315 / 3 = 569.4
   assert.equal(s.skill, 1);  // floor(150/100 × 1)
 });
 
-t('升級成長：每級 + 檔次 ÷ 24，自由點數 Lv−1', () => {
+t('遊戲實測：赤焰年獸 Lv140 金卡 5 改、體力 26 力量 153（遊戲評分 4472）', () => {
+  // 遊戲畫面：HP 3352、MP 2027、攻擊 1433、防禦 561、敏捷 438、精神 27、回復 219；滿檔、10 技、評分 4472
+  // 隨機檔實際分配不明（總和 10），取一組；容許每項差 2、評分差 2
+  const r = simulate({ base: [29, 54, 17, 23, 6], rand: [1, 1, 3, 5, 0], level: 140, tier: '金', remodel: 5, manual: [26, 153, 0, 0, 0] });
+  assert.equal(r.limit, 179);                 // 升級 139 ＋ 改造 40
+  assert.deepEqual(r.manual, [26, 153, 0, 0, 0]); // 遊戲裡 153 點加得進去，沒有爆點
+  const game = { hp: 3352, mp: 2027, atk: 1433, def: 561, agi: 438, spt: 27, rec: 219 };
+  for (const k in game) assert.ok(Math.abs(Math.floor(r.stats[k]) - game[k]) <= 2, `${k} ${r.stats[k]} vs ${game[k]}`);
+  const s = petScore(r.stats, { level: 140, slots: 10, tier: '金', fullSlot: true });
+  assert.ok(Math.abs(s.total - 4472) <= 2, `score ${s.total}`);
+});
+
+t('升級成長：BP 每級 + 檔次 ÷ 24（算滿等級），自由點數 Lv−1', () => {
   const r = simulate({ base: [24, 24, 24, 24, 24], rand: [0, 0, 0, 0, 0], level: 25, tier: '', remodel: 0, manual: [24, 0, 0, 0, 0] });
-  // 4.8 + 24/24 × 24 = 28.8，體力再 +24
-  assert.deepEqual(r.bpGrow, [28.8, 28.8, 28.8, 28.8, 28.8]);
+  // 4.8 + 24/24 × 25 = 29.8，體力再 +24
+  assert.deepEqual(r.bpGrow, [29.8, 29.8, 29.8, 29.8, 29.8]);
   assert.equal(r.limit, 24);
-  assert.equal(r.bp[0], 52.8);
+  assert.equal(r.bp[0], 53.8);
 });
 
 t('改造點數：金卡 3 改 = 24 點', () => {

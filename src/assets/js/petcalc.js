@@ -1,8 +1,10 @@
 // 寵物能力計算（純函式，瀏覽器與 Node 測試共用）
 // 公式依據：魔力寶貝原廠設定（星詠魔力 gamerch 攻略「寵物須知」「寵物洗檔、升星、改造」）
-//   1 等 BP   ＝（實際檔次 ＋ 隨機檔）× 0.2
-//   每升 1 級 ＝ 實際檔次 ÷ 24（另加 1 點自由配點）
-//   能力值    ＝ 基礎值 ＋ Σ BP × 係數（下方矩陣）
+//   BP        ＝（實際檔次 ＋ 隨機檔）× 0.2 ＋ 實際檔次 ÷ 24 × 等級
+//              （成長算滿等級數，不是 Lv−1：2026-10 用遊戲內 Lv140 赤焰年獸 5 改的 7 項能力與評分 4472 實測校正，
+//               用 Lv−1 會整體少約 5 BP、評分少 20）
+//   自由配點  ＝ Lv−1 ＋ 改造點數
+//   能力值    ＝ 基礎值 ＋ Σ BP × 係數（下方矩陣）；遊戲畫面顯示無條件捨去的整數，評分用未捨去的值
 
 export const BP_INIT_RATE = 0.2;
 export const GROWTH_DIV = 24;
@@ -67,7 +69,7 @@ export function maxStarAdd(pet) {
 
 /** 不含自由配點的 BP（等級成長部分） */
 export function baseBp({ ranks, rand, level }) {
-  return ranks.map((r, i) => r * BP_INIT_RATE + (rand[i] || 0) * BP_INIT_RATE + (r / GROWTH_DIV) * (level - 1));
+  return ranks.map((r, i) => r * BP_INIT_RATE + (rand[i] || 0) * BP_INIT_RATE + (r / GROWTH_DIV) * level);
 }
 
 /** 自由點數上限：升級（Lv−1）＋ 改造 BP */

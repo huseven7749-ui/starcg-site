@@ -174,7 +174,8 @@ function compute() {
   $('#grade-warn').innerHTML = (warns.length ? `<span class="badge b-coral">${esc(warns.join('、'))}</span> ` : '') + `<span class="badge b-gray">${esc(T('pet.randSum', { n: randSum }))}</span>`;
   // 能力值
   const sc = petScore(r.stats, { level: S.level, slots: S.slots, tier: S.tier, fullSlot: S.fullSlot });
-  $('#result').innerHTML = STAT_KEYS.map(k => `<div class="stat-tile"><span>${esc(T('stat.' + k))}</span><b>${fmt(r.stats[k], 2)}</b></div>`).join('') +
+  // 能力值照遊戲畫面無條件捨去成整數（評分仍用未捨去的值計算）
+  $('#result').innerHTML = STAT_KEYS.map(k => `<div class="stat-tile"><span>${esc(T('stat.' + k))}</span><b>${fmt(Math.floor(r.stats[k] + 1e-9))}</b></div>`).join('') +
     `<div class="stat-tile hl" style="grid-column:span 1"><span>${esc(T('pet.score'))}</span><b>${fmt(sc.total)}</b></div>`;
   $('#score-sub').textContent = T('pet.scoreParts', { b: fmt(sc.base), s: fmt(sc.skill), f: fmt(sc.full) });
   S.last = { ...r, score: sc.total };
@@ -239,7 +240,7 @@ function renderLvTable() {
     const limit = freePoints(L, S.tier, rmAt);
     const r = simulate({ base: S.base, starAdd: S.starAdd, drop: S.drop, rand: S.rand, level: L, tier: S.tier, remodel: rmAt, manual: allocFor(limit, strategy, ratio), extra: S.extra });
     const sc = petScore(r.stats, { level: L, slots: S.slots, tier: S.tier, fullSlot: S.fullSlot });
-    const nf = document.documentElement.dataset.view === 'mobile' ? v => String(Math.round(v)) : v => fmt(v, 0); // 手機版不加千分位，避免表格超出
+    const nf = document.documentElement.dataset.view === 'mobile' ? v => String(Math.floor(v + 1e-9)) : v => fmt(Math.floor(v + 1e-9), 0); // 照遊戲捨去成整數；手機版不加千分位，避免表格超出
     return `<tr${L === S.level ? ' style="background:var(--mint-l)"' : ''}><td class="num"><b>${L}</b></td>${STAT_KEYS.map(k => `<td class="num">${nf(r.stats[k])}</td>`).join('')}<td class="num"><b>${nf(sc.total)}</b></td></tr>`;
   });
   $('#lv-table').innerHTML = `<thead><tr><th>Lv</th>${STAT_KEYS.map(k => `<th class="num">${esc(T('stat.' + k))}</th>`).join('')}<th class="num">${esc(T('pet.score'))}</th></tr></thead><tbody>${rows.join('')}</tbody>`;
