@@ -384,7 +384,7 @@ function buildPages() {
         lang, htmlLang: t('lang.code'), pageId: page.id,
         title: esc(page.post ? ((page.post.title + '｜' + t('site.name')).length > 65 ? page.post.title : `${page.post.title}｜${t('site.name')}`) : page.cat ? t('posts.catTitle').replace('{c}', t('posts.cat.' + page.cat)) : t(`page.${page.id}.title`)),
         description: esc(page.post ? page.post.desc : page.cat ? t('posts.catDesc.' + page.cat) : t(`page.${page.id}.desc`)),
-        alternates: langsAvail.map(l => `<link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, page.path)}">`).join('\n') +
+        alternates: `<link rel="alternate" type="application/rss+xml" title="${esc(t('site.name'))}" href="${SITE}${rssPath(lang)}">\n` + langsAvail.map(l => `<link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, page.path)}">`).join('\n') +
           `\n<link rel="alternate" hreflang="x-default" href="${absUrl(langsAvail.includes('zh') ? 'zh' : langsAvail[0], page.path)}">`,
         ogType: page.post ? 'article' : 'website',
         articleMeta: page.post ? `<meta property="article:published_time" content="${page.post.date}"><meta property="article:modified_time" content="${page.post.updated || page.post.date}">` + page.post.tags.map(x => `<meta property="article:tag" content="${esc(x)}">`).join('') : '',
@@ -490,6 +490,26 @@ function renderSchedule(s, t, lang) {
   }).join('') + '</div>';
 }
 
+// ───────────────────────── RSS（Naver Search Advisor、RSS 閱讀器用）：每種語言一份，最新 50 篇 ─────────────────────────
+const rssPath = lang => LANGS[lang].prefix + '/rss.xml';
+const cdata = s => `<![CDATA[${String(s).replace(/]]>/g, ']]]]><![CDATA[>')}]]>`;
+function buildRss() {
+  for (const lang of Object.keys(LANGS)) {
+    const t = makeT(lang);
+    const items = POSTS.filter(p => p.lang === lang).slice(0, 50).map(p => {
+      const url = absUrl(lang, postPath(p));
+      const img = p.cover ? `<enclosure url="${esc(postImgAbs(p.cover, p.lang))}" type="image/jpeg" length="0"/>` : '';
+      return `<item><title>${cdata(p.title)}</title><link>${url}</link><guid isPermaLink="true">${url}</guid>` +
+        `<pubDate>${new Date(p.date + 'T00:00:00+08:00').toUTCString()}</pubDate><description>${cdata(p.desc)}</description>` +
+        `<category>${cdata(t('posts.cat.' + p.category))}</category>${img}</item>`;
+    }).join('\n');
+    write(rssPath(lang).slice(1), `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n` +
+      `<title>${cdata(t('site.name'))}</title><link>${absUrl(lang, '/posts/')}</link><description>${cdata(t('page.posts.desc'))}</description>` +
+      `<language>${t('lang.hreflang')}</language><lastBuildDate>${new Date().toUTCString()}</lastBuildDate>` +
+      `<atom:link href="${SITE}${rssPath(lang)}" rel="self" type="application/rss+xml"/>\n${items}\n</channel>\n</rss>\n`);
+  }
+}
+
 // ───────────────────────── sitemap / robots / manifest / sw ─────────────────────────
 function buildSeoFiles() {
   if (PREVIEW) return;
@@ -505,6 +525,7 @@ function buildSeoFiles() {
       `<xhtml:link rel="alternate" hreflang="x-default" href="${absUrl(p.langs.includes('zh') ? 'zh' : p.lang, postPath(p))}"/>` : '';
     return `<url><loc>${absUrl(p.lang, postPath(p))}</loc><lastmod>${p.updated || p.date}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority>${alts}</url>`;
   })).join('\n');
+  buildRss();
   write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls}\n</urlset>\n`);
   write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /cron/\nDisallow: /cache/\n\nSitemap: ${SITE}/sitemap.xml\n`);
   for (const lang of Object.keys(LANGS)) {
