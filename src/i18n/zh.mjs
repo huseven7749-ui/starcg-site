@@ -1056,6 +1056,7 @@ export default {
   'page.posts.h1': '心得分享',
   'page.posts.lead': '攻略、心得與小技巧。',
   'posts.updated': '更新',
+  'posts.pinned': '置頂',
   'posts.catNav': '文章分類',
   'posts.cat.all': '全部',
   'posts.cat.leveling': '練等攻略',

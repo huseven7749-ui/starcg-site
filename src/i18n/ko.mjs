@@ -1057,6 +1057,7 @@ export default {
   'page.posts.h1': '공략·후기',
   'page.posts.lead': '공략과 플레이 후기, 꿀팁.',
   'posts.updated': '수정',
+  'posts.pinned': '고정',
   'posts.catNav': '글 분류',
   'posts.cat.all': '전체',
   'posts.cat.leveling': '레벨업 공략',

@@ -302,6 +302,8 @@ function loadPosts() {
       desc: meta.desc || meta.description || (text.length > 110 ? text.slice(0, 108) + '…' : text),
       tags: (meta.tags || '').split(/[,，、]/).map(x => x.trim()).filter(Boolean), cover: meta.cover || '', body, chars: text.length,
       category: POST_CATS.includes(meta.category) ? meta.category : 'other',
+      // 置頂：pinUntil（台北日期）當天以前排在列表最前面；每天自動重建，過期就自動取消置頂
+      pinned: isDate(meta.pinuntil) && meta.pinuntil >= TODAY_TW,
     });
   }
   for (const p of list) p.langs = Object.keys(LANGS).filter(l => list.some(q => q.slug === p.slug && q.lang === l));
@@ -335,7 +337,7 @@ function postCard(p, lang, fromPath, t) {
   const tags = p.tags.length ? `<span class="post-tags">${p.tags.slice(0, 3).map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</span>` : '';
   const thumb = p.cover ? `<img class="post-card-cover" src="${postImg(fromPath, p.lang)(p.cover)}" width="1200" height="630" alt="" loading="lazy" decoding="async">` : '';
   return `<article class="post-card"><a href="${pageHref(p.lang, postPath(p), fromPath)}"${foreign ? ` hreflang="${LANGS[p.lang].dict['lang.hreflang']}"` : ''}>` + thumb +
-    `<span class="post-card-meta"><time datetime="${p.date}">${p.date}</time>${foreign ? `<span class="badge b-sky">${esc(LANGS[p.lang].dict['lang.name'])}</span>` : ''}</span>` +
+    `<span class="post-card-meta">${p.pinned ? `<span class="badge b-coral">${esc(t('posts.pinned'))}</span>` : ''}<time datetime="${p.date}">${p.date}</time>${foreign ? `<span class="badge b-sky">${esc(LANGS[p.lang].dict['lang.name'])}</span>` : ''}</span>` +
     `<h2${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.title)}</h2><p${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.desc)}</p>${tags}</a></article>`;
 }
 function postVars(page, lang, fromPath, t) {
@@ -419,7 +421,7 @@ function buildPages() {
           `<nav class="crumbs" aria-label="${esc(t('a11y.breadcrumb'))}"><a href="${pageHref(lang, '/', fromPath)}">${esc(t('nav.home'))}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(t('nav.' + page.id))}</span></nav>`,
       });
       if (page.post) Object.assign(v, postVars(page, lang, fromPath, t));
-      const plist = postsFor(lang);
+      const plist = postsFor(lang).slice().sort((a, b) => b.pinned - a.pinned);   // 置頂文章排最前（穩定排序，其餘維持日期順序）
       const shown = page.cat ? plist.filter(p => p.category === page.cat) : plist;
       const catTabs = `<nav class="cat-tabs" aria-label="${esc(t('posts.catNav'))}">` +
         [['', t('posts.cat.all'), plist.length], ...POST_CATS.map(c => [c, t('posts.cat.' + c), plist.filter(p => p.category === c).length]).filter(x => x[2])]
