@@ -225,7 +225,7 @@ function jsonLd(lang, page, t) {
       '@type': 'BlogPosting', headline: p.title, description: p.desc, url, mainEntityOfPage: url,
       datePublished: p.date, dateModified: p.updated || p.date, inLanguage: t('lang.hreflang'),
       keywords: p.tags.join(', ') || undefined, wordCount: p.chars,
-      image: p.cover ? `${SITE}/posts/img/${p.cover.replace(/^(\.\/)?(img\/)?/, '')}` : `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+      image: p.cover ? postImgAbs(p.cover) : `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
       author: { '@id': SITE + '/#org' }, publisher: { '@id': SITE + '/#org' },
     });
   } else if (page.id !== 'home' && page.id !== '404') {
@@ -298,7 +298,22 @@ const POSTS = loadPosts();
 const postPath = p => `/posts/${p.slug}/`;
 // 某語言的列表：該語言的文章＋只有另一種語言的文章（標示語言）
 const postsFor = lang => POSTS.filter(p => p.lang === lang || !p.langs.includes(lang));
-const postImg = fromPath => src => /^(https?:)?\/\//.test(src) ? src : (PREVIEW ? relPath(fromPath, '/posts/img/' + src.replace(/^(\.\/)?(img\/)?/, '')) : '/posts/img/' + src.replace(/^(\.\/)?(img\/)?/, ''));
+// 文章圖片檔名固定、快取一年，網址加上內容雜湊，換圖後瀏覽器才會抓新的
+const postImgVer = new Map();
+function postImgFile(src) {
+  const f = src.replace(/^(\.\/)?(img\/)?/, '');
+  if (!postImgVer.has(f)) {
+    const p = path.join(POSTS_DIR, 'img', f);
+    postImgVer.set(f, fs.existsSync(p) ? '?v=' + hash(fs.readFileSync(p)).slice(0, 8) : '');
+  }
+  return { f, v: postImgVer.get(f) };
+}
+const postImgAbs = src => { const { f, v } = postImgFile(src); return `${SITE}/posts/img/${f}${v}`; };
+const postImg = fromPath => src => {
+  if (/^(https?:)?\/\//.test(src)) return src;
+  const { f, v } = postImgFile(src);
+  return (PREVIEW ? relPath(fromPath, '/posts/img/' + f) : '/posts/img/' + f) + v;
+};
 function postCard(p, lang, fromPath, t) {
   const foreign = p.lang !== lang;
   const tags = p.tags.length ? `<span class="post-tags">${p.tags.slice(0, 3).map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</span>` : '';
@@ -359,7 +374,7 @@ function buildPages() {
         canonical: absUrl(lang, page.path),
         altZh: absUrl('zh', page.path), altKo: absUrl('ko', page.path),
         ogLocale: t('lang.og'), ogLocaleAlt: LANGS[other].dict['lang.og'],
-        ogImage: page.post && page.post.cover ? `${SITE}/posts/img/${page.post.cover.replace(/^(\.\/)?(img\/)?/, '')}` : `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+        ogImage: page.post && page.post.cover ? postImgAbs(page.post.cover) : `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
         otherLangHref: pageHref(other, otherPath, fromPath), otherLangName: LANGS[other].dict['lang.name'],
         otherLangCode: other, otherLangShort: LANGS[other].dict['lang.short'],
         zhHref: pageHref('zh', lang === 'zh' ? page.path : otherPath, fromPath), koHref: pageHref('ko', lang === 'ko' ? page.path : otherPath, fromPath),
