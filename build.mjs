@@ -226,7 +226,7 @@ function jsonLd(lang, page, t) {
       '@type': 'BlogPosting', headline: p.title, description: p.desc, url, mainEntityOfPage: url,
       datePublished: p.date, dateModified: p.updated || p.date, inLanguage: t('lang.hreflang'),
       keywords: p.tags.join(', ') || undefined, wordCount: p.chars,
-      image: p.cover ? postImgAbs(p.cover) : `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+      image: p.cover ? postImgAbs(p.cover, p.lang) : `${SITE}/assets/${assetMap[`img/og/home-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
       author: { '@id': SITE + '/#org' }, publisher: { '@id': SITE + '/#org' },
     });
   } else if (page.cat) {
@@ -314,24 +314,26 @@ const postPath = p => `/posts/${p.slug}/`;
 const postsFor = lang => POSTS.filter(p => p.lang === lang || !p.langs.includes(lang));
 // 文章圖片檔名固定、快取一年，網址加上內容雜湊，換圖後瀏覽器才會抓新的
 const postImgVer = new Map();
-function postImgFile(src) {
-  const f = src.replace(/^(\.\/)?(img\/)?/, '');
+function postImgFile(src, lang = 'zh') {
+  let f = src.replace(/^(\.\/)?(img\/)?/, '');
+  // 韓文文章：同名的 .ko.jpg（韓文版插圖）存在就改用
+  if (lang === 'ko') { const k = f.replace(/\.(jpe?g|png|webp)$/i, '.ko.$1'); if (k !== f && fs.existsSync(path.join(POSTS_DIR, 'img', k))) f = k; }
   if (!postImgVer.has(f)) {
     const p = path.join(POSTS_DIR, 'img', f);
     postImgVer.set(f, fs.existsSync(p) ? '?v=' + hash(fs.readFileSync(p)).slice(0, 8) : '');
   }
   return { f, v: postImgVer.get(f) };
 }
-const postImgAbs = src => { const { f, v } = postImgFile(src); return `${SITE}/posts/img/${f}${v}`; };
-const postImg = fromPath => src => {
+const postImgAbs = (src, lang) => { const { f, v } = postImgFile(src, lang); return `${SITE}/posts/img/${f}${v}`; };
+const postImg = (fromPath, lang) => src => {
   if (/^(https?:)?\/\//.test(src)) return src;
-  const { f, v } = postImgFile(src);
+  const { f, v } = postImgFile(src, lang);
   return (PREVIEW ? relPath(fromPath, '/posts/img/' + f) : '/posts/img/' + f) + v;
 };
 function postCard(p, lang, fromPath, t) {
   const foreign = p.lang !== lang;
   const tags = p.tags.length ? `<span class="post-tags">${p.tags.slice(0, 3).map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</span>` : '';
-  const thumb = p.cover ? `<img class="post-card-cover" src="${postImg(fromPath)(p.cover)}" width="1200" height="630" alt="" loading="lazy" decoding="async">` : '';
+  const thumb = p.cover ? `<img class="post-card-cover" src="${postImg(fromPath, p.lang)(p.cover)}" width="1200" height="630" alt="" loading="lazy" decoding="async">` : '';
   return `<article class="post-card"><a href="${pageHref(p.lang, postPath(p), fromPath)}"${foreign ? ` hreflang="${LANGS[p.lang].dict['lang.hreflang']}"` : ''}>` + thumb +
     `<span class="post-card-meta"><time datetime="${p.date}">${p.date}</time>${foreign ? `<span class="badge b-sky">${esc(LANGS[p.lang].dict['lang.name'])}</span>` : ''}</span>` +
     `<h2${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.title)}</h2><p${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.desc)}</p>${tags}</a></article>`;
@@ -346,12 +348,12 @@ function postVars(page, lang, fromPath, t) {
   return {
     postTitle: esc(p.title),
     postCat: `<a class="post-cat" href="${pageHref(lang, catPath(p.category), fromPath)}">${esc(t('posts.cat.' + p.category))}</a>`,
-    postCover: p.cover ? `<img class="post-cover" src="${postImg(fromPath)(p.cover)}" width="1200" height="630" alt="${esc(p.title)}" fetchpriority="high" decoding="async">` : '',
+    postCover: p.cover ? `<img class="post-cover" src="${postImg(fromPath, p.lang)(p.cover)}" width="1200" height="630" alt="${esc(p.title)}" fetchpriority="high" decoding="async">` : '',
     postDate: p.date,
     postUpdated: p.updated ? `<span>${esc(t('posts.updated'))} <time datetime="${p.updated}">${p.updated}</time></span>` : '',
     postRead: esc(t('posts.read').replace('{n}', minutes)),
     postTags: p.tags.length ? `<p class="post-tags">${p.tags.map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</p>` : '',
-    postHtml: markdown(p.body, { imgUrl: postImg(fromPath), linkUrl: h => (PREVIEW && h.startsWith('/') && !h.startsWith('//') ? relPath(fromPath, h.endsWith('/') ? h + 'index.html' : h) : h) }).replace(/\{\{/g, '&#123;&#123;'),
+    postHtml: markdown(p.body, { imgUrl: postImg(fromPath, p.lang), linkUrl: h => (PREVIEW && h.startsWith('/') && !h.startsWith('//') ? relPath(fromPath, h.endsWith('/') ? h + 'index.html' : h) : h) }).replace(/\{\{/g, '&#123;&#123;'),
     postNav: nav(list[i + 1], t('posts.prev'), 'prev') + nav(list[i - 1], t('posts.next'), 'next'),
     postOtherLang: other ? `<p class="post-other"><a href="${pageHref(other, postPath(p), fromPath)}" hreflang="${LANGS[other].dict['lang.hreflang']}">${esc(LANGS[other].dict['posts.otherLang'])}</a></p>` : '',
     postsHref: pageHref(lang, '/posts/', fromPath),
@@ -390,7 +392,7 @@ function buildPages() {
         canonical: absUrl(lang, page.path),
         altZh: absUrl('zh', page.path), altKo: absUrl('ko', page.path),
         ogLocale: t('lang.og'), ogLocaleAlt: LANGS[other].dict['lang.og'],
-        ogImage: page.post && page.post.cover ? postImgAbs(page.post.cover) : `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
+        ogImage: page.post && page.post.cover ? postImgAbs(page.post.cover, page.post.lang) : `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
         otherLangHref: pageHref(other, otherPath, fromPath), otherLangName: LANGS[other].dict['lang.name'],
         otherLangCode: other, otherLangShort: LANGS[other].dict['lang.short'],
         zhHref: pageHref('zh', lang === 'zh' ? page.path : otherPath, fromPath), koHref: pageHref('ko', lang === 'ko' ? page.path : otherPath, fromPath),
