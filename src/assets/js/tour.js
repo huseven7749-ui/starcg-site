@@ -6,7 +6,7 @@ import { $, T, esc, store } from './core.js';
 const TOURS = {
   market: [
     { sel: '#mk-form', key: 'tour.market.1', pose: 'adv-look', before: '#tab-main-cmp' },
-    { sel: '#mk-tabs', key: 'tour.market.2', pose: 'adv-look' },
+    { sel: '#mk-tabs', key: 'tour.market.2', pose: 'adv-walk' },
     { sel: '#tab-main-bulk', key: 'tour.market.3', pose: 'adv-cheer' },
   ],
   maze: [
@@ -17,7 +17,7 @@ const TOURS = {
   ],
   pets: [
     { sel: '#f-q', key: 'tour.pets.1', pose: 'adv-look', before: '#tab-dex' },
-    { sel: '#tab-sim', key: 'tour.pets.2', pose: 'adv-look' },
+    { sel: '#tab-sim', key: 'tour.pets.2', pose: 'adv-walk' },
     { sel: '#points', key: 'tour.pets.3', pose: 'adv-cheer', before: '#tab-sim' },
   ],
   // 寵物頁的「寵物卡對戰」分頁：第一次切過去時另外導覽
@@ -34,12 +34,12 @@ const TOURS = {
   ],
   remodel: [
     { sel: '#farm-title', key: 'tour.remodel.1', pose: 'adv-look' },
-    { sel: '#sim-go', key: 'tour.remodel.2', pose: 'adv-attack' },
+    { sel: '#sim-go', key: 'tour.remodel.2', pose: 'adv-magic' },
     { sel: '#try-title', key: 'tour.remodel.3', pose: 'adv-cheer' },
   ],
   exchange: [
     { sel: '#rate-title', key: 'tour.exchange.1', pose: 'adv-look' },
-    { sel: '#c-coin', key: 'tour.exchange.2', pose: 'adv-look' },
+    { sel: '#c-coin', key: 'tour.exchange.2', pose: 'adv-walk' },
     { sel: '#cmp-title', key: 'tour.exchange.3', pose: 'adv-cheer' },
   ],
 };

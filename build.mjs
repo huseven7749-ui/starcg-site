@@ -136,7 +136,7 @@ const asset = (rel, fromPath) => {
   return PREVIEW ? relPath(fromPath, p) : p;
 };
 // 角色動畫（GIF）＋「減少動態效果」時改用的靜態第一格（-still.png）
-const SPRITES = ['ratking', 'adv-sit', 'adv-attack', 'adv-look', 'adv-run', 'adv-cheer', 'car-run', 'car-attack', 'car-cheer', 'mouse-blue', 'mouse-yellow', 'mouse-red', 'mouse-lav', 'mouse-green', 'mouse-crown', 'mouse-love'];
+const SPRITES = ['ratking', 'adv-sit', 'adv-attack', 'adv-look', 'adv-run', 'adv-cheer', 'adv-walk', 'adv-magic', 'adv-fish', 'car-run', 'car-attack', 'car-cheer', 'mouse-blue', 'mouse-yellow', 'mouse-red', 'mouse-lav', 'mouse-green', 'mouse-crown', 'mouse-love'];
 const spriteSize = {};
 function spriteInfo(name, fromPath) {
   const rel = `img/sprites/${name}.gif`;

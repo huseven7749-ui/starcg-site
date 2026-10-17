@@ -98,7 +98,7 @@
   - 腳本用的字串（`js.*`、`common.*`、`wel.*`、`guide.*`、`day.*`）每頁都會內嵌；各工具的字串只放在該頁（`build.mjs` 的 `DICT_GROUPS`：market → `mk|bk|dm|eqc|pet|market.type`、pets → `pet|eqc`、remodel → `rm`、exchange → `ex`、damage → `dmg`、maze → `mz`）。新增工具或在別頁用到別組字串時要加進去，否則 `T()` 會回傳鍵名。
 - **改每週活動**：`src/data/schedule.json`。
 - **說明文字**：頁面上只放最必要的字，補充說明用 `{{tip:字串鍵}}`（ⓘ 圖示，點了才展開）；長的使用方式、公式都收在可展開的區塊裡。
-- **角色圖**：放在 `src/assets/img/sprites/`（GIF 動畫＋同名 `-still.png` 靜態第一格，給設定「減少動態效果」的使用者）。新角色要在 `build.mjs` 的 `SPRITES` 登記；頁面樣板用 `{{pic:名稱 class}}`，腳本用 `spriteImg('名稱')`。目前的安排：鼠王＝各頁引導與官方市場卡；五色小鼠＝首頁各工具卡（顏色對應工具色）；飛車男孩（`car-*`，站長提供的 GIF 縮小到 60%）＝載入中的跑道（`car-run`）、傷害頁結果卡（`car-attack`）、迷宮 S／A 評級與批次採購最佳路線（`car-cheer`）；冒險者＝坐著（還沒有資料／等待）、四處張望（找不到、404）、奔跑（搜尋中、規劃路線中）、歡呼（註冊好禮、最划算方案、魔法結果）、攻擊（物理傷害結果）。
+- **角色圖**：放在 `src/assets/img/sprites/`（GIF 動畫＋同名 `-still.png` 靜態第一格，給設定「減少動態效果」的使用者）。新角色要在 `build.mjs` 的 `SPRITES` 登記；頁面樣板用 `{{pic:名稱 class}}`，腳本用 `spriteImg('名稱')`。目前的安排：鼠王＝各頁引導與官方市場卡；五色小鼠＝首頁各工具卡（顏色對應工具色）；飛車男孩（`car-*`，站長提供的 GIF 縮小到 60%）＝載入中的跑道（`car-run`）、傷害頁結果卡（`car-attack`）、迷宮 S／A 評級與批次採購最佳路線（`car-cheer`）；冒險者（星野）＝坐著（還沒有資料／等待）、四處張望（找不到、404）、奔跑（搜尋中、規劃路線中）、歡呼（註冊好禮、最划算方案）、攻擊（物理傷害結果）、施法（`adv-magic`：魔法傷害結果、改造導覽）、走路（`adv-walk`：導覽第 2 步）、釣魚（`adv-fish`：歡迎影片即將推出）。星野原圖是遊戲動畫 111619（方向 4），網站版把黑衣換成紅衣；新動作用同一張換色對照表從原圖重做，跟舊動作顏色一致。
 - **重新建置**：`node build.mjs`（輸出到 `dist/`，再上傳）。換網域：`node build.mjs --site=https://新網域`。
 - **贊助站長連結**：預設是 Ko-fi 贊助頁（https://ko-fi.com/hoshino7749）（`build.mjs` 內 `SPONSOR`），可用 `--sponsor=` / `--sponsor-ko=` 或 GitHub Variables `SPONSOR_URL` / `SPONSOR_URL_KO` 覆蓋。首頁「贊助站長」卡片會先跳出彈窗：請大家到教學影片下留言，想贊助再點連結。
 - **新手彈窗的教學影片**：`node build.mjs --video=YouTube網址或mp4網址`。第一次來的人會看到歡迎彈窗（依裝置顯示加到我的最愛／加到主畫面的步驟），影片放在彈窗上方；沒給時顯示「教學影片準備中」。看過會記在瀏覽器裡不再跳出，設定面板有「再看一次新手教學」。
