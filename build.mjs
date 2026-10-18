@@ -44,10 +44,11 @@ const PAGES = [
   { id: 'remodel', path: '/remodel/', tpl: 'remodel', js: 'remodel', priority: '0.7', freq: 'weekly', app: true },
   { id: 'damage', path: '/damage/', tpl: 'damage', js: 'damage', priority: '0.6', freq: 'monthly', app: true },
   { id: 'maze', path: '/maze/', tpl: 'maze', js: 'maze', priority: '0.7', freq: 'monthly', app: true },
+  { id: 'monsters', path: '/monsters/', tpl: 'monsters', js: 'monsters', priority: '0.7', freq: 'monthly', app: true },
   { id: 'posts', path: '/posts/', tpl: 'posts', js: null, priority: '0.7', freq: 'weekly' },
   { id: '404', path: '/404.html', tpl: '404', js: null, noindex: true, file: true },
 ];
-const NAV = ['home', 'market', 'exchange', 'pets', 'remodel', 'damage', 'maze', 'posts'];
+const NAV = ['home', 'market', 'exchange', 'pets', 'remodel', 'damage', 'maze', 'monsters', 'posts'];
 
 // ───────────────────────── 工具函式 ─────────────────────────
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -395,6 +396,7 @@ const TOOL_GUIDES = {
   remodel: ['job-change-quest-guide', 'seven-sins-quest-guide', 'dawn-quest-guide', 'time-gate-quest-guide'],
   damage: ['job-advance-quest-guide', 'leveling-route-guide', 'newbie-leveling-guide', 'halfmountain-quest-guide'],
   maze: ['maze-guide', 'job-advance-3-quest-guide', 'leveling-route-guide', 'ke-village-quest-guide'],
+  monsters: ['leveling-route-guide', 'newbie-leveling-guide', 'lost-prince-quest-guide', 'halfmountain-quest-guide'],
 };
 function postVars(page, lang, fromPath, t) {
   const p = page.post;
@@ -427,7 +429,7 @@ function buildPages() {
     const t = makeT(lang);
     // 腳本字典：共用部分每頁都帶，各工具的字串只放在該頁（首頁、心得頁不用載市場／迷宮的字串）
     const TOUR_PAGES = new Set(['market', 'maze', 'pets', 'damage', 'remodel', 'exchange']);   // 對應 src/assets/js/tour.js 的 TOURS
-const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|pc', remodel: 'rm', exchange: 'ex', damage: 'dmg', maze: 'mz' };
+const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|pc', remodel: 'rm', exchange: 'ex', damage: 'dmg', maze: 'mz', monsters: 'mon|dmg\\.e' };
     const fullDict = { ...LANGS.zh.dict, ...LANGS[lang].dict };
     const dictFor = id => { const re = new RegExp(`^(js|common|day|guide|tour|wel|game${DICT_GROUPS[id] ? '|' + DICT_GROUPS[id] : ''})\\.`); return Object.fromEntries(Object.entries(fullDict).filter(([k]) => re.test(k) && !/(_html|\.faq\.)/.test(k))); };
     const postPages = POSTS.filter(p => p.lang === lang).map(p => ({ id: 'post', path: postPath(p), tpl: 'post', js: null, post: p, langs: p.langs }));
@@ -508,10 +510,10 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
         const cur = id === page.id ? ' aria-current="page"' : '';
         return `<a href="${pageHref(lang, p.path, fromPath)}"${cur}><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(label)}</span></a>`;
       };
-      const moreActive = ['pets', 'remodel', 'damage', 'posts', 'post'].includes(page.id) ? ' aria-current="page"' : '';
+      const moreActive = ['pets', 'remodel', 'damage', 'monsters', 'posts', 'post'].includes(page.id) ? ' aria-current="page"' : '';
       v.tabbar = tab('home', t('nav.home')) + tab('market', t('nav.tab.market')) + tab('exchange', t('nav.tab.exchange')) + tab('maze', t('nav.short.maze')) +
         `<button type="button" data-act="more"${moreActive}><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>${esc(t('nav.more'))}</span></button>`;
-      v.moreLinks = ['pets', 'remodel', 'damage', 'posts'].map(id => {
+      v.moreLinks = ['pets', 'remodel', 'damage', 'monsters', 'posts'].map(id => {
         const p = PAGES.find(x => x.id === id);
         return `<a class="sheet-link" href="${pageHref(lang, p.path, fromPath)}"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(t('nav.' + id))}</span></a>`;
       }).join('');

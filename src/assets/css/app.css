@@ -1812,3 +1812,26 @@ html[data-view="mobile"] .pc-grid { grid-template-columns: repeat(2, minmax(0, 1
 .elem-in .input { min-width: 0; width: 100%; text-align: center; padding-left: 4px; padding-right: 4px; }
 .elem-in.e0 span { color: #8A6A1E; } .elem-in.e1 span { color: #2F6FB3; } .elem-in.e2 span { color: #C2412D; } .elem-in.e3 span { color: #2E8A4E; }
 .sk-note { margin: 6px 0 0; }
+
+/* ───── 魔物分布 ───── */
+.mon-ctl .mon-ctl-top { gap: 12px; flex-wrap: wrap; align-items: center; }
+.mon-q-wrap { flex: 1 1 260px; }
+.mon-filters { margin-top: 12px; }
+.mon-bands { margin: 12px 0 8px; }
+.mon-bands .chip[aria-pressed="true"] { background: var(--coral, #E46B4E); color: #fff; border-color: transparent; }
+.mon-count { margin: 12px 2px; }
+.mon-area { margin-bottom: 14px; }
+.mon-area .card-title .sub { font-weight: 600; }
+.mon-gh { margin: 10px 0 6px; display: flex; gap: 10px; align-items: baseline; font-size: .9rem; }
+.mon-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; }
+.mon-card { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1.5px solid var(--line); border-radius: var(--r-sm); background: var(--card); }
+.mon-card > img, .mon-noimg { flex: 0 0 56px; width: 56px; height: 56px; object-fit: contain; }
+.mon-noimg { display: grid; place-items: center; color: var(--ink-3); background: var(--line); border-radius: 12px; opacity: .6; }
+.mon-noimg .ic { width: 26px; height: 26px; }
+.mon-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.mon-name { font-size: .98rem; }
+.mon-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.mon-elem { display: flex; height: 18px; border-radius: 9px; overflow: hidden; font-size: .7rem; font-weight: 800; color: #fff; max-width: 200px; }
+.mon-elem i { font-style: normal; display: grid; place-items: center; min-width: 28px; }
+.mon-elem .e0 { background: #A57A1E; } .mon-elem .e1 { background: #2F6FB3; } .mon-elem .e2 { background: #C2412D; } .mon-elem .e3 { background: #2E8A4E; }
+.mon-where { color: var(--ink-2); line-height: 1.5; }

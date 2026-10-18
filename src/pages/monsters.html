@@ -1,0 +1,40 @@
+<header class="page-head ph-monsters">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-monsters"/></svg></span>
+  <div><h1>{{t:page.monsters.h1}}</h1><p>{{t:page.monsters.lead}}</p></div>
+</header>
+
+<div class="notice info"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>{{t:mon.source_html}}</span></div>
+
+<section class="card mon-ctl" aria-label="{{t:common.search}}">
+  <div class="row mon-ctl-top">
+    <div class="seg" id="mon-view" role="group" aria-label="{{t:mon.view}}">
+      <button type="button" value="region" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>{{t:mon.view.region}}</button>
+      <button type="button" value="level" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg>{{t:mon.view.level}}</button>
+    </div>
+    <div class="input-wrap mon-q-wrap">
+      <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+      <input class="input" id="mon-q" type="search" placeholder="{{t:mon.qPh}}" aria-label="{{t:mon.qPh}}" autocomplete="off" maxlength="30">
+    </div>
+  </div>
+  <div class="grid g4 mon-filters">
+    <label class="field" id="mon-island-wrap"><span>{{t:mon.island}}</span><select class="input" id="mon-island"></select></label>
+    <label class="field" id="mon-area-wrap"><span>{{t:mon.area}}</span><select class="input" id="mon-area"></select></label>
+    <label class="field"><span>{{t:mon.elem}}</span><select class="input" id="mon-elem">
+      <option value="">{{t:common.all}}</option><option value="0">{{t:dmg.e.earth}}</option><option value="1">{{t:dmg.e.water}}</option><option value="2">{{t:dmg.e.fire}}</option><option value="3">{{t:dmg.e.wind}}</option></select></label>
+    <label class="field"><span>{{t:mon.race}}</span><select class="input" id="mon-race"></select></label>
+  </div>
+  <div class="chip-row mon-bands"><span class="chip-row-label">{{t:mon.band}}</span><div class="chips" id="mon-bands"></div></div>
+  <label class="switch"><input type="checkbox" id="mon-catch"><span>{{t:mon.catchOnly}}</span></label>
+</section>
+
+<p class="small muted mon-count" id="mon-count" aria-live="polite"></p>
+<div id="mon-results"><div class="skel" style="height:240px"></div></div>
+
+{{relatedGuides}}
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details><summary>{{t:monsters.faq.q1}}</summary><p>{{t:monsters.faq.a1}}</p></details>
+  <details><summary>{{t:monsters.faq.q2}}</summary><p>{{t:monsters.faq.a2}}</p></details>
+  <details><summary>{{t:monsters.faq.q3}}</summary><p>{{t:monsters.faq.a3}}</p></details>
+</section>
