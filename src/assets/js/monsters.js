@@ -1,9 +1,10 @@
 // 魔物分布：依地區（島 → 地點 → 樓層）或依等級（每 10 等一個區間）查魔物出沒
 // 資料：data/monster-map.json（tools/scrape-monster-map.py 從御劍軒 cgsword.com/bm 整理，經典服資料）
 import { $, $$, T, esc, fmt, store, debounce, loadPets, petImgSrc, normName, emptyState, BASE, LANG } from './core.js';
+import { elementMult } from './dmgcalc.js';
 
 const KEY = 'sc.monsters';
-const BAND = 10, BAND_MAX = 15;                  // 1-10、11-20 … 141-150
+const BAND = 10, BAND_MAX = 20;                  // 1-10、11-20 … 191-200（資料最高 Lv200）
 const S = { view: 'region', island: '', area: '', elem: '', race: '', band: -1, catch: false, q: '', ...(store.get(KEY) || {}) };
 const ELEM = ['earth', 'water', 'fire', 'wind'];
 let DATA = null, PETS = new Map(), ROWS = [];
@@ -19,17 +20,36 @@ function flatten() {
     const island = a.path[0] || a.name;
     for (const g of a.groups) for (const m of g.monsters) {
       const pet = (m.imageId && PETS.get(String(m.imageId))) || PETS.get('n:' + normName(m.name)) || null;
-      ROWS.push({ ...m, island, area: a, label: g.label, count: g.count, pet, key: normName(m.name),
-        nameShow: LANG === 'ko' && pet?.kn ? pet.kn : m.name, lvMin: m.lvMin ?? 1, lvMax: m.lvMax ?? m.lvMin ?? 1 });
+      const hasLv = m.lvMin != null;
+      const lvMin = m.lvMin ?? 0, lvMax = m.lvMax ?? m.lvMin ?? 0;
+      // 等級分類只收：有等級、而且範圍最多跨 2 個區間的紀錄（像「1-49F Lv1–50」這種整段樓層合併的不放進等級分類）
+      const banded = hasLv && bandOf(lvMax) - bandOf(lvMin) <= 1;
+      ROWS.push({ ...m, island, area: a, label: g.label, count: g.count, pet, key: normName(m.name), best: bestElem(m.elem),
+        nameShow: LANG === 'ko' && pet?.kn ? pet.kn : m.name, hasLv, banded, lvMin, lvMax });
     }
   }
 }
 
+/** 用哪種水晶屬性打這隻最痛：單一屬性 10，或相鄰兩種屬性（地水、水火、火風、風地）合計 10，取倍率最高的 */
+function bestElem(d) {
+  if (!d || !d.some(x => x > 0)) return null;
+  let best = null;
+  for (let i = 0; i < 4; i++) for (let k = 10; k >= 5; k--) {
+    const a = [0, 0, 0, 0]; a[i] = k; a[(i + 1) % 4] = 10 - k;
+    const m = elementMult(a, d);
+    if (!best || m > best.m + 1e-9) best = { a, m };
+    if (k < 10) { const b = [0, 0, 0, 0]; b[i] = k; b[(i + 3) % 4] = 10 - k; const n = elementMult(b, d); if (n > best.m + 1e-9) best = { a: b, m: n }; }
+  }
+  return best;
+}
+const bestText = b => b.a.map((v, i) => (v ? T('dmg.e.' + ELEM[i]) + v : '')).filter(Boolean).join('');
+const inBand = r => S.band < 0 || (r.banded && bandOf(r.lvMin) <= S.band && bandOf(r.lvMax) >= S.band);
 function pass(r) {
   if (S.elem !== '' && !(r.elem[Number(S.elem)] > 0)) return false;
   if (S.race && r.race !== S.race) return false;
   if (S.catch && !r.catch) return false;
-  if (S.band >= 0 && !(bandOf(r.lvMin) <= S.band && bandOf(r.lvMax) >= S.band)) return false;
+  if (S.view === 'level' && !r.banded) return false;           // 沒有等級、或等級跨太多區間的，只在「依地區」顯示
+  if (S.band >= 0 && !inBand(r)) return false;
   if (S.q) {
     const q = normName(S.q);
     if (!r.key.includes(q) && !normName(r.area.name).includes(q) && !(r.pet?.kn && normName(r.pet.kn).includes(q))) return false;
@@ -48,13 +68,13 @@ function img(r) {
   if (r.img && r.imageId) return `<img src="${BASE}img/monsters/${r.imageId}.png" alt="" width="56" height="56" loading="lazy" decoding="async">`;   // 本機資料包的站立圖
   return `<span class="mon-noimg" aria-hidden="true"><svg class="ic"><use href="#i-monsters"/></svg></span>`;
 }
-const lvText = r => (r.lvMin === r.lvMax ? `Lv${r.lvMin}` : `Lv${r.lvMin}–${r.lvMax}`);
+const lvText = r => (!r.hasLv ? T('mon.noLv') : r.lvMin === r.lvMax ? `Lv${r.lvMin}` : `Lv${r.lvMin}–${r.lvMax}`);
 function card(r, where = '') {
   const name = esc(r.nameShow);
   const link = r.pet ? `<a href="${BASE}pets/?q=${encodeURIComponent(r.pet.name)}">${name}</a>` : name;
   return `<li class="mon-card">${img(r)}<div class="mon-body"><b class="mon-name">${link}</b>
     <span class="mon-meta"><span class="badge b-sky">${esc(lvText(r))}</span>${r.race ? `<span class="badge b-gray">${esc(r.race)}</span>` : ''}${r.card ? `<span class="badge b-lav">${esc(r.card)}</span>` : ''}${r.catch ? `<span class="badge b-ok">${esc(T('mon.catch'))}</span>` : ''}</span>
-    ${elemBar(r.elem)}${r.lv1 ? `<small class="muted">${esc(T('mon.lv1', { p: r.lv1 }))}</small>` : ''}${where}</div></li>`;
+    ${elemBar(r.elem)}${r.best ? `<small class="mon-best">${esc(T('mon.best', { e: bestText(r.best), m: fmt(r.best.m, 2) }))}</small>` : ''}${r.lv1 ? `<small class="muted">${esc(T('mon.lv1', { p: r.lv1 }))}</small>` : ''}${where}</div></li>`;
 }
 
 function renderRegion(rows) {
@@ -71,9 +91,10 @@ function renderLevel(rows) {
       if (S.band >= 0 && b !== S.band) continue;
       if (!bands.has(b)) bands.set(b, new Map());
       const m = bands.get(b);
-      if (!m.has(r.key)) m.set(r.key, { ...r, places: [] });
+      const lo = Math.max(r.lvMin, b * BAND + 1), hi = Math.min(r.lvMax, (b + 1) * BAND);
+      if (!m.has(r.key)) m.set(r.key, { ...r, lvMin: lo, lvMax: hi, places: [] });
       const it = m.get(r.key);
-      it.lvMin = Math.min(it.lvMin, r.lvMin); it.lvMax = Math.max(it.lvMax, r.lvMax);
+      it.lvMin = Math.min(it.lvMin, lo); it.lvMax = Math.max(it.lvMax, hi);
       it.places.push(`${r.area.name}${r.label ? ' ' + r.label : ''}（${lvText(r)}）`);
     }
   }
@@ -112,7 +133,7 @@ function fillSelects() {
   $('#mon-race').value = races.includes(S.race) ? S.race : (S.race = '');
   $('#mon-elem').value = S.elem;
   $('#mon-catch').checked = S.catch;
-  const used = new Set(ROWS.flatMap(r => { const o = []; for (let b = bandOf(r.lvMin); b <= bandOf(r.lvMax); b++) o.push(b); return o; }));
+  const used = new Set(ROWS.filter(r => r.banded).flatMap(r => { const o = []; for (let b = bandOf(r.lvMin); b <= bandOf(r.lvMax); b++) o.push(b); return o; }));
   $('#mon-bands').innerHTML = `<button type="button" class="chip" data-band="-1">${esc(T('common.all'))}</button>` +
     [...used].sort((a, b) => a - b).map(b => `<button type="button" class="chip" data-band="${b}">${bandLabel(b)}</button>`).join('');
 }

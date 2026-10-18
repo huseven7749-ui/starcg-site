@@ -48,7 +48,8 @@ const PAGES = [
   { id: 'posts', path: '/posts/', tpl: 'posts', js: null, priority: '0.7', freq: 'weekly' },
   { id: '404', path: '/404.html', tpl: '404', js: null, noindex: true, file: true },
 ];
-const NAV = ['home', 'market', 'exchange', 'pets', 'remodel', 'damage', 'maze', 'monsters', 'posts'];
+const NAV = ['home', 'market', 'exchange', 'pets', 'monsters', 'damage', 'maze', 'posts'];   // 改造成本放在「更多」
+const TOOLS_ALL = ['market', 'exchange', 'pets', 'monsters', 'remodel', 'damage', 'maze', 'posts'];   // 頁尾列出全部工具
 
 // ───────────────────────── 工具函式 ─────────────────────────
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -504,7 +505,9 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
         const p = PAGES.find(x => x.id === id);
         const cur = id === page.id || (id === 'posts' && page.id === 'post') ? ' aria-current="page"' : '';
         return `<a href="${pageHref(lang, p.path, fromPath)}"${cur} title="${esc(t('nav.' + id))}"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(t('nav.short.' + id))}</span></a>`;
-      }).join('');
+      }).join('') +
+        // 「更多」：改造成本等放在這裡（和手機版同一個面板）
+        `<button type="button" class="mainnav-more" data-act="more"${page.id === 'remodel' ? ' aria-current="page"' : ''} title="${esc(t('nav.more'))}"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>${esc(t('nav.more'))}</span></button>`;
       const tab = (id, label) => {
         const p = PAGES.find(x => x.id === id);
         const cur = id === page.id ? ' aria-current="page"' : '';
@@ -513,11 +516,11 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
       const moreActive = ['pets', 'remodel', 'damage', 'monsters', 'posts', 'post'].includes(page.id) ? ' aria-current="page"' : '';
       v.tabbar = tab('home', t('nav.home')) + tab('market', t('nav.tab.market')) + tab('exchange', t('nav.tab.exchange')) + tab('maze', t('nav.short.maze')) +
         `<button type="button" data-act="more"${moreActive}><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>${esc(t('nav.more'))}</span></button>`;
-      v.moreLinks = ['pets', 'remodel', 'damage', 'monsters', 'posts'].map(id => {
+      v.moreLinks = ['remodel', 'pets', 'monsters', 'damage', 'posts'].map(id => {
         const p = PAGES.find(x => x.id === id);
         return `<a class="sheet-link" href="${pageHref(lang, p.path, fromPath)}"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(t('nav.' + id))}</span></a>`;
       }).join('');
-      v.footerTools = NAV.slice(1).map(id => `<li><a href="${pageHref(lang, PAGES.find(x => x.id === id).path, fromPath)}">${esc(t('nav.' + id))}</a></li>`).join('');
+      v.footerTools = TOOLS_ALL.map(id => `<li><a href="${pageHref(lang, PAGES.find(x => x.id === id).path, fromPath)}">${esc(t('nav.' + id))}</a></li>`).join('');
       v.scheduleHtml = page.id === 'home' ? renderSchedule(schedule, t, lang) : '';
       v.sprite = read(path.join(SRC, 'partials', 'sprite.svg'));
       const body = render(read(path.join(SRC, 'pages', page.tpl + '.html')), ctx);
