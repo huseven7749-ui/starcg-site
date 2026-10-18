@@ -163,7 +163,6 @@ $('#pane-phys').addEventListener('input', e => {
   if (e.target.closest('#p-arace, #p-drace')) autoRace();
   renderPhys(); save();
 });
-// 帶入歌姬：攻擊方單一屬性 地 12
 // 帶入歌姬：地水火風各 4
 const DIVA = [4, 4, 4, 4];
 $('#p-diva').addEventListener('click', () => { EL('p-ae').forEach((id, i) => { $('#' + id).value = DIVA[i]; }); renderPhys(); save(); });
