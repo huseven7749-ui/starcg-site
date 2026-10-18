@@ -1,5 +1,10 @@
 // 冒險手冊：經驗值、等級、稱號、頭像、成就、每日任務、連續天數。
 // 全部只存在這台裝置的瀏覽器（localStorage），不需要帳號；可以匯出一段代碼搬到別台裝置。
+// 防止等級、成就不見：
+// - 存檔前先讀回目前存的資料再合併（同時開好幾個分頁時，舊分頁不會用舊資料蓋掉新進度）
+// - 其他分頁更新時立刻同步
+// - 另存一份精簡備份在 cookie；localStorage 被瀏覽器清掉（iOS 長時間沒來、空間不足等）時用它還原
+// - 向瀏覽器申請「持久保存」，降低被自動清除的機會
 import { $, $$, T, esc, fmt, store, toast, openSheet, spriteImg, LANG } from './core.js';
 import { initStats } from './stats.js';
 
@@ -44,7 +49,6 @@ const ACH = [
 
 // ───── 狀態 ─────
 const blank = () => ({ v: 1, xp: 0, cheese: 0, cnt: {}, ach: {}, avatar: '', daily: { date: '', done: {}, ev: {}, streak: 0, best: 0, last: '', fullDays: 0 }, since: today() });
-let S = normalize(store.get(KEY));
 function normalize(o) {
   const b = blank();
   if (!o || typeof o !== 'object') return b;
@@ -52,7 +56,61 @@ function normalize(o) {
   s.xp = Math.max(0, Number(s.xp) || 0); s.cheese = Math.max(0, Number(s.cheese) || 0);
   return s;
 }
-function save() { store.set(KEY, S); }
+/** 合併兩份進度：經驗值、乳酪、各項次數取大，成就聯集，每日資料取日期較新的那份 */
+function merge(a, b) {
+  a = normalize(a); b = normalize(b);
+  const keys = new Set([...Object.keys(a.cnt), ...Object.keys(b.cnt)]);
+  const ach = { ...b.ach };
+  for (const [k, t] of Object.entries(a.ach)) ach[k] = ach[k] ? Math.min(ach[k], t) : t;
+  const newer = (b.daily.date || '') > (a.daily.date || '') ? b : a;
+  const streakSrc = (b.daily.last || '') > (a.daily.last || '') ? b : a;
+  return normalize({
+    ...a, ...b,
+    xp: Math.max(a.xp, b.xp), cheese: Math.max(a.cheese, b.cheese), ach,
+    cnt: Object.fromEntries([...keys].map(k => [k, Math.max(a.cnt[k] || 0, b.cnt[k] || 0)])),
+    avatar: b.avatar || a.avatar,
+    since: [a.since, b.since].filter(Boolean).sort()[0] || today(),
+    daily: {
+      ...newer.daily,
+      done: { ...(a.daily.date === newer.daily.date ? a.daily.done : {}), ...(b.daily.date === newer.daily.date ? b.daily.done : {}) },
+      streak: streakSrc.daily.streak || 0, last: streakSrc.daily.last || '',
+      best: Math.max(a.daily.best || 0, b.daily.best || 0), fullDays: Math.max(a.daily.fullDays || 0, b.daily.fullDays || 0),
+    },
+  });
+}
+// cookie 備份：只放還原需要的欄位，壓成一行（約 1KB）；有效 400 天
+const CK = 'sc_g';
+function backupWrite(s) {
+  try {
+    const slim = { xp: s.xp, cheese: s.cheese, cnt: s.cnt, ach: Object.fromEntries(Object.keys(s.ach).map(k => [k, 1])), avatar: s.avatar, since: s.since,
+      daily: { date: s.daily.date, streak: s.daily.streak, best: s.daily.best, last: s.daily.last, fullDays: s.daily.fullDays } };
+    const v = btoa(unescape(encodeURIComponent(JSON.stringify(slim))));
+    if (v.length < 3800) document.cookie = `${CK}=${v}; max-age=${400 * 86400}; path=/; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`;
+  } catch { /* 忽略 */ }
+}
+function backupRead() {
+  try {
+    const c = document.cookie.split('; ').find(x => x.startsWith(CK + '='));
+    return c ? JSON.parse(decodeURIComponent(escape(atob(c.slice(CK.length + 1))))) : null;
+  } catch { return null; }
+}
+let S = merge(backupRead(), store.get(KEY));
+function save() {
+  S = merge(store.get(KEY), S);          // 先合併其他分頁存的進度，再存
+  store.set(KEY, S);
+  backupWrite(S);
+}
+// 其他分頁更新進度：立刻合併並重畫
+addEventListener('storage', e => {
+  if (e.key !== KEY) return;
+  if (e.newValue == null) { S = normalize(null); }   // 資料管理「全部清除」
+  else { try { S = merge(S, JSON.parse(e.newValue)); } catch { return; } }
+  renderHeader(); renderHomeCard(); if ($('#sheet-game')?.open) renderSheet();
+});
+// 申請持久保存（Chrome 等會依使用程度決定是否同意；不支援就略過）
+try { navigator.storage?.persist?.().catch(() => {}); } catch { /* 忽略 */ }
+/** 資料管理「全部清除」時一併清掉 cookie 備份 */
+export function wipeGameBackup() { try { document.cookie = `${CK}=; max-age=0; path=/`; } catch { /* 忽略 */ } }
 function rollDay() {
   const d = today();
   if (S.daily.date === d) return;
@@ -204,17 +262,15 @@ function importCode(code) {
   if (!m) return false;
   try {
     const o = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
-    const n = normalize(o);
     // 合併：經驗值取大、計數取大、成就聯集
-    const merged = normalize({ ...n, xp: Math.max(n.xp, S.xp), cheese: Math.max(n.cheese, S.cheese), ach: { ...S.ach, ...n.ach }, cnt: Object.fromEntries([...new Set([...Object.keys(S.cnt), ...Object.keys(n.cnt)])].map(k => [k, Math.max(S.cnt[k] || 0, n.cnt[k] || 0)])) });
-    merged.daily.best = Math.max(S.daily.best || 0, n.daily.best || 0);
-    S = merged; save(); renderHeader(); renderHomeCard(); renderSheet();
+    S = merge(S, o); save(); renderHeader(); renderHomeCard(); renderSheet();
     return true;
   } catch { return false; }
 }
 
 // ───── 啟動 ─────
 export function init() {
+  if (!store.get(KEY) && backupRead()) save();   // localStorage 被清掉：用 cookie 備份還原
   rollDay();
   renderHeader(); renderHomeCard();
   document.addEventListener('click', e => {

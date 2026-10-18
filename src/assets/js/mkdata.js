@@ -1,6 +1,7 @@
 // 資料管理：匯入成交紀錄、備份與還原本機資料
 import { $, T, esc, fmt, store, toast, downloadCsv } from './core.js';
 import { parseImport, mergeRecords, twTime } from './mkstats.js';
+import { wipeGameBackup } from './game.js';
 
 const IMP_KEY = 'sc.imported';
 const MAX_RECORDS = 20000;
@@ -78,6 +79,7 @@ export function initData(refresh = false) {
   $('#dm-wipe').addEventListener('click', () => {
     if (!confirm(T('dm.confirmWipe'))) return;
     try { Object.keys(allLocal()).forEach(k => localStorage.removeItem(k)); } catch { /* 忽略 */ }
+    wipeGameBackup();
     toast(T('deleted'));
     setTimeout(() => location.reload(), 800);
   });
