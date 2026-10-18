@@ -834,6 +834,14 @@ html[data-view="mobile"] .mk-cur-quick > button { flex: 1; justify-content: cent
 .mk-need { flex: 0 0 104px; }
 .mk-petf { margin-top: 14px; padding-top: 12px; border-top: 1.5px dashed var(--line); }
 .mk-petf-title { font-weight: 700; color: var(--ink-2); font-size: .9rem; margin: 0 0 8px; }
+.mk-petf-row { gap: 10px 18px; flex-wrap: wrap; align-items: center; }
+.mk-petf-row + .mk-petf-row { margin-top: 10px; }
+.mk-lvrange { gap: 6px; }
+.mk-lvrange .input { width: 76px; text-align: center; }
+.mk-exact-warn { display: flex; align-items: flex-start; gap: 6px; margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; background: var(--lemon-l); color: var(--ink); font-size: .86rem; line-height: 1.5; }
+.mk-exact-warn[hidden] { display: none; }
+.mk-exact-warn .ic { flex: 0 0 auto; margin-top: 3px; color: var(--warn); }
+.mk-group-head h3 img.mk-item-img { border-radius: 8px; }
 .field-inline { flex-direction: row; align-items: center; gap: 8px; }
 .field-inline > span { white-space: nowrap; }
 .seg-sm button { padding: 5px 11px; font-size: .84rem; }

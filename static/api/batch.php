@@ -4,6 +4,8 @@
 declare(strict_types=1);
 require __DIR__ . '/_market.php';
 only_get();
+set_time_limit(120);
+$GLOBALS['SC_FETCH_DEADLINE'] = 75;          // 一批多個名稱，給長一點的抓取時間（前端等 90 秒）
 
 $names = $_GET['n'] ?? [];
 if (!is_array($names)) $names = [$names];

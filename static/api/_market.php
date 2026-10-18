@@ -94,40 +94,69 @@ function parse_log(array $l): ?array
     return ['id' => $id !== null ? (int)$id : null, 't' => $t, 'n' => $name, 'q' => $qty, 'p' => $p, 'c' => $c];
 }
 
-/** 抓一批頁面，失敗的最多再重試兩次（間隔 0.5 秒、1.5 秒，重試時降低並行數）。回傳 [page => data]、失敗頁碼 */
+/**
+ * 抓一批頁面。官方規則（2026-10 實測）：
+ * - 同一 IP 同時超過 2 條連線 → 503 service_busy（retry_after 約 2 秒）
+ * - 每秒請求太多 → 429 rate_limited（retry_after 1～4 秒）；官方忙的時候每秒 1 次也可能被擋
+ * 兩種都是短暫的：照官方建議的秒數等一下、改用 1 條連線再試即可（只有建議等超過 5 秒才當成真的限流，全站冷卻）。
+ * 全站共用 2 個連線名額與請求節奏（upstream_slots_acquire、upstream_pace），整次查詢最多花 fetch_deadline 秒，
+ * 時間到就把已抓到的頁先回傳（畫面會標示「資料不完整」）。回傳 [page => data]、失敗頁碼
+ */
 function fetch_pages(callable $urlOf, array $pages): array
 {
+    static $deadline = null;                 // 同一個 API 請求內多次呼叫共用時間預算
+    $deadline ??= microtime(true) + (float)($GLOBALS['SC_FETCH_DEADLINE'] ?? cfg('fetch_deadline', 40));
     $got = [];
     $todo = $pages;
-    $waits = [500000, 1500000];
     // 官方限流冷卻中：剩不到 3 秒就等一下，否則直接放棄（呼叫端會改用舊快取）
     $cool = upstream_cooldown();
     if ($cool > 3) return [$got, $todo];
     if ($cool > 0) usleep($cool * 1000000);
-    for ($round = 0; $round < 3 && $todo; $round++) {
+    $conc = max(1, (int)cfg('concurrency', 2));
+    for ($round = 0; $round < 6 && $todo; $round++) {
         if (!upstream_budget(count($todo))) { upstream_log('budget', 0, 'site page budget exhausted', ''); break; }
-        $urls = [];
-        foreach ($todo as $p) $urls[$p] = $urlOf($p);
-        $res = http_multi(array_values($urls), $round ? 2 : null);
-        $next = []; $limited = 0;
-        foreach ($urls as $p => $u) {
-            $r = $res[$u] ?? null;
-            $d = ($r && $r['code'] === 200) ? parse_json_body($r['body']) : null;
-            if ($d !== null) { $got[$p] = $d; continue; }
-            $next[] = $p;
-            $code = (int)($r['code'] ?? 0);
-            if ($code === 429 || $code === 503) {
+        $next = []; $limited = 0; $wait = 0;
+        foreach (array_chunk($todo, $conc) as $chunk) {
+            $left = $deadline - microtime(true);
+            if ($limited || $left < 2 || !upstream_pace(count($chunk), $left - 2)) { array_push($next, ...$chunk); continue; }
+            $slots = upstream_slots_acquire(count($chunk), min(15.0, $left - 2));
+            $urls = [];
+            foreach ($chunk as $p) $urls[$p] = $urlOf($p);
+            try { $res = http_multi(array_values($urls), max(1, min(count($chunk), count($slots) ?: 1))); }
+            finally { upstream_slots_release($slots); }
+            foreach ($urls as $p => $u) {
+                $r = $res[$u] ?? null;
+                $d = ($r && $r['code'] === 200) ? parse_json_body($r['body']) : null;
+                if ($d !== null) { $got[$p] = $d; continue; }
+                $next[] = $p;
+                $code = (int)($r['code'] ?? 0);
                 $j = json_decode((string)($r['body'] ?? ''), true);
-                $limited = max($limited, (int)($j['retry_after'] ?? 0) ?: 10);
+                $after = (int)($j['retry_after'] ?? 0);
+                if (($code === 429 || $code === 503) && $after > 5) $limited = max($limited, $after);
+                elseif ($code === 429 || $code === 503) $wait = max($wait, $after ?: 2);
+                upstream_log("round$round", $code, (string)($r['err'] ?? ''), (string)($r['body'] ?? ''));
             }
-            upstream_log("round$round", $code, (string)($r['err'] ?? ''), (string)($r['body'] ?? ''));
+            if ($wait) { usleep((int)($wait * 1000000)); $conc = 1; }   // 被擋就先等、之後改 1 條連線
         }
         $todo = $next;
-        // 被官方限流：記下冷卻時間，不再重試（重試只會讓限流更久）
-        if ($limited) { upstream_cooldown_set(min(120, max(3, $limited))); break; }
-        if ($todo && isset($waits[$round])) usleep($waits[$round]);
+        // 官方要求等很久：記下冷卻時間，不再重試（重試只會讓限流更久）
+        if ($limited) { upstream_cooldown_set(min(120, $limited)); break; }
+        if (!$todo || $deadline - microtime(true) < 3) break;
+        usleep((int)(max($wait, $round ? 1.5 : 0.8) * 1000000));
+        $conc = 1;
     }
     return [$got, $todo];
+}
+
+/**
+ * 送給官方搜尋的關鍵字。我們會把【】轉成 []、全形轉半形，官方的名稱卻保留原樣，
+ * 直接送出常常搜不到（尤其「完整名稱」）。所以只送最長一段不含括號、標點的文字，比對交給 name_match。
+ */
+function upstream_term(string $q): string
+{
+    $parts = preg_split('/[\[\]()（）【】［］<>《》「」『』:：,，·・\/\s+~～]+/u', $q, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    usort($parts, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+    return $parts[0] ?? $q;
 }
 
 /** 官方限流冷卻剩餘秒數（0＝可以抓） */
@@ -170,8 +199,17 @@ function tw_time(?string $s): ?int
 function market_fetch(string $q, string $type, bool $exact, ?int $maxPagesOverride = null, string $lang = 'zh'): ?array
 {
     $t0 = microtime(true);
-    [$first, $failed] = fetch_pages(fn($p) => market_url($type, $exact, $p, $q, $lang), [1]);
+    // 官方的「完整名稱」只在關鍵字和官方名稱一字不差時有結果；關鍵字含括號、全形字時改用模糊搜尋＋本站比對。
+    // 官方完整名稱搜不到時，也再用模糊搜尋補一次（例如名稱有全形括號）。
+    $term = $q === '' ? '' : upstream_term($q);
+    $upExact = $exact && $term === $q;
+    [$first] = fetch_pages(fn($p) => market_url($type, $upExact, $p, $term, $lang), [1]);
     if (!isset($first[1])) return null;
+    if ($upExact && (int)($first[1]['totalFiltered'] ?? 0) === 0) {
+        $upExact = false;
+        [$first] = fetch_pages(fn($p) => market_url($type, false, $p, $term, $lang), [1]);
+        if (!isset($first[1])) return null;
+    }
     $p1 = $first[1];
     $perPage = max(1, (int)($p1['perPage'] ?? 20));
     $total = max(0, (int)($p1['totalFiltered'] ?? 0));
@@ -181,14 +219,14 @@ function market_fetch(string $q, string $type, bool $exact, ?int $maxPagesOverri
     $pagesData = [1 => $p1];
     $failed = [];
     if ($pagesWanted > 1) {
-        [$more, $failed] = fetch_pages(fn($p) => market_url($type, $exact, $p, $q, $lang), range(2, $pagesWanted));
+        [$more, $failed] = fetch_pages(fn($p) => market_url($type, $upExact, $p, $term, $lang), range(2, $pagesWanted));
         $pagesData += $more;
     }
     ksort($pagesData);
     // 韓文模式：同樣的頁再抓一次中文版，用攤位＋順序（或道具唯一碼）配對出中文名；韓文關鍵字在中文版搜不到時就只有韓文名
     $zhUc = []; $zhIdx = []; $zhPet = []; $learn = [];
     if ($lang === 'ko') {
-        [$zhPages] = fetch_pages(fn($p) => market_url($type, $exact, $p, $q, 'zh'), array_keys($pagesData));
+        [$zhPages] = fetch_pages(fn($p) => market_url($type, $upExact, $p, $term, 'zh'), array_keys($pagesData));
         foreach ($zhPages as $pn => $d) {
             foreach ((array)($d['itemsByCd'] ?? []) as $cd => $its) foreach ((array)$its as $i => $it) {
                 if (!is_array($it)) continue;
@@ -234,6 +272,8 @@ function market_fetch(string $q, string $type, bool $exact, ?int $maxPagesOverri
                 $seenItem[$dk] = true;
                 $row = ['n' => $name, 'id' => (int)($it['ITEM_ID'] ?? 0), 'p' => (int)($it['price'] ?? 0), 'c' => (int)($it['pricetype'] ?? 0),
                     'q' => max(1, (int)($it['ITEM_REMAIN'] ?? 1)), 'lv' => (int)($it['ITEM_LEVEL'] ?? 0)];
+                $im = (int)($it['ITEM_BASEIMAGENUMBER'] ?? 0);
+                if ($im > 0) $row['im'] = $im;                      // 道具圖片編號（/img/items/{im}.gif）
                 if ($kn !== '') $row['kn'] = $kn;
                 $dmax = (int)($it['ITEM_MAXDURABILITY'] ?? 0);
                 if ($dmax > 0) $row['d'] = [(int)($it['ITEM_DURABILITY'] ?? 0), $dmax];
@@ -298,7 +338,8 @@ function market_fetch(string $q, string $type, bool $exact, ?int $maxPagesOverri
 function history_fetch(string $q, string $type, int $pages, string $range = '30d', string $lang = 'zh'): ?array
 {
     $t0 = microtime(true);
-    [$first] = fetch_pages(fn($p) => history_url($type, $p, $q, $range, $lang), [1]);
+    $hq = upstream_term($q);             // 同市場查詢：括號、全形字交給前端比對
+    [$first] = fetch_pages(fn($p) => history_url($type, $p, $hq, $range, $lang), [1]);
     if (!isset($first[1])) return null;
     $p1 = $first[1];
     $perPage = max(1, (int)($p1['perPage'] ?? 50));
@@ -307,12 +348,12 @@ function history_fetch(string $q, string $type, int $pages, string $range = '30d
     $want = min($pagesTotal, $pages);
     $data = [1 => $p1];
     $failed = [];
-    if ($want > 1) { [$more, $failed] = fetch_pages(fn($p) => history_url($type, $p, $q, $range, $lang), range(2, $want)); $data += $more; }
+    if ($want > 1) { [$more, $failed] = fetch_pages(fn($p) => history_url($type, $p, $hq, $range, $lang), range(2, $want)); $data += $more; }
     ksort($data);
     // 韓文模式：中文版同頁依紀錄 id 配對中文名
     $zhById = []; $learn = [];
     if ($lang === 'ko') {
-        [$zhPages] = fetch_pages(fn($p) => history_url($type, $p, $q, $range, 'zh'), array_keys($data));
+        [$zhPages] = fetch_pages(fn($p) => history_url($type, $p, $hq, $range, 'zh'), array_keys($data));
         foreach ($zhPages as $d) foreach (($d['logs'] ?? []) as $l) { if (is_array($l) && ($r = parse_log($l)) && $r['id'] !== null) $zhById[$r['id']] = $r['n']; }
     }
     $logs = []; $seen = [];
@@ -361,7 +402,7 @@ function cached_get(string $ns, string $key, int $ttl, bool $fresh, callable $fe
         $d = $fetch();
         if ($d !== null) cache_write($path, $d);
         return $d;
-    });
+    }, (float)cfg('fetch_deadline', 40) + 5);   // 同一個查詢有人正在抓：等他抓完直接用（抓取最多 fetch_deadline 秒）
     if ($res) return [$res, 200];
     if ($cached && $now - (int)$cached['fetchedAt'] < (int)cfg('stale_max_age', 3600)) return [$cached + ['cached' => true, 'stale' => true], 200];
     return [null, upstream_cooldown() > 0 ? 503 : 502];

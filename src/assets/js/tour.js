@@ -1,6 +1,6 @@
 // 星野導覽：第一次進某個工具頁時，星野跑進來講 2～3 句，並圈出關鍵按鈕；可跳過。
 // 右下角「問星野」可隨時重播。只在有定義導覽的頁面出現。
-import { $, T, esc, store } from './core.js';
+import { $, T, esc, store, RETURNING } from './core.js';
 
 // 每頁的步驟：sel＝要圈的元素（找不到或看不到就跳過）、key＝台詞、pose＝星野動作、before＝圈之前要先點的元素（例如切到某個分頁）
 const TOURS = {
@@ -119,10 +119,13 @@ function show(i) {
   }, 450);
 }
 function next() { if (idx + 1 < list.length) show(idx + 1); else end(false); }
-function end() {
+function markSeen(key) {
   const seen = store.get(SEEN_KEY, {}) || {};
-  seen[curKey] = 1;
+  seen[key] = 1;
   store.set(SEEN_KEY, seen);
+}
+function end() {
+  markSeen(curKey);
   removeEventListener('resize', place); removeEventListener('scroll', place, true);
   root?.classList.add('out');
   const r = root; root = null; target = null;
@@ -134,6 +137,7 @@ export function startTour() {
   curKey = tourKey();
   list = (TOURS[curKey] || steps).filter(s => { if (s.before) return document.querySelector(s.sel); return visible(document.querySelector(s.sel)); });
   if (!list.length) return;
+  markSeen(curKey);            // 一出場就記下，中途離開或重新整理也不會再自動跳出
   build();
   addEventListener('resize', place); addEventListener('scroll', place, true);
   requestAnimationFrame(() => root.classList.add('in'));
@@ -150,15 +154,18 @@ if (steps) {
   ask.addEventListener('click', startTour);
   document.body.append(ask);
 
-  // 第一次進這個工具：等歡迎面板關掉、頁面資料載入後再出場
+  // 第一次來本站時，每個工具第一次打開才出場（等歡迎面板關掉、頁面資料載入後）；以前來過就不再自動出現
+  // RETURNING 在 localStorage 被擋時會改用 cookie 判斷，所以不會每次都跳出來
+  const first = !RETURNING;
   const seen = store.get(SEEN_KEY, {}) || {};
-  if (!seen[page] && !new URLSearchParams(location.search).has('s')) {
-    const go = () => setTimeout(startTour, 700);
+  if (first && !seen[page] && !new URLSearchParams(location.search).has('s')) {
     const wel = document.getElementById('sheet-welcome');
-    setTimeout(() => { if (wel?.open) wel.addEventListener('close', go, { once: true }); else go(); }, 1400);
+    // 歡迎面板還開著就每 0.5 秒看一次（不依賴 dialog 的 close 事件，部分內建瀏覽器不會觸發）
+    const wait = () => (wel?.open ? setTimeout(wait, 500) : setTimeout(startTour, 700));
+    setTimeout(wait, 1400);
   }
-  // 第一次打開寵物卡對戰分頁
+  // 第一次打開寵物卡對戰分頁（同樣只在第一次來的那次）
   document.getElementById('tab-battle')?.addEventListener('click', () => {
-    if (!(store.get(SEEN_KEY, {}) || {})['pets.battle']) setTimeout(startTour, 600);
+    if (first && !(store.get(SEEN_KEY, {}) || {})['pets.battle']) setTimeout(startTour, 600);
   });
 }

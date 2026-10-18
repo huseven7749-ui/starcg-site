@@ -1,9 +1,9 @@
 // 市場查價器：市價比較、批次採購、資料管理
-import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG } from './core.js';
+import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, itemImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG } from './core.js';
 import { decodeAlloc, gradeMeta, tierOf } from './petcalc.js';
 import { lineChart } from './chart.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, inPeriod, stripBr, twTime, FEE } from './mkstats.js';
-import { loadCatalog, EQ_CATS, eqCatName, raceName } from './catalog.js';
+import { loadCatalog, EQ_CATS, eqCatName } from './catalog.js';
 import { initBulk } from './mkbulk.js';
 import { initData, importedRecords } from './mkdata.js';
 import { track } from './game.js';
@@ -22,8 +22,8 @@ const BASE_TITLE = document.title;
 const DEFAULTS = { kind: 'all', exact: false, sv: '', cur: 'all', range: '30d', src: 'official', sort: 'value', view: 'all', need: 1 };
 const S = {
   ...DEFAULTS, ...(store.get(CFG_KEY) || {}),
-  q: '', mode: 'query', browseNames: [], eqCat: '', eqLv: '', eqName: '', petList: 'dex', petRace: '', petTier: '', petQuick: '', petName: '',
-  pf: { star: false, full: false, skill: false, slot: '', lv: new Set() },
+  q: '', mode: 'query', browseNames: [], eqCat: '', eqLv: '', eqName: '', petList: 'dex', petQuick: '', petName: '',
+  pf: { star: false, full: false, skill: false, slot: '', lvMin: '', lvMax: '' },
   data: null, rows: [], hist: null, histPages: 3, histCur: null, histName: '', histShow: 30, expanded: new Set(), token: 0, tab: 'listing', cat: null,
   trial: { price: '', c: 0 },
 };
@@ -99,14 +99,11 @@ function petCandidates() {
   let list = S.petList === 'bounty'
     ? c.bountyPets.map(b => c.petByName.get(normName(b.n)) || { name: b.n, race: '', cardTier: b.tier })
     : c.pets;
-  return list.filter(p => (!S.petRace || p.race === S.petRace) && (!S.petTier || tierOf(p.cardTier) === S.petTier) && (!q || normName(p.name).includes(q)));
+  return list.filter(p => !q || normName(p.name).includes(q));
 }
 function fillPetSelects() {
   const c = S.cat;
   if (!c) return;
-  $('#pet-race').innerHTML = `<option value="">${esc(T('race.all'))}</option>` + c.races.map(r => `<option value="${esc(r)}">${esc(raceName(r))}</option>`).join('');
-  $('#pet-race').value = S.petRace;
-  $('#pet-tier').value = S.petTier;
   seg($('#pet-list'), S.petList);
   const list = petCandidates();
   $('#pet-name').innerHTML = `<option value="">${esc(T('mk.pet.nameAll', { n: list.length }))}</option>` + list.slice(0, 600).map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
@@ -118,6 +115,8 @@ function syncKindUi() {
   $('#mk-equip').hidden = S.kind !== 'equip';
   $('#mk-petsel').hidden = S.kind !== 'pet';
   el.exact.checked = S.exact;
+  syncExactWarn();
+  syncPetFilterVis();
   if (S.kind === 'equip') fillEquipSelects();
   if (S.kind === 'pet') fillPetSelects();
 }
@@ -126,7 +125,8 @@ function syncFilterUi() {
   el.range.value = S.range; el.sort.value = S.sort; el.view.value = S.view;
   el.need.hidden = S.view !== 'need'; el.need.value = S.need;
   $('#pf-star').checked = S.pf.star; $('#pf-full').checked = S.pf.full; $('#pf-skill').checked = S.pf.skill; $('#pf-slot').value = S.pf.slot;
-  const n = [S.sv, S.cur !== 'all', S.range !== '30d', S.src !== 'official', S.sort !== 'value', S.view !== 'all', S.pf.star, S.pf.full, S.pf.skill, S.pf.slot, S.pf.lv.size].filter(Boolean).length;
+  $('#pf-lv-min').value = S.pf.lvMin; $('#pf-lv-max').value = S.pf.lvMax;
+  const n = [S.sv, S.cur !== 'all', S.range !== '30d', S.src !== 'official', S.sort !== 'value', S.view !== 'all'].filter(Boolean).length;
   $('#mk-adv-count').hidden = !n; $('#mk-adv-count').textContent = n;
 }
 
@@ -142,7 +142,6 @@ function readUrl() {
   if (p.has('exact')) S.exact = p.get('exact') === '1';
   else if (p.get('q')) S.exact = false;
   S.eqCat = p.get('cat') || ''; S.eqLv = p.get('lv') || '';
-  S.petRace = p.get('race') || ''; S.petTier = p.get('tier') || '';
   if (p.get('list') === 'bounty') S.petList = 'bounty';
   el.q.value = S.q;
   if (p.get('tab') === 'bulk' || p.get('tab') === 'data') setMain(p.get('tab'));
@@ -153,7 +152,7 @@ function writeUrl() {
   if (S.kind !== 'all') p.set('kind', S.kind);
   if (S.exact) p.set('exact', '1');
   if (S.mode === 'browse-equip') { if (S.eqCat) p.set('cat', S.eqCat); if (S.eqLv) p.set('lv', S.eqLv); }
-  if (S.mode === 'browse-pet') { if (S.petRace) p.set('race', S.petRace); if (S.petTier) p.set('tier', S.petTier); if (S.petList === 'bounty') p.set('list', 'bounty'); }
+  if (S.mode === 'browse-pet' && S.petList === 'bounty') p.set('list', 'bounty');
   history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
   document.title = S.q ? `${S.q}｜${BASE_TITLE}` : BASE_TITLE;
   syncFav();
@@ -181,7 +180,7 @@ async function search(fresh = false) {
   S.mode = mode; S.browseNames = names;
   el.exact.checked = S.exact;
   const token = ++S.token;
-  S.expanded.clear(); S.histName = ''; S.histShow = 30; S.pf.lv.clear();
+  S.expanded.clear(); S.histName = ''; S.histShow = 30;
   writeUrl(); saveCfg();
   if (mode === 'query') saveRecent(S.q);
   setTab('listing');
@@ -193,8 +192,8 @@ async function search(fresh = false) {
   if (mode === 'query') loadHistory(token); else { S.hist = null; renderHistory(); renderPricing(); }
   try {
     let d;
-    if (mode === 'browse-equip') d = mergeBatch(await api('batch', { n: names, type: 'item', fresh: fresh ? 1 : '' }, { timeout: 60000 }), names);
-    else if (mode === 'browse-pet') d = await api('market', { q: '', type: 'pet', fresh: fresh ? 1 : '' }, { timeout: 60000 });
+    if (mode === 'browse-equip') d = mergeBatch(await api('batch', { n: names, type: 'item', fresh: fresh ? 1 : '' }, { timeout: 90000 }), names);
+    else if (mode === 'browse-pet') d = await api('market', { q: '', type: 'pet', fresh: fresh ? 1 : '' }, { timeout: 80000 });
     else d = await apiRetry('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' }, (n, sec) => {
       if (token === S.token) el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{s}', sec))}`;
     });
@@ -216,7 +215,7 @@ async function search(fresh = false) {
  *  503（官方限流中）→ 照伺服器建議的秒數倒數後再試；502／逾時 → 1.5、3 秒後再試；最多再試兩次。429（本站限流）不重試 */
 async function apiRetry(name, params, onRetry) {
   for (let n = 0; ; n++) {
-    try { return await api(name, params); } catch (e) {
+    try { return await api(name, params, { timeout: 60000 }); } catch (e) {   // 伺服器最多抓 40 秒，前端多等一點
       if (n >= 2 || e.status === 429 || e.status === 400) throw e;
       let wait = e.status === 503 ? Math.min(30, Math.max(3, Number(e.data?.retryAfter) || 10)) : 1.5 * (n + 1);
       while (wait > 0) {
@@ -276,8 +275,6 @@ function flatten(d) {
       r.meta = m ? { ...m, fullSkill: !!(m.maxStar && m.skillDrop === 0), base } : null;
     }
     if (S.mode === 'browse-pet') {
-      if (S.petRace && r.race !== S.petRace) continue;
-      if (S.petTier && r.tier !== S.petTier) continue;
       if (S.petList === 'bounty' && !c?.bountyPetSet.has(normName(p.n))) continue;
       if (S.petQuick && !normName(p.n).includes(normName(S.petQuick))) continue;
     }
@@ -288,8 +285,10 @@ function flatten(d) {
 }
 
 // ───────────────── 篩選與檢視 ─────────────────
-const lvBucket = lv => Math.max(0, Math.floor(((lv || 1) - 1) / 10));
+const lvNum = v => { const n = Math.floor(Number(v)); return v !== '' && n > 0 ? n : null; };
+const petFilterOn = () => S.pf.star || S.pf.full || S.pf.skill || S.pf.slot || lvNum(S.pf.lvMin) != null || lvNum(S.pf.lvMax) != null;
 function filteredRows() {
+  const lo = lvNum(S.pf.lvMin), hi = lvNum(S.pf.lvMax);
   return S.rows.filter(r => {
     if (S.cur !== 'all' && r.c !== Number(S.cur)) return false;
     if (S.sv && String(r.stall.sv) !== S.sv) return false;
@@ -298,8 +297,9 @@ function filteredRows() {
       if (S.pf.full && !r.meta?.full) return false;
       if (S.pf.skill && !r.meta?.fullSkill) return false;
       if (S.pf.slot && String(r.sl) !== S.pf.slot) return false;
-      if (S.pf.lv.size && !S.pf.lv.has(lvBucket(r.lv))) return false;
-    } else if (S.pf.star || S.pf.full || S.pf.skill || S.pf.slot || S.pf.lv.size) return false;
+      if (lo != null && (r.lv || 1) < lo) return false;
+      if (hi != null && (r.lv || 1) > hi) return false;
+    } else if (petFilterOn()) return false;
     return true;
   });
 }
@@ -354,7 +354,7 @@ function render() {
   const d = S.data;
   if (!d) return;
   renderStatus();
-  renderLvChips();
+  syncPetFilterVis();
   const rows = filteredRows();
   const tabCount = $('#tab-listing .count');
   tabCount.hidden = !rows.length; tabCount.textContent = rows.length;
@@ -394,13 +394,13 @@ function renderStatus() {
   $$('.mk-notes').forEach(n => n.remove());
   if (notes) el.status.insertAdjacentHTML('afterend', `<div class="mk-notes">${notes}</div>`);
 }
-function renderLvChips() {
-  const box = $('#pf-lv');
-  const buckets = [...new Set(S.rows.filter(r => r.pet).map(r => lvBucket(r.lv)))].sort((a, b) => a - b);
-  $('#mk-petf').hidden = !buckets.length && S.kind !== 'pet';
-  box.innerHTML = buckets.length
-    ? buckets.map(b => `<button type="button" class="chip${S.pf.lv.has(b) ? ' on' : ''}" data-lv="${b}" aria-pressed="${S.pf.lv.has(b)}">${b * 10 + 1}–${b * 10 + 10}</button>`).join('')
-    : `<span class="small muted">${esc(T('mk.petf.lvNone'))}</span>`;
+/** 寵物篩選（滿星、滿技、滿檔、等級區間）：選寵物種類或結果裡有寵物時才顯示 */
+function syncPetFilterVis() {
+  $('#mk-petf').hidden = !(S.kind === 'pet' || S.rows.some(r => r.pet));
+}
+/** 勾「完整名稱」時常駐提醒：要和遊戲內名稱一字不差，可能搜不到 */
+function syncExactWarn() {
+  $('#mk-exact-warn').hidden = !S.exact;
 }
 function renderSummary(rows) {
   const coins = rows.filter(r => r.c === 0), crys = rows.filter(r => r.c === 1);
@@ -432,6 +432,7 @@ function groupHtml(g, bestVal) {
   const minCry = crys.length ? Math.min(...crys.map(r => r.p)) : null;
   let img = '';
   if (first.pet && first.gp?.imageId) img = `<img src="${petImgSrc(first.gp.imageId)}" data-pet="${first.gp.imageId}" alt="" width="36" height="36" loading="lazy">`;
+  else if (!first.pet) { const im = g.all.find(r => r.im)?.im; if (im) img = `<img class="mk-item-img" src="${itemImgSrc(im)}" data-item="${im}" alt="" width="36" height="36" loading="lazy">`; }
   const kindBadge = first.pet ? 'b-mint' : S.cat?.isEquip(g.name) ? 'b-coral' : 'b-sky';
   const kindTxt = first.pet ? T('mk.kind.pet') : S.cat?.isEquip(g.name) ? T('mk.kind.equip') : T('mk.kind.item');
   const expanded = S.expanded.has(g.name) || S.view !== 'all';
@@ -695,7 +696,7 @@ async function refreshWatch(btn) {
   for (let i = 0; i < w.length; i += BROWSE_MAX) {
     const chunk = w.slice(i, i + BROWSE_MAX);
     try {
-      const b = await api('batch', { n: chunk.map(x => x.n) });
+      const b = await api('batch', { n: chunk.map(x => x.n) }, { timeout: 90000 });
       for (const x of chunk) {
         const d = b.results?.[x.n] || b.results?.[normName(x.n)];
         if (!d) continue;
@@ -753,8 +754,8 @@ el.q.addEventListener('focus', async () => {
 // ───────────────── 清空 ─────────────────
 function clearAll() {
   S.token++;                                        // 未完成的查詢不再填回結果
-  Object.assign(S, DEFAULTS, { q: '', mode: 'query', browseNames: [], eqCat: '', eqLv: '', eqName: '', petList: 'dex', petRace: '', petTier: '', petQuick: '', petName: '', data: null, rows: [], hist: null, histName: '', trial: { price: '', c: 0 } });
-  S.pf = { star: false, full: false, skill: false, slot: '', lv: new Set() };
+  Object.assign(S, DEFAULTS, { q: '', mode: 'query', browseNames: [], eqCat: '', eqLv: '', eqName: '', petList: 'dex', petQuick: '', petName: '', data: null, rows: [], hist: null, histName: '', trial: { price: '', c: 0 } });
+  S.pf = { star: false, full: false, skill: false, slot: '', lvMin: '', lvMax: '' };
   el.q.value = ''; $('#pet-quick').value = '';
   saveCfg(); writeUrl(); syncKindUi(); syncFilterUi();
   el.status.hidden = true; el.summary.hidden = true;
@@ -796,13 +797,15 @@ el.kind.addEventListener('click', async e => {
   syncKindUi(); saveCfg();
   if (el.q.value.trim()) search();
 });
-el.exact.addEventListener('change', () => { S.exact = el.exact.checked; saveCfg(); if (el.q.value.trim()) search(); });
+el.exact.addEventListener('change', () => {
+  S.exact = el.exact.checked; saveCfg(); syncExactWarn();
+  if (S.exact) toast(T('mk.exactWarn'));          // 每次打開都提醒一次
+  if (el.q.value.trim()) search();
+});
 $('#eq-cat').addEventListener('change', e => { S.eqCat = e.target.value; S.eqName = ''; fillEquipSelects(); });
 $('#eq-lv').addEventListener('change', e => { S.eqLv = e.target.value; S.eqName = ''; fillEquipSelects(); });
 $('#eq-name').addEventListener('change', e => { S.eqName = e.target.value; if (S.eqName) { el.q.value = S.eqName; S.exact = true; el.exact.checked = true; search(); } });
-$('#pet-list').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { S.petList = b.value; fillPetSelects(); } });
-$('#pet-race').addEventListener('change', e => { S.petRace = e.target.value; fillPetSelects(); if (S.mode === 'browse-pet' && S.data) { S.rows = flatten(S.data); render(); } });
-$('#pet-tier').addEventListener('change', e => { S.petTier = e.target.value; fillPetSelects(); if (S.mode === 'browse-pet' && S.data) { S.rows = flatten(S.data); render(); } });
+$('#pet-list').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { S.petList = b.value; fillPetSelects(); if (S.mode === 'browse-pet' && S.data) { S.rows = flatten(S.data); render(); } } });
 $('#pet-quick').addEventListener('input', debounce(e => { S.petQuick = e.target.value.trim(); fillPetSelects(); if (S.mode === 'browse-pet' && S.data) { S.rows = flatten(S.data); render(); } }, 150));
 $('#pet-name').addEventListener('change', e => { S.petName = e.target.value; if (S.petName) { el.q.value = S.petName; S.exact = true; el.exact.checked = true; search(); } });
 const onFilter = (fn, rerenderHist = false) => () => { fn(); saveCfg(); syncFilterUi(); render(); if (rerenderHist) { renderPricing(); } };
@@ -816,8 +819,8 @@ el.range.addEventListener('change', () => { S.range = el.range.value; saveCfg();
 el.src.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.src = b.value; saveCfg(); syncFilterUi(); if (S.mode === 'query' && S.q) loadHistory(S.token); });
 ['star', 'full', 'skill'].forEach(k => $('#pf-' + k).addEventListener('change', onFilter(() => (S.pf[k] = $('#pf-' + k).checked))));
 $('#pf-slot').addEventListener('change', onFilter(() => (S.pf.slot = $('#pf-slot').value)));
-$('#pf-lv').addEventListener('click', e => { const b = e.target.closest('[data-lv]'); if (!b) return; const v = Number(b.dataset.lv); onFilter(() => (S.pf.lv.has(v) ? S.pf.lv.delete(v) : S.pf.lv.add(v)))(); });
-$('#pf-lv-clear').addEventListener('click', onFilter(() => S.pf.lv.clear()));
+['min', 'max'].forEach(k => $('#pf-lv-' + k).addEventListener('input', debounce(() => { const v = $('#pf-lv-' + k).value.trim(); onFilter(() => (S.pf[k === 'min' ? 'lvMin' : 'lvMax'] = v))(); }, 250)));
+$('#pf-clear').addEventListener('click', onFilter(() => (S.pf = { star: false, full: false, skill: false, slot: '', lvMin: '', lvMax: '' })));
 $('#mk-tabs').addEventListener('click', e => { const b = e.target.closest('[role=tab]'); if (b) setTab(b.dataset.tab); });
 $('#mk-main').addEventListener('click', e => { const b = e.target.closest('[role=tab]'); if (b) setMain(b.dataset.main); });
 $('#daily-day').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; dailyDay = Number(b.value); seg($('#daily-day'), dailyDay); loadDaily(); });
@@ -870,7 +873,7 @@ if (matchMedia('(min-width: 900px)').matches && document.documentElement.dataset
 loadCatalog().then(c => {
   S.cat = c;
   syncKindUi();
-  if (S.q || (S.kind === 'equip' && (S.eqCat || S.eqLv)) || (S.kind === 'pet' && (S.petRace || S.petTier || S.petList === 'bounty') && new URLSearchParams(location.search).size)) search();
+  if (S.q || (S.kind === 'equip' && (S.eqCat || S.eqLv)) || (S.kind === 'pet' && S.petList === 'bounty' && new URLSearchParams(location.search).size)) search();
 });
 syncKindUi();
 // 每日市場動態：捲到附近才載入

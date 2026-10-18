@@ -132,6 +132,56 @@ function upstream_budget(int $pages): bool
 }
 
 /**
+ * 全站同時向官方連線的名額（官方對同一個 IP 超過 2 條同時連線會回 503 service_busy）。
+ * 盡量拿 $want 個名額，至少等到 1 個；等太久就回空陣列（呼叫端仍以 1 條連線抓）。
+ * @return resource[] 拿到的名額（鎖檔把手），用完交給 upstream_slots_release()
+ */
+function upstream_slots_acquire(int $want, float $timeout = 20.0): array
+{
+    if (PHP_SAPI === 'cli') return [];
+    $max = max(1, (int)cfg('upstream_slots', 2));
+    $dir = rtrim((string)cfg('cache_dir'), '/') . '/slots';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $deadline = microtime(true) + $timeout;
+    $got = [];
+    while (true) {
+        for ($i = 0; $i < $max && count($got) < $want; $i++) {
+            if (isset($got[$i])) continue;
+            $fh = @fopen("$dir/$i.lock", 'c');
+            if (!$fh) continue;
+            if (flock($fh, LOCK_EX | LOCK_NB)) $got[$i] = $fh; else fclose($fh);
+        }
+        if ($got || microtime(true) > $deadline) return $got;
+        usleep(150000);
+    }
+}
+function upstream_slots_release(array $got): void
+{
+    foreach ($got as $fh) { flock($fh, LOCK_UN); fclose($fh); }
+}
+
+/**
+ * 全站向官方送請求的節奏：每個請求至少間隔 upstream_gap 秒（官方每秒超過 1～2 次就會回 429）。
+ * 預約 $n 個請求的時間並等到輪到自己；要等超過 $maxWait 秒就不預約，回傳 false（呼叫端把這批當成失敗）。
+ */
+function upstream_pace(int $n, float $maxWait): bool
+{
+    if (PHP_SAPI === 'cli') return true;
+    $gap = (float)cfg('upstream_gap', 0.6);
+    $file = rtrim((string)cfg('cache_dir'), '/') . '/pace.json';
+    $start = (float)locked_json($file, function (array $d) use ($n, $gap, $maxWait) {
+        $now = microtime(true);
+        $start = max($now, (float)($d['next'] ?? 0));
+        if ($start - $now > $maxWait) return [$d, -1.0];
+        return [['next' => $start + $gap * $n], $start];
+    });
+    if ($start < 0) return false;
+    $wait = $start - microtime(true);
+    if ($wait > 0) usleep((int)($wait * 1e6));
+    return true;
+}
+
+/**
  * 並行 GET。回傳 [url => ['code'=>int, 'body'=>string|null, 'err'=>string|null]]
  */
 function http_multi(array $urls, ?int $concurrency = null, ?int $timeout = null, array $extraHeaders = []): array

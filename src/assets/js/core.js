@@ -14,7 +14,7 @@ export function T(key, vars) {
 
 // ───── localStorage（無痕模式也不會壞）─────
 // 外觀、版面、語言偏好另存一份在 window.name：瀏覽器封鎖儲存空間（例如內嵌預覽、無痕）時，換頁也不會跑掉
-const PREF_KEYS = new Set(['sc.theme', 'sc.layout', 'sc.lang', 'sc.langHint', 'sc.welcome']), NAME_TAG = 'sc-prefs:';
+const PREF_KEYS = new Set(['sc.theme', 'sc.layout', 'sc.lang', 'sc.langHint', 'sc.welcome', 'sc.visited']), NAME_TAG = 'sc-prefs:';
 const namePrefs = () => { try { return window.name.startsWith(NAME_TAG) ? JSON.parse(window.name.slice(NAME_TAG.length)) || {} : {}; } catch { return {}; } };
 export const store = {
   get(k, fallback = null) { try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
@@ -30,6 +30,21 @@ export const store = {
     if (PREF_KEYS.has(k)) { try { window.name = NAME_TAG + JSON.stringify({ ...namePrefs(), [k]: v }); } catch { /* 忽略 */ } }
   },
 };
+
+// 回訪判斷：之前（另一次開啟瀏覽器分頁時）來過本站。同一次瀏覽中換頁不算回訪。
+// localStorage 被擋時改用 cookie 記，星野導覽等「第一次才出現」的東西就不會每次都跳出來。
+export const RETURNING = (() => {
+  let ret = null;
+  try { ret = sessionStorage.getItem('sc.ret'); } catch { /* 忽略 */ }
+  if (ret != null) return ret === '1';
+  let cookie = false;
+  try { cookie = document.cookie.split('; ').some(c => c === 'sc_v=1'); } catch { /* 忽略 */ }
+  const was = cookie || !!store.raw('sc.visited');
+  store.setRaw('sc.visited', '1');
+  try { document.cookie = `sc_v=1; max-age=${400 * 86400}; path=/; samesite=lax`; } catch { /* 忽略 */ }
+  try { sessionStorage.setItem('sc.ret', was ? '1' : '0'); } catch { /* 忽略 */ }
+  return was;
+})();
 
 // ───── 字串與數字 ─────
 export const $ = (s, el = document) => el.querySelector(s);
@@ -242,8 +257,15 @@ export function petImgSrc(id) {
   return PREVIEW ? `https://guide.starcg.net/pet/${n}.gif` : `${BASE}img/pets/${n}.gif`;
 }
 const PET_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="#E8CDB8"><ellipse cx="12" cy="15.6" rx="4.6" ry="4"/><ellipse cx="6.2" cy="10.5" rx="1.9" ry="2.4"/><ellipse cx="17.8" cy="10.5" rx="1.9" ry="2.4"/><ellipse cx="9.4" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.6" cy="6.3" rx="1.9" ry="2.5"/></g></svg>');
+/** 道具圖片（市場資料的圖片編號）：本站快取，第一次由伺服器向官方取 */
+export function itemImgSrc(im) {
+  const n = String(im ?? '').match(/\d+/)?.[0];
+  if (!n) return '';
+  return PREVIEW ? `https://member.starcg.net/metamo/item/${n}.gif` : `${BASE}img/items/${n}.gif`;
+}
 document.addEventListener('error', e => {
   const img = e.target;
+  if (img.tagName === 'IMG' && img.dataset.item) { img.hidden = true; return; }   // 官方沒有這張道具圖：不顯示
   if (img.tagName !== 'IMG' || !img.dataset.pet) return;
   if (img.dataset.fallback === '2') return;
   if (!img.dataset.fallback && !PREVIEW) {

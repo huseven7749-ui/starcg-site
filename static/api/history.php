@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require __DIR__ . '/_market.php';
 only_get();
+set_time_limit(75);
 
 $q = norm_name(mb_substr((string)($_GET['q'] ?? ''), 0, 40));
 $type = (string)($_GET['type'] ?? 'all');

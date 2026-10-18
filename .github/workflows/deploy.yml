@@ -50,7 +50,7 @@ jobs:
           # data/pets.json 由伺服器每天向攻略網同步，不用倉庫裡的舊檔覆蓋；只在伺服器還沒有時當種子
           cp dist/data/pets.json dist/data/pets.seed.json
           rsync -az --delete \
-            --exclude 'cache/' --exclude 'img/pets/' --exclude 'api/config.local.php' --exclude '.well-known/' \
+            --exclude 'cache/' --exclude 'img/pets/' --exclude 'img/items/' --exclude 'api/config.local.php' --exclude '.well-known/' \
             --exclude 'data/pets.json' --exclude 'data/pets.json.prev' \
             -e "ssh -p ${{ secrets.SG_PORT }} -o BatchMode=yes" \
             dist/ "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}:${{ secrets.SG_PATH }}/"

@@ -24,6 +24,9 @@ AddType image/webp .webp
   # 寵物圖片延遲快取：檔案不存在時交給 PHP 抓一次
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^img/pets/(\d{1,9})\.gif$ api/petimg.php?id=$1 [L]
+  # 道具圖片延遲快取：同上，從官方市場的道具圖取一次
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^img/items/(\d{1,9})\.gif$ api/itemimg.php?id=$1 [L]
 </IfModule>
 
 <IfModule mod_deflate.c>

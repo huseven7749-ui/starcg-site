@@ -18,12 +18,16 @@ $SC_CONFIG = [
     'stale_max_age'    => 21600,  // 官方暫時掛掉或限流時，最多回傳 6 小時內的舊資料（畫面會標示）
 
     // 抓取上限（保護官方網站也保護自己的主機）
-    'market_max_pages'  => 25,    // 單次查詢最多抓 25 頁（約 500 個攤位）
+    'market_max_pages'  => 15,    // 單次查詢最多抓 15 頁（約 300 個攤位；官方限流嚴格，抓太多頁反而容易失敗）
     'history_max_pages' => 10,
     'batch_max_names'   => 30,    // 批次查價一次最多幾個商品
     'pet_browse_ttl'    => 300,   // 全部寵物攤位快取 5 分鐘
-    'pet_browse_max_pages' => 50,
-    'concurrency'       => 4,     // 同時連線數（太多會被官方暫時擋下）
+    'pet_browse_max_pages' => 30,
+    'concurrency'       => 2,     // 單次抓取的同時連線數（官方同一 IP 超過 2 條會回 503 service_busy）
+    'upstream_slots'    => 2,     // 全站（所有訪客合計）同時向官方的連線上限
+    'upstream_gap'      => 0.6,   // 全站向官方送請求的最小間隔（秒）
+    'fetch_deadline'    => 40,    // 單次查詢最多花幾秒向官方抓（時間到就先回傳已抓到的部分）
+    'item_img_per_min'  => 300,   // 道具圖片每分鐘最多向官方取幾張（取過就存在本站）
     'timeout'           => 12,    // 單頁逾時（秒）
     'rate_limit_per_min'     => 40,   // 每個 IP 每分鐘最多觸發 40 次「實際向官方抓取」（連點熱門搜尋也不會被擋）
     'upstream_pages_per_min' => 240,  // 全站每分鐘最多向官方抓 240 頁
