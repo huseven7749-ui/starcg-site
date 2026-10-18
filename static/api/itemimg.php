@@ -37,12 +37,17 @@ if (!$budget) { header('Location: ' . $sources[0], true, 302); exit; }
 
 $isImg = fn(?array $r): bool => $r && $r['code'] === 200 && is_string($r['body']) && strlen($r['body']) > 40 && strlen($r['body']) < 500_000
     && (strncmp($r['body'], 'GIF8', 4) === 0 || strncmp($r['body'], "\x89PNG", 4) === 0);
+// 和查價共用全站 2 條連線名額（官方同一 IP 同時連線太多會擋查價）；等不到就讓瀏覽器直接向官方取這一次
+$slots = upstream_slots_acquire(1, 6.0);
+if (!$slots && PHP_SAPI !== 'cli') { header('Location: ' . $sources[0], true, 302); exit; }
 $r = null;
-foreach ($sources as $u) {
-    $res = http_multi([$u], 1, 10, ['Accept: image/*']);
-    $r = $res[$u] ?? null;
-    if ($isImg($r)) break;
-}
+try {
+    foreach ($sources as $u) {
+        $res = http_multi([$u], 1, 10, ['Accept: image/*']);
+        $r = $res[$u] ?? null;
+        if ($isImg($r)) break;
+    }
+} finally { upstream_slots_release($slots); }
 if (!$isImg($r)) {
     // 官方兩種格式都沒有這張圖：回 404，前端就不顯示圖片
     $missing = ($r['code'] ?? 0) === 404;

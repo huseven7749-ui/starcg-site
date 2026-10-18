@@ -115,7 +115,7 @@ function fetch_pages(callable $urlOf, array $pages): array
     $conc = max(1, (int)cfg('concurrency', 2));
     for ($round = 0; $round < 6 && $todo; $round++) {
         if (!upstream_budget(count($todo))) { upstream_log('budget', 0, 'site page budget exhausted', ''); break; }
-        $next = []; $limited = 0; $wait = 0;
+        $next = []; $limited = 0; $waited = false;
         foreach (array_chunk($todo, $conc) as $chunk) {
             $left = $deadline - microtime(true);
             if ($limited || $left < 2 || !upstream_pace(count($chunk), $left - 2)) { array_push($next, ...$chunk); continue; }
@@ -124,6 +124,7 @@ function fetch_pages(callable $urlOf, array $pages): array
             foreach ($chunk as $p) $urls[$p] = $urlOf($p);
             try { $res = http_multi(array_values($urls), max(1, min(count($chunk), count($slots) ?: 1))); }
             finally { upstream_slots_release($slots); }
+            $wait = 0;
             foreach ($urls as $p => $u) {
                 $r = $res[$u] ?? null;
                 $d = ($r && $r['code'] === 200) ? parse_json_body($r['body']) : null;
@@ -136,13 +137,14 @@ function fetch_pages(callable $urlOf, array $pages): array
                 elseif ($code === 429 || $code === 503) $wait = max($wait, $after ?: 2);
                 upstream_log("round$round", $code, (string)($r['err'] ?? ''), (string)($r['body'] ?? ''));
             }
-            if ($wait) { usleep((int)($wait * 1000000)); $conc = 1; }   // 被擋就先等、之後改 1 條連線
+            // 被擋：把全站下一個請求的時間往後推（自己和其他訪客都會等），之後改 1 條連線；只等這一次，不會每頁都等
+            if ($wait) { upstream_backoff($wait); $conc = 1; $waited = true; }
         }
         $todo = $next;
         // 官方要求等很久：記下冷卻時間，不再重試（重試只會讓限流更久）
         if ($limited) { upstream_cooldown_set(min(120, $limited)); break; }
         if (!$todo || $deadline - microtime(true) < 3) break;
-        usleep((int)(max($wait, $round ? 1.5 : 0.8) * 1000000));
+        if (!$waited) usleep(500000);        // 連線錯誤等非限流失敗：稍等再試
         $conc = 1;
     }
     return [$got, $todo];

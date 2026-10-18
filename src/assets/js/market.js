@@ -189,27 +189,60 @@ async function search(fresh = false) {
   el.status.innerHTML = `<span class="dot"></span>${esc(T('searching'))}`;
   $$('.mk-notes').forEach(n => n.remove());
   el.results.innerHTML = runningState(T('searching')) + Array.from({ length: 2 }, () => `<div class="skel" style="height:118px;margin-bottom:12px"></div>`).join('');
-  if (mode === 'query') loadHistory(token); else { S.hist = null; renderHistory(); renderPricing(); }
+  // 成交行情等市價出來後再查：兩個一起查會互相搶官方的連線名額，市價反而更慢
+  S.hist = null;
+  if (mode === 'query') { el.hist.innerHTML = `<div class="skel" style="height:240px"></div>`; renderPricing(); }
+  else { renderHistory(); renderPricing(); }
+  startWaiting(token);
   try {
     let d;
     if (mode === 'browse-equip') d = mergeBatch(await api('batch', { n: names, type: 'item', fresh: fresh ? 1 : '' }, { timeout: 90000 }), names);
     else if (mode === 'browse-pet') d = await api('market', { q: '', type: 'pet', fresh: fresh ? 1 : '' }, { timeout: 80000 });
     else d = await apiRetry('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' }, (n, sec) => {
-      if (token === S.token) el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{s}', sec))}`;
+      if (token === S.token) { el.status.dataset.retrying = String(Date.now()); el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{s}', sec))}`; }
     });
     if (token !== S.token) return;
+    stopWaiting();
     failStreak = 0;
     S.data = d;
     S.rows = flatten(d);
     if (mode === 'query' && S.rows.length) track('market.search');
     render();
     renderPricing();
+    if (mode === 'query') loadHistory(token);
   } catch (e) {
     if (token !== S.token) return;
+    stopWaiting();
     el.status.hidden = true;
     el.results.innerHTML = errBox(e);
+    if (mode === 'query') loadHistory(token);
   }
 }
+
+/** 查詢中：每秒更新已等待秒數，超過 6 秒說明官方忙碌、會自動重試（避免看起來像當掉） */
+let waitTimer = 0;
+function startWaiting(token) {
+  stopWaiting();
+  S.pending = { token, t: Date.now() };
+  waitTimer = setInterval(() => {
+    if (!S.pending || S.pending.token !== S.token) return stopWaiting();
+    const sec = Math.round((Date.now() - S.pending.t) / 1000);
+    if (sec < 3 || Date.now() - Number(el.status.dataset.retrying || 0) < 1500) return;   // 正在倒數重試時不蓋掉
+    el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.waiting', { s: sec }))}` + (sec >= 6 ? `<span class="muted mk-wait-hint">${esc(T('mk.busyHint'))}</span>` : '');
+    const run = $('#mk-results .sp-loading > span');
+    if (run) run.textContent = T('mk.waiting', { s: sec });
+  }, 1000);
+}
+function stopWaiting() {
+  clearInterval(waitTimer); waitTimer = 0; S.pending = null; delete el.status.dataset.retrying;
+}
+// 手機切去遊戲再回來：瀏覽器常把背景中的連線中斷或卡住。回到頁面時查詢還沒結束就重送一次
+// （伺服器那邊通常已經抓好放在快取，重送會馬上有結果）
+function resumePending() {
+  if (S.pending && Date.now() - S.pending.t > 4000 && S.pending.token === S.token) search();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') resumePending(); });
+addEventListener('pageshow', e => { if (e.persisted) resumePending(); });
 
 /** 官方市場偶爾沒回應或限流：
  *  503（官方限流中）→ 照伺服器建議的秒數倒數後再試；502／逾時 → 1.5、3 秒後再試；最多再試兩次。429（本站限流）不重試 */

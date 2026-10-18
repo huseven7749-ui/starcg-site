@@ -180,6 +180,15 @@ function upstream_pace(int $n, float $maxWait): bool
     if ($wait > 0) usleep((int)($wait * 1e6));
     return true;
 }
+/** 官方回「忙碌／太頻繁」時：全站下一個請求至少等 $sec 秒（upstream_pace 會照這個時間排隊） */
+function upstream_backoff(float $sec): void
+{
+    if (PHP_SAPI === 'cli') { usleep((int)($sec * 1e6)); return; }
+    $file = rtrim((string)cfg('cache_dir'), '/') . '/pace.json';
+    locked_json($file, function (array $d) use ($sec) {
+        return [['next' => max((float)($d['next'] ?? 0), microtime(true) + $sec)], true];
+    });
+}
 
 /**
  * 並行 GET。回傳 [url => ['code'=>int, 'body'=>string|null, 'err'=>string|null]]

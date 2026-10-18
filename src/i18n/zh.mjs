@@ -796,6 +796,8 @@ export default {
   'mk.petf.lvClear': '清除等級篩選',
   'mk.petf.lvNone': '查到寵物攤位後會列出等級區間',
   'mk.exactWarn': '「完整名稱」只列出名稱完全相同的商品：少打括號裡的字、打錯一個字都會查不到。查不到時請取消勾選，改用一般搜尋。',
+  'mk.waiting': '查詢中…已等待 {s} 秒',
+  'mk.busyHint': '官方市場目前較忙，系統正在排隊自動重試（最多約 40 秒）。可以先切去遊戲，回到這頁會自動更新。',
   'mk.petf.lvMin': '最低等級',
   'mk.petf.lvMax': '最高等級',
   'mk.petf.clear': '清除寵物篩選',
