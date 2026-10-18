@@ -152,7 +152,7 @@
         <div class="seg" id="bk-src" role="group" hidden><button type="button" value="player" aria-pressed="true">{{t:bk.src.player}}</button><button type="button" value="village" aria-pressed="false">{{t:bk.src.village}}</button></div>
         <div class="input-wrap bk-search">
           <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
-          <input class="input" id="bk-q" type="search" placeholder="{{t:bk.searchPh}}" autocomplete="off" maxlength="40">
+          <input class="input" id="bk-q" type="search" placeholder="{{t:bk.searchPh}}" aria-label="{{t:bk.searchPh}}" autocomplete="off" maxlength="40">
         </div>
         <div class="seg" id="bk-kind" role="group">
           <button type="button" value="all" aria-pressed="false">{{t:mk.kind.all}}</button>
@@ -233,6 +233,8 @@
     </section>
   </div>
 </section>
+
+{{relatedGuides}}
 
 <section class="card faq help">
     <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>

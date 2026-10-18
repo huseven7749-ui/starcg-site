@@ -9,9 +9,11 @@ $file = pets_file();
 if (!is_file($file)) pets_sync(15);
 else pets_sync_if_stale(isset($_GET['refresh']) ? 0 : 86400);   // ?refresh 只跳過「一天內不重抓」，仍受 6 小時一次的節流
 
+clearstatcache(true, $file);
+$etag = '"' . dechex((int)@filemtime($file)) . '-' . dechex((int)@filesize($file)) . '"';
+if (trim($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { header("ETag: $etag"); http_response_code(304); exit; }
 $body = (string)@file_get_contents($file);
 if ($body === '' || $body[0] !== '[') fail('no data', 503);
-$etag = '"' . substr(md5($body), 0, 20) . '"';
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Robots-Tag: noindex');

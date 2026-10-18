@@ -18,11 +18,11 @@ export function parseFrontMatter(src) {
 }
 
 // imgUrl：把文章內的相對圖片路徑轉成網址
-export function inline(s, { imgUrl = x => x, linkUrl = x => x } = {}) {
+export function inline(s, { imgUrl = x => x, linkUrl = x => x, imgTag = null } = {}) {
   const codes = [];
   let out = escHtml(s).replace(/`([^`]+)`/g, (_, c) => `\u0000${codes.push(c) - 1}\u0000`);
   out = out
-    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => `<img src="${imgUrl(src)}" alt="${alt}" loading="lazy" decoding="async">`)
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => (imgTag ? imgTag(src, alt) : `<img src="${imgUrl(src)}" alt="${alt}" loading="lazy" decoding="async">`))
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, txt, href) => {
       const ext = /^https?:\/\//.test(href);
       return `<a href="${ext ? href : linkUrl(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}>${txt}</a>`;
@@ -96,7 +96,8 @@ export function markdown(src, opts = {}) {
     // 單獨一行的圖片 → 圖說
     const img = l.match(/^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$/);
     if (img) {
-      html.push(`<figure>${il(l.trim())}${img[1] ? `<figcaption>${escHtml(img[1])}</figcaption>` : ''}</figure>`);
+      // 有圖說時圖片 alt 留空（圖說已經說明，讀屏軟體不會念兩次）
+      html.push(`<figure>${il(img[1] ? `![](${img[2]})` : l.trim())}${img[1] ? `<figcaption>${escHtml(img[1])}</figcaption>` : ''}</figure>`);
       i++; continue;
     }
     // 段落

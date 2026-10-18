@@ -53,7 +53,9 @@ export function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 const NF = new Intl.NumberFormat(LANG === 'ko' ? 'ko-KR' : 'zh-TW');
-export const fmt = (n, d = 0) => (n == null || !isFinite(n) ? '–' : (d ? new Intl.NumberFormat(LANG === 'ko' ? 'ko-KR' : 'zh-TW', { maximumFractionDigits: d, minimumFractionDigits: 0 }).format(n) : NF.format(Math.round(n))));
+const NFD = new Map();   // 小數位數 → 格式器（建立 Intl.NumberFormat 很慢，快取起來重複用）
+const nfd = d => NFD.get(d) || NFD.set(d, new Intl.NumberFormat(LANG === 'ko' ? 'ko-KR' : 'zh-TW', { maximumFractionDigits: d, minimumFractionDigits: 0 })).get(d);
+export const fmt = (n, d = 0) => (n == null || !isFinite(n) ? '–' : (d ? nfd(d).format(n) : NF.format(Math.round(n))));
 /** 以「萬／만」為單位的精簡寫法：1,250,000 → 125萬 */
 export function fmtWan(n) {
   if (n == null || !isFinite(n)) return '–';

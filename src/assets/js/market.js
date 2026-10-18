@@ -161,7 +161,9 @@ function writeUrl() {
 // ───────────────── 查詢 ─────────────────
 async function search(fresh = false) {
   S.q = el.q.value.trim().slice(0, 40);
-  S.cat = S.cat || await loadCatalog();
+  // 一般關鍵字查詢不必等目錄（寵物資料約 200KB）下載完才開始查價，兩邊同時進行；裝備／寵物瀏覽才需要先有目錄
+  const catP = S.cat ? Promise.resolve(S.cat) : loadCatalog();
+  if (!el.q.value.trim() && (S.kind === 'equip' || S.kind === 'pet')) S.cat = await catP;
   // 決定查詢方式：關鍵字／裝備分類瀏覽／寵物瀏覽
   let mode = 'query', names = [];
   if (!S.q && S.kind === 'equip') {
@@ -201,6 +203,7 @@ async function search(fresh = false) {
     else d = await apiRetry('market', { q: S.q, type: S.kind === 'pet' ? 'pet' : S.kind === 'all' ? 'all' : 'item', exact: S.exact ? 1 : '', fresh: fresh ? 1 : '' }, (n, sec) => {
       if (token === S.token) { el.status.dataset.retrying = String(Date.now()); el.status.innerHTML = `<span class="dot"></span>${esc(T('mk.retrying').replace('{s}', sec))}`; }
     });
+    S.cat = S.cat || await catP;
     if (token !== S.token) return;
     stopWaiting();
     failStreak = 0;
@@ -405,6 +408,7 @@ function render() {
   const list = [...groups.entries()].map(([name, rs]) => ({ name, kn: rs.find(r => r.kn)?.kn || '', all: rs, rs: S.view === 'all' ? sortRows(rs) : applyView(sortRows(rs)), min: Math.min(...rs.map(r => r.val)) }));
   list.sort((a, b) => a.min - b.min);
   const bestVal = Math.min(...rows.map(r => r.val));
+  watchSet = new Set(getWatch().map(w => w.n));   // 這次重畫只讀一次追蹤清單
   const showMax = 60;
   el.results.innerHTML = list.slice(0, showMax).map(g => groupHtml(g, bestVal)).join('') +
     (list.length > showMax ? notice(esc(T('mk.groupsCut', { n: list.length, max: showMax })), 'info', 'filter') : '');
@@ -459,7 +463,7 @@ function renderSummary(rows) {
 }
 function groupHtml(g, bestVal) {
   const first = g.all[0];
-  const watched = isWatched(g.name);
+  const watched = watchSet ? watchSet.has(g.name) : isWatched(g.name);
   const coins = g.all.filter(r => r.c === 0), crys = g.all.filter(r => r.c === 1);
   const minCoin = coins.length ? Math.min(...coins.map(r => r.p)) : null;
   const minCry = crys.length ? Math.min(...crys.map(r => r.p)) : null;
@@ -699,6 +703,7 @@ async function loadDaily() {
 
 // ───────────────── 追蹤清單 ─────────────────
 const getWatch = () => store.get(WATCH_KEY, []) || [];
+let watchSet = null;
 const isWatched = n => getWatch().some(w => w.n === n);
 function toggleWatch(n, kind) {
   let w = getWatch();

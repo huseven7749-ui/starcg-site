@@ -8,7 +8,7 @@
 <meta name="description" content="{{description}}">
 <meta name="keywords" content="{{keywords}}">
 <meta name="robots" content="{{robots}}">
-<link rel="canonical" href="{{canonical}}">
+{{canonicalLink}}
 {{alternates}}
 <meta property="og:type" content="{{ogType}}">
 {{articleMeta}}
@@ -17,8 +17,7 @@
 <meta property="og:description" content="{{description}}">
 <meta property="og:url" content="{{canonical}}">
 <meta property="og:image" content="{{ogImage}}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+{{ogImageSize}}
 <meta property="og:image:alt" content="{{title}}">
 <meta property="og:locale" content="{{ogLocale}}">
 <meta property="og:locale:alternate" content="{{ogLocaleAlt}}">
@@ -156,7 +155,7 @@
 <script type="application/json" id="i18n">{{i18nJson}}</script>
 <script type="module" src="{{asset:js/core.js}}"></script>
 <script type="module" src="{{asset:js/game.js}}"></script>
-<script type="module" src="{{asset:js/tour.js}}"></script>
+{{tourScript}}
 {{pageScript}}
 </body>
 </html>

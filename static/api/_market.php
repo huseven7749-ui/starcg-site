@@ -51,9 +51,13 @@ function dict_learn(array $pairs): void
         if (($d['zh'][$zh] ?? null) !== $ko) { $d['zh'][$zh] = $ko; $changed = true; }
     }
     if (!$changed) return;
-    foreach (['ids', 'ko', 'zh'] as $k) if (count($d[$k]) > 8000) $d[$k] = array_slice($d[$k], -6000, null, true);
     $file = dict_file();
-    with_lock($file, function () use ($file, $d) { $cur = cache_read($file) ?: []; foreach (['ids', 'ko', 'zh'] as $k) $d[$k] = ($cur[$k] ?? []) + $d[$k]; cache_write($file, $d); return true; }, 3.0);
+    // 合併檔案裡其他請求剛學到的：這次學到的（新值）優先，合併後再修剪，檔案不會無限長大
+    with_lock($file, function () use ($file, $d) {
+        $cur = cache_read($file) ?: [];
+        foreach (['ids', 'ko', 'zh'] as $k) { $d[$k] = $d[$k] + ($cur[$k] ?? []); if (count($d[$k]) > 8000) $d[$k] = array_slice($d[$k], -6000, null, true); }
+        cache_write($file, $d); return true;
+    }, 3.0);
 }
 // 先用名稱查（同一個 ITEM_ID 可能有不同名字，例如各種升星卡），查不到再用 ID
 function dict_zh(?int $id, string $ko): string
@@ -67,6 +71,24 @@ function dict_ko(string $zh): string
     $d = dict_get(); $core = strip_br($zh);
     $ko = (string)($d['zh'][$core] ?? '');
     return $ko !== '' && $core !== $zh ? "[$ko]" : $ko;
+}
+
+/** 韓文版抓到的頁面上，每個道具／寵物名稱都已經有中文對照了嗎（是就不必再抓中文版配對） */
+function ko_all_known(array $pagesData): bool
+{
+    foreach ($pagesData as $d) {
+        foreach ((array)($d['itemsByCd'] ?? []) as $its) foreach ((array)$its as $it) {
+            if (!is_array($it)) continue;
+            $n = trim((string)($it['ITEM_TRUENAME'] ?? $it['ITEM_FIRSTNAME'] ?? ''));
+            if ($n !== '' && dict_zh((int)($it['ITEM_ID'] ?? 0) ?: null, $n) === '') return false;
+        }
+        foreach ((array)($d['petsByCd'] ?? []) as $pts) foreach ((array)$pts as $pt) {
+            if (!is_array($pt)) continue;
+            $n = trim((string)(pick($pt, ['Name', 'name', 'PET_NAME']) ?? ''));
+            if ($n !== '' && dict_zh(null, $n) === '') return false;
+        }
+    }
+    return true;
 }
 
 /** 官方成交紀錄的一筆 log → 精簡格式（單價一律為「上架價」，即含手續費前） */
@@ -118,11 +140,12 @@ function fetch_pages(callable $urlOf, array $pages): array
         $next = []; $limited = 0; $waited = false;
         foreach (array_chunk($todo, $conc) as $chunk) {
             $left = $deadline - microtime(true);
-            if ($limited || $left < 2 || !upstream_pace(count($chunk), $left - 2)) { array_push($next, ...$chunk); continue; }
-            $slots = upstream_slots_acquire(count($chunk), min(15.0, $left - 2));
+            if ($limited || $left < 2 || !upstream_pace(count($chunk), min(8.0, $left - 2))) { array_push($next, ...$chunk); continue; }
+            $slots = upstream_slots_acquire(count($chunk), min(8.0, $left - 2));
+            if (!$slots && !no_limits()) { array_push($next, ...$chunk); continue; }
             $urls = [];
             foreach ($chunk as $p) $urls[$p] = $urlOf($p);
-            try { $res = http_multi(array_values($urls), max(1, min(count($chunk), count($slots) ?: 1))); }
+            try { $res = http_multi(array_values($urls), max(1, min(count($chunk), count($slots) ?: 1))); }   // 拿到幾個名額就開幾條
             finally { upstream_slots_release($slots); }
             $wait = 0;
             foreach ($urls as $p => $u) {
@@ -227,7 +250,7 @@ function market_fetch(string $q, string $type, bool $exact, ?int $maxPagesOverri
     ksort($pagesData);
     // 韓文模式：同樣的頁再抓一次中文版，用攤位＋順序（或道具唯一碼）配對出中文名；韓文關鍵字在中文版搜不到時就只有韓文名
     $zhUc = []; $zhIdx = []; $zhPet = []; $learn = [];
-    if ($lang === 'ko') {
+    if ($lang === 'ko' && !preg_match('/\p{Hangul}/u', $term) && !ko_all_known($pagesData)) {
         [$zhPages] = fetch_pages(fn($p) => market_url($type, $upExact, $p, $term, 'zh'), array_keys($pagesData));
         foreach ($zhPages as $pn => $d) {
             foreach ((array)($d['itemsByCd'] ?? []) as $cd => $its) foreach ((array)$its as $i => $it) {
@@ -354,7 +377,7 @@ function history_fetch(string $q, string $type, int $pages, string $range = '30d
     ksort($data);
     // 韓文模式：中文版同頁依紀錄 id 配對中文名
     $zhById = []; $learn = [];
-    if ($lang === 'ko') {
+    if ($lang === 'ko' && !preg_match('/\p{Hangul}/u', $hq)) {
         [$zhPages] = fetch_pages(fn($p) => history_url($type, $p, $hq, $range, 'zh'), array_keys($data));
         foreach ($zhPages as $d) foreach (($d['logs'] ?? []) as $l) { if (is_array($l) && ($r = parse_log($l)) && $r['id'] !== null) $zhById[$r['id']] = $r['n']; }
     }
@@ -404,8 +427,9 @@ function cached_get(string $ns, string $key, int $ttl, bool $fresh, callable $fe
         $d = $fetch();
         if ($d !== null) cache_write($path, $d);
         return $d;
-    }, (float)cfg('fetch_deadline', 40) + 5);   // 同一個查詢有人正在抓：等他抓完直接用（抓取最多 fetch_deadline 秒）
+    }, 12.0, $timedOut);   // 同一個查詢有人正在抓：最多等 12 秒，抓好就直接用
     if ($res) return [$res, 200];
+    if ($timedOut) { if ($cached && $now - (int)$cached['fetchedAt'] < (int)cfg('stale_max_age', 3600)) return [$cached + ['cached' => true, 'stale' => true], 200]; $GLOBALS['SC_RETRY_AFTER'] = 6; return [null, 503]; }
     if ($cached && $now - (int)$cached['fetchedAt'] < (int)cfg('stale_max_age', 3600)) return [$cached + ['cached' => true, 'stale' => true], 200];
     return [null, upstream_cooldown() > 0 ? 503 : 502];
 }
@@ -413,7 +437,7 @@ function cached_get(string $ns, string $key, int $ttl, bool $fresh, callable $fe
 /** 抓取失敗時統一回應：503＝官方限流中（附建議等待秒數），429＝本站限流，其他＝官方沒回應 */
 function fail_upstream(int $code): void
 {
-    if ($code === 503) json_out(['ok' => false, 'error' => 'upstream busy', 'retryAfter' => max(3, upstream_cooldown())], 503);
+    if ($code === 503) json_out(['ok' => false, 'error' => 'upstream busy', 'retryAfter' => max(3, upstream_cooldown(), (int)($GLOBALS['SC_RETRY_AFTER'] ?? 0))], 503);
     fail($code === 429 ? 'too many requests, please wait a minute' : 'upstream unavailable', $code === 429 ? 429 : 502);
 }
 

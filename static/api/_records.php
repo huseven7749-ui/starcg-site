@@ -16,12 +16,14 @@ function tw_day(int $t): string { return gmdate('Y-m-d', $t + 8 * 3600); }
  * 增量收集：從第 1 頁往後抓，直到遇到上次看過的 id。
  * @return array ['added' => int, 'pages' => int, 'lastId' => int]
  */
-function records_ingest(int $maxPages): array
+function records_ingest(int $maxPages, bool $skipIfBusy = false): array
 {
     $dir = records_dir();
     $stateFile = "$dir/state.json";
-    return with_lock($stateFile, function () use ($dir, $stateFile, $maxPages) {
+    return with_lock($stateFile, function () use ($dir, $stateFile, $maxPages, $skipIfBusy) {
         $state = json_decode((string)@file_get_contents($stateFile), true) ?: ['lastId' => 0, 'at' => 0];
+        // 訪客觸發的補抓：等鎖期間別人已經抓過就不再抓
+        if ($skipIfBusy && time() - (int)($state['at'] ?? 0) <= 600) return ['added' => 0, 'pages' => 0, 'lastId' => (int)($state['lastId'] ?? 0)];
         $lastId = (int)($state['lastId'] ?? 0);
         $new = []; $pages = 0; $maxSeen = $lastId; $done = false;
         for ($page = 1; $page <= $maxPages && !$done; $page++) {
@@ -61,7 +63,7 @@ function records_ingest(int $maxPages): array
             if (basename($f, '.ndjson') < tw_day(time() - 120 * 86400)) @unlink($f);
         }
         return ['added' => count($new), 'pages' => $pages, 'lastId' => $maxSeen];
-    }, 30.0) ?? ['added' => 0, 'pages' => 0, 'lastId' => 0];
+    }, $skipIfBusy ? 0.5 : 30.0) ?? ['added' => 0, 'pages' => 0, 'lastId' => 0];
 }
 
 /** 讀某一天的成交紀錄 */

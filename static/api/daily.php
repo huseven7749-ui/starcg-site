@@ -5,11 +5,11 @@ require __DIR__ . '/_records.php';
 only_get();
 
 $day = (string)($_GET['day'] ?? '');
-if (!preg_match('/^\d{4}-\d\d-\d\d$/', $day)) $day = tw_day(time());
+if (!preg_match('/^\d{4}-\d\d-\d\d$/', $day) || $day > tw_day(time()) || $day < tw_day(time() - 120 * 86400)) $day = tw_day(time());
 
 // 沒設定排程時的保險：距離上次收集超過 10 分鐘就順便補抓最新 2 頁
 $state = json_decode((string)@file_get_contents(records_dir() . '/state.json'), true) ?: [];
-if (time() - (int)($state['at'] ?? 0) > 600 && rate_allow()) records_ingest(2);
+if (time() - (int)($state['at'] ?? 0) > 600 && rate_allow()) records_ingest(2, true);
 
 [$data] = cached_get('daily', "d|$day", 600, false, fn() => daily_summary($day), false);
 if (!$data) fail('unavailable', 502);

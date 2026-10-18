@@ -9,7 +9,7 @@
 :root {
   /* 砂岩與羊皮紙 */
   --bg: #F1E4C8; --card: #FFFAEE; --card-2: #FBF2DF; --card-3: #F4E5C6;
-  --ink: #4A3422; --ink-2: #7B5F43; --ink-3: #A78C6C; --line: #E6D2AB; --line-2: #D5B98A;
+  --ink: #4A3422; --ink-2: #7B5F43; --ink-3: #7A5F43; --line: #E6D2AB; --line-2: #D5B98A;
   /* 主色：法蘭城赤陶屋瓦 */
   --pink: #D9654A; --pink-d: #A7432D; --pink-l: #F9DFD3; --pink-ll: #FCEDE6;
   /* 晴空、苔綠、金飾、黃昏紫、磚紅 */
@@ -42,7 +42,7 @@ html[lang^="ko"] { --font: "StarRoundKO", "Apple SD Gothic Neo", "Noto Sans KR",
 html[data-theme="dark"] {
   /* 夜晚的法蘭城：深藍夜空、街燈的暖金光 */
   --bg: #1B2030; --card: #262C40; --card-2: #2C3349; --card-3: #343C56;
-  --ink: #F5EBD8; --ink-2: #CDBB9A; --ink-3: #8E8672; --line: #3A4260; --line-2: #4B5476;
+  --ink: #F5EBD8; --ink-2: #CDBB9A; --ink-3: #A9A08A; --line: #3A4260; --line-2: #4B5476;
   --pink: #F0876B; --pink-d: #F59A80; --pink-l: #4A2E2C; --pink-ll: #36282C;
   --sky: #8DC0EC; --sky-d: #9ACBF2; --sky-l: #22344D;
   --mint: #9CC97F; --mint-d: #A8D38B; --mint-l: #26382A;
@@ -135,19 +135,20 @@ html[data-theme="light"] .ic-moon, html[data-theme="dark"] .ic-sun { display: no
   position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px;
   color: #fff !important; font-weight: 700; text-decoration: none !important; white-space: nowrap; overflow: hidden;
   background: linear-gradient(120deg, #D9563C 0%, #E8873F 50%, #E2AE47 100%); background-size: 160% 160%;
-  box-shadow: 0 4px 0 #94371F, 0 8px 18px -6px #D9563C99; animation: regGlow 5s ease-in-out infinite;
+  box-shadow: 0 4px 0 #94371F, 0 8px 18px -6px #D9563C99; animation: regGlow 5s ease-in-out 3;
   transition: transform .15s, box-shadow .15s;
 }
 .cta-reg::after {
   content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
-  background: linear-gradient(100deg, transparent, #ffffffaa, transparent); transform: skewX(-20deg); animation: regShine 3.6s ease-in-out infinite;
+  background: linear-gradient(100deg, transparent, #ffffffaa, transparent); transform: translateX(var(--sx, -100%)) skewX(-20deg); animation: regShine 3.6s ease-in-out 4; will-change: transform;
 }
 .cta-reg:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #94371F, 0 12px 22px -6px #D9563Caa; }
 .cta-reg:active { transform: translateY(2px); box-shadow: 0 2px 0 #94371F; }
-.cta-reg .ic { width: 18px; height: 18px; animation: twinkle 2.4s ease-in-out infinite; }
+.cta-reg .ic { width: 18px; height: 18px; animation: twinkle 2.4s ease-in-out 5; }
+.cta-reg:hover::after { animation: regShine 1.2s ease-in-out 1; }
 .cta-reg-lg { padding: 13px 22px; font-size: 1.05rem; justify-content: center; }
 @keyframes regGlow { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes regShine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+@keyframes regShine { 0%, 60% { transform: translateX(-100%) skewX(-20deg); } 100% { transform: translateX(400%) skewX(-20deg); } }
 @keyframes twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.18) rotate(12deg); } }
 
 /* ───── 主要內容 ───── */
@@ -1036,6 +1037,7 @@ html[data-view="mobile"] .mk-view-row select { flex-basis: 100%; }
 /* ───── 角色動畫（冒險者與鼠王一族）───── */
 picture.sp { display: contents; }
 picture.sp > source { display: none; }
+picture:not(.sp) { display: contents; }   /* 文章 WebP 圖：<picture> 不影響原本 img 的版面 */
 .tool .t-mouse { grid-column: 3; grid-row: 1 / span 2; align-self: end; width: auto; height: auto; max-height: 74px; max-width: 90px; object-fit: contain; margin: -10px -6px -10px 0; pointer-events: none; }
 .tool:hover .t-mouse { transform: translateY(-3px); transition: transform .18s; }
 html[data-view="mobile"] .tool b, html[data-view="mobile"] .tool p { grid-column: auto; }
@@ -1181,6 +1183,7 @@ html[data-view="mobile"] .day.is-active { visibility: visible; }
 .prose a { color: var(--pink-d); text-decoration: underline; text-underline-offset: 3px; }
 .prose .tbl-wrap { margin: 1.1em 0; }
 .post-nav { max-width: 840px; margin: 18px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.page-post .related { max-width: 840px; margin-left: auto; margin-right: auto; }   /* 文章底部相關攻略：和文章同寬 */
 .post-nav-link { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 16px; background: var(--card); border: 1.5px solid var(--line); color: var(--ink); text-decoration: none !important; min-width: 0; }
 .post-nav-link small { color: var(--ink-3); }
 .post-nav-link b { overflow-wrap: anywhere; }
@@ -1786,3 +1789,16 @@ html[data-view="mobile"] .pc-grid { grid-template-columns: repeat(2, minmax(0, 1
 .pc-dropbar { position: fixed; left: 12px; right: 12px; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 300; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; animation: ft-in .2s ease-out; }
 .pc-drop { display: grid; place-items: center; min-height: 84px; border-radius: 18px; border: 2.5px dashed var(--pink); background: var(--card); color: var(--ink); font-weight: 800; box-shadow: var(--shadow); }
 .pc-drop.over { background: var(--pink-l); border-style: solid; }
+
+/* ───── 相關攻略（文章底部、工具頁底部）───── */
+.related { margin-top: 18px; }
+.related-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 10px; }
+.related-list a { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: var(--r-sm); background: var(--bg-2, var(--card)); border: 1.5px solid var(--line); color: var(--ink); text-decoration: none; height: 100%; }
+.related-list a:hover { border-color: var(--coral, #E46B4E); }
+.related-list small { color: var(--ink-2); font-size: .78rem; }
+.related-list b { font-size: .92rem; line-height: 1.45; }
+.more-posts { margin-top: 14px; }
+.more-posts > summary { list-style: none; display: flex; justify-content: center; width: max-content; margin: 0 auto 14px; cursor: pointer; }
+.more-posts > summary::-webkit-details-marker { display: none; }
+.more-posts[open] > summary { display: none; }
+.more-posts:not([open]) > .post-list { display: none; }   /* 收合時確實不顯示（全站 details 有展開動畫樣式）*/

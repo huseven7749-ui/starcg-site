@@ -42,6 +42,5 @@ export function lineChart(box, labels, values, o = {}) {
     tip.style.top = (y(best[1]) / H) * r.height + 'px';
   };
   svg.addEventListener('pointermove', move);
-  svg.addEventListener('touchstart', move, { passive: true });
   svg.addEventListener('pointerleave', () => (tip.hidden = true));
 }

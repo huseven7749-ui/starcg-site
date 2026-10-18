@@ -36,7 +36,7 @@
   <section class="card" aria-labelledby="cmp-title">
     <h2 class="card-title" id="cmp-title"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>{{t:ex.compareTitle}}</h2>
     <form class="pull" id="pull-form">
-      <div class="input-wrap"><svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-market"/></svg><input class="input" id="pull-q" placeholder="{{t:ex.fromMarketPh}}" autocomplete="off" maxlength="40" ></div>
+      <div class="input-wrap"><svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-market"/></svg><input class="input" id="pull-q" placeholder="{{t:ex.fromMarketPh}}" autocomplete="off" maxlength="40"  aria-label="{{t:ex.fromMarketPh}}"></div>
       <button class="btn sky sm" type="submit">{{t:ex.fromMarket}}</button>
     </form>
     <div class="grid g2">
@@ -61,6 +61,8 @@
     </div>
   </section>
 </div>
+
+{{relatedGuides}}
 
 <section class="card faq help">
   <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>

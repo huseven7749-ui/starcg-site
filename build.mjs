@@ -327,6 +327,43 @@ function postImgFile(src, lang = 'zh') {
   return { f, v: postImgVer.get(f) };
 }
 const postImgAbs = (src, lang) => { const { f, v } = postImgFile(src, lang); return `${SITE}/posts/img/${f}${v}`; };
+/** JPEG／PNG 圖片的寬高（讀檔頭），給 <img width height> 用，避免載入時版面跳動 */
+const imgSizeCache = new Map();
+function imgSize(file) {
+  if (imgSizeCache.has(file)) return imgSizeCache.get(file);
+  let out = null;
+  try {
+    const b = fs.readFileSync(file);
+    if (b[0] === 0x89 && b[1] === 0x50) out = [b.readUInt32BE(16), b.readUInt32BE(20)];
+    else if (b[0] === 0xff && b[1] === 0xd8) {
+      for (let i = 2; i < b.length - 9;) {
+        if (b[i] !== 0xff) { i++; continue; }
+        const m = b[i + 1], len = b.readUInt16BE(i + 2);
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) { out = [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)]; break; }
+        i += 2 + len;
+      }
+    }
+  } catch { /* 沒有檔案 */ }
+  imgSizeCache.set(file, out);
+  return out;
+}
+let webpMan = null;
+const webpManifest = () => webpMan ??= (() => { try { return JSON.parse(fs.readFileSync(path.join(POSTS_DIR, 'img', 'webp.json'), 'utf8')); } catch { return {}; } })();
+/** 文章圖片 → <picture>：有同名 .webp 就先給 WebP（小 40～60%），再用 JPG 備援；附寬高 */
+const postPicture = (fromPath, lang) => (src, alt = '', attrs = 'loading="lazy" decoding="async"', cls = '') => {
+  const url = postImg(fromPath, lang)(src);
+  if (/^(https?:)?\/\//.test(src)) return `<img src="${url}" alt="${alt}" ${attrs}>`;
+  const { f } = postImgFile(src, lang);
+  const file = path.join(POSTS_DIR, 'img', f);
+  const size = imgSize(file);
+  const wh = size ? ` width="${size[0]}" height="${size[1]}"` : '';
+  const img = `<img${cls ? ` class="${cls}"` : ''} src="${url}" alt="${alt}"${wh} ${attrs}>`;
+  const wf = file.replace(/\.(jpe?g|png)$/i, '.webp');
+  // 只用和目前 JPG 同一版本轉出的 WebP（tools/make-webp.py 記在 webp.json）；JPG 換過還沒重轉就用 JPG
+  if (wf === file || !fs.existsSync(wf) || webpManifest()[f] !== crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 16)) return img;
+  const wurl = url.replace(/\.(jpe?g|png)(\?|$)/i, '.webp$2').replace(/\?v=[^"]*$/, '') + '?v=' + hash(fs.readFileSync(wf)).slice(0, 8);
+  return `<picture><source srcset="${wurl}" type="image/webp">${img}</picture>`;
+};
 const postImg = (fromPath, lang) => src => {
   if (/^(https?:)?\/\//.test(src)) return src;
   const { f, v } = postImgFile(src, lang);
@@ -335,11 +372,30 @@ const postImg = (fromPath, lang) => src => {
 function postCard(p, lang, fromPath, t) {
   const foreign = p.lang !== lang;
   const tags = p.tags.length ? `<span class="post-tags">${p.tags.slice(0, 3).map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</span>` : '';
-  const thumb = p.cover ? `<img class="post-card-cover" src="${postImg(fromPath, p.lang)(p.cover)}" width="1200" height="630" alt="" loading="lazy" decoding="async">` : '';
+  const thumb = p.cover ? postPicture(fromPath, p.lang)(p.cover, '', 'loading="lazy" decoding="async"', 'post-card-cover') : '';
   return `<article class="post-card"><a href="${pageHref(p.lang, postPath(p), fromPath)}"${foreign ? ` hreflang="${LANGS[p.lang].dict['lang.hreflang']}"` : ''}>` + thumb +
     `<span class="post-card-meta">${p.pinned ? `<span class="badge b-coral">${esc(t('posts.pinned'))}</span>` : ''}<time datetime="${p.date}">${p.date}</time>${foreign ? `<span class="badge b-sky">${esc(LANGS[p.lang].dict['lang.name'])}</span>` : ''}</span>` +
     `<h2${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.title)}</h2><p${foreign ? ` lang="${LANGS[p.lang].dict['lang.code']}"` : ''}>${esc(p.desc)}</p>${tags}</a></article>`;
 }
+// 相關攻略：共同標籤（不算每篇都有的通用標籤）越多越前面，同分類加分
+const GENERIC_TAGS = new Set(['魔力寶貝', '星詠魔力', '水藍魔力', '初心魔力寶貝', '任務攻略', '크로스게이트', 'StarCG', '퀘스트 공략']);
+function relatedPosts(p, lang, n = 4) {
+  const tags = new Set(p.tags.filter(x => !GENERIC_TAGS.has(x)));
+  return postsFor(lang).filter(x => x !== p && x.slug !== '_範本')
+    .map(x => ({ x, s: x.tags.filter(y => tags.has(y)).length * 3 + (x.category === p.category ? 2 : 0) }))
+    .filter(o => o.s > 0).sort((a, b) => b.s - a.s || b.x.date.localeCompare(a.x.date)).slice(0, n).map(o => o.x);
+}
+const relatedHtml = (list, lang, fromPath, t, title) => list.length ? `<section class="card related" aria-label="${esc(title)}"><h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg>${esc(title)}</h2><ul class="related-list">` +
+  list.map(x => `<li><a href="${pageHref(x.lang, postPath(x), fromPath)}"><small>${esc(t('posts.cat.' + x.category))}</small><b>${esc(x.title)}</b></a></li>`).join('') + '</ul></section>' : '';
+// 工具頁底部的相關攻略（依工具挑選文章 slug，找不到的略過）
+const TOOL_GUIDES = {
+  market: ['site-guide', 'bloody-mary-event-guide', 'leveling-route-guide', 'newbie-leveling-guide'],
+  exchange: ['site-guide', 'newbie-quest-guide', 'leveling-route-guide'],
+  pets: ['bonds-quest-guide', 'amber-egg-quest-guide', 'lost-alchemy-quest-guide', 'medals-quest-guide'],
+  remodel: ['job-change-quest-guide', 'seven-sins-quest-guide', 'dawn-quest-guide', 'time-gate-quest-guide'],
+  damage: ['job-advance-quest-guide', 'leveling-route-guide', 'newbie-leveling-guide', 'halfmountain-quest-guide'],
+  maze: ['maze-guide', 'job-advance-3-quest-guide', 'leveling-route-guide', 'ke-village-quest-guide'],
+};
 function postVars(page, lang, fromPath, t) {
   const p = page.post;
   const list = postsFor(lang);
@@ -350,15 +406,16 @@ function postVars(page, lang, fromPath, t) {
   return {
     postTitle: esc(p.title),
     postCat: `<a class="post-cat" href="${pageHref(lang, catPath(p.category), fromPath)}">${esc(t('posts.cat.' + p.category))}</a>`,
-    postCover: p.cover ? `<img class="post-cover" src="${postImg(fromPath, p.lang)(p.cover)}" width="1200" height="630" alt="${esc(p.title)}" fetchpriority="high" decoding="async">` : '',
+    postCover: p.cover ? postPicture(fromPath, p.lang)(p.cover, esc(p.title), 'fetchpriority="high" decoding="async"', 'post-cover') : '',
     postDate: p.date,
     postUpdated: p.updated ? `<span>${esc(t('posts.updated'))} <time datetime="${p.updated}">${p.updated}</time></span>` : '',
     postRead: esc(t('posts.read').replace('{n}', minutes)),
     postTags: p.tags.length ? `<p class="post-tags">${p.tags.map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</p>` : '',
-    postHtml: markdown(p.body, { imgUrl: postImg(fromPath, p.lang), linkUrl: h => (PREVIEW && h.startsWith('/') && !h.startsWith('//') ? relPath(fromPath, h.endsWith('/') ? h + 'index.html' : h) : h) }).replace(/\{\{/g, '&#123;&#123;'),
+    postHtml: markdown(p.body, { imgUrl: postImg(fromPath, p.lang), imgTag: postPicture(fromPath, p.lang), linkUrl: h => (PREVIEW && h.startsWith('/') && !h.startsWith('//') ? relPath(fromPath, h.endsWith('/') ? h + 'index.html' : h) : h) }).replace(/\{\{/g, '&#123;&#123;'),
     postNav: nav(list[i + 1], t('posts.prev'), 'prev') + nav(list[i - 1], t('posts.next'), 'next'),
     postOtherLang: other ? `<p class="post-other"><a href="${pageHref(other, postPath(p), fromPath)}" hreflang="${LANGS[other].dict['lang.hreflang']}">${esc(LANGS[other].dict['posts.otherLang'])}</a></p>` : '',
     postsHref: pageHref(lang, '/posts/', fromPath),
+    postRelated: relatedHtml(relatedPosts(p, lang), lang, fromPath, t, t('posts.related')),
   };
 }
 
@@ -369,7 +426,8 @@ function buildPages() {
   for (const lang of Object.keys(LANGS)) {
     const t = makeT(lang);
     // 腳本字典：共用部分每頁都帶，各工具的字串只放在該頁（首頁、心得頁不用載市場／迷宮的字串）
-    const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|pc', remodel: 'rm', exchange: 'ex', damage: 'dmg', maze: 'mz' };
+    const TOUR_PAGES = new Set(['market', 'maze', 'pets', 'damage', 'remodel', 'exchange']);   // 對應 src/assets/js/tour.js 的 TOURS
+const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|pc', remodel: 'rm', exchange: 'ex', damage: 'dmg', maze: 'mz' };
     const fullDict = { ...LANGS.zh.dict, ...LANGS[lang].dict };
     const dictFor = id => { const re = new RegExp(`^(js|common|day|guide|tour|wel|game${DICT_GROUPS[id] ? '|' + DICT_GROUPS[id] : ''})\\.`); return Object.fromEntries(Object.entries(fullDict).filter(([k]) => re.test(k) && !/(_html|\.faq\.)/.test(k))); };
     const postPages = POSTS.filter(p => p.lang === lang).map(p => ({ id: 'post', path: postPath(p), tpl: 'post', js: null, post: p, langs: p.langs }));
@@ -392,6 +450,8 @@ function buildPages() {
         articleMeta: page.post ? `<meta property="article:published_time" content="${page.post.date}"><meta property="article:modified_time" content="${page.post.updated || page.post.date}">` + page.post.tags.map(x => `<meta property="article:tag" content="${esc(x)}">`).join('') : '',
         keywords: esc(t('site.keywords')),
         canonical: absUrl(lang, page.path),
+        canonicalLink: page.noindex ? '' : `<link rel="canonical" href="${absUrl(lang, page.path)}">`,
+        ogImageSize: (page.post && page.post.cover) || assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] ? '<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">' : '',
         altZh: absUrl('zh', page.path), altKo: absUrl('ko', page.path),
         ogLocale: t('lang.og'), ogLocaleAlt: LANGS[other].dict['lang.og'],
         ogImage: page.post && page.post.cover ? postImgAbs(page.post.cover, page.post.lang) : `${SITE}/assets/${assetMap[`img/og/${page.id === '404' ? 'home' : page.id === 'post' ? 'posts' : page.id}-${lang}.jpg`] || 'img/sprites/ratking-still.png'}`,
@@ -403,6 +463,8 @@ function buildPages() {
         jsonld: jsonLd(lang, page, t),
         i18nJson: JSON.stringify(dictFor(page.id)).replace(/</g, '\\u003c'),
         pageScript: page.js ? `<script type="module" src="${asset(`js/${page.js}.js`, fromPath)}"></script>` : '',
+        // 星野導覽只在有導覽的工具頁載入（其他頁不需要多下載、執行 tour.js）
+        tourScript: TOUR_PAGES.has(page.id) ? `<script type="module" src="${asset('js/tour.js', fromPath)}"></script>` : '',
         base: PREVIEW ? relPath(fromPath, '/') : '/',
         fontHref: asset(`fonts/round-${lang}.woff2`, fromPath),
         spritesJson: esc(spritesJson(fromPath)),
@@ -421,12 +483,15 @@ function buildPages() {
           `<nav class="crumbs" aria-label="${esc(t('a11y.breadcrumb'))}"><a href="${pageHref(lang, '/', fromPath)}">${esc(t('nav.home'))}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(t('nav.' + page.id))}</span></nav>`,
       });
       if (page.post) Object.assign(v, postVars(page, lang, fromPath, t));
+      v.relatedGuides = TOOL_GUIDES[page.id] ? relatedHtml(TOOL_GUIDES[page.id].map(s => postsFor(lang).find(p => p.slug === s)).filter(Boolean), lang, fromPath, t, t('tool.related')) : '';
       const plist = postsFor(lang).slice().sort((a, b) => b.pinned - a.pinned);   // 置頂文章排最前（穩定排序，其餘維持日期順序）
       const shown = page.cat ? plist.filter(p => p.category === page.cat) : plist;
       const catTabs = `<nav class="cat-tabs" aria-label="${esc(t('posts.catNav'))}">` +
         [['', t('posts.cat.all'), plist.length], ...POST_CATS.map(c => [c, t('posts.cat.' + c), plist.filter(p => p.category === c).length]).filter(x => x[2])]
           .map(([c, label, n]) => `<a href="${pageHref(lang, c ? catPath(c) : '/posts/', fromPath)}"${page.id === 'posts' && (page.cat || '') === c ? ' aria-current="page"' : ''}>${esc(label)}<small>${n}</small></a>`).join('') + '</nav>';
-      v.postList = catTabs + (shown.length ? `<div class="post-list">${shown.map(p => postCard(p, lang, fromPath, t)).join('')}</div>` :
+      const FIRST = page.cat ? Infinity : 30;
+      v.postList = catTabs + (shown.length ? `<div class="post-list">${shown.slice(0, FIRST).map(p => postCard(p, lang, fromPath, t)).join('')}</div>` +
+        (shown.length > FIRST ? `<details class="more-posts"><summary class="btn">${esc(t('posts.showMore').replace('{n}', shown.length - FIRST))}</summary><div class="post-list">${shown.slice(FIRST).map(p => postCard(p, lang, fromPath, t)).join('')}</div></details>` : '') :
         `<div class="empty card">${pic('adv-sit', fromPath)}<b>${esc(t('posts.empty'))}</b></div>`);
       v.postsH1 = esc(page.cat ? t('posts.catH1').replace('{c}', t('posts.cat.' + page.cat)) : t('page.posts.h1'));
       v.postsLead = esc(page.cat ? t('posts.catDesc.' + page.cat) : t('page.posts.lead'));
@@ -521,7 +586,8 @@ function buildSeoFiles() {
     return Object.keys(LANGS).map(l => `<url><loc>${absUrl(l, p.path)}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority>${alts}</url>`).join('\n');
   }).concat(POST_CATS.filter(c => POSTS.some(p => p.category === c)).map(c =>
     Object.keys(LANGS).map(l => `<url><loc>${absUrl(l, catPath(c))}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority>` +
-      Object.keys(LANGS).map(x => `<xhtml:link rel="alternate" hreflang="${LANGS[x].dict['lang.hreflang']}" href="${absUrl(x, catPath(c))}"/>`).join('') + '</url>').join('\n')
+      Object.keys(LANGS).map(x => `<xhtml:link rel="alternate" hreflang="${LANGS[x].dict['lang.hreflang']}" href="${absUrl(x, catPath(c))}"/>`).join('') +
+      `<xhtml:link rel="alternate" hreflang="x-default" href="${absUrl('zh', catPath(c))}"/>` + '</url>').join('\n')
   )).concat(POSTS.map(p => {
     const alts = p.langs.length > 1 ? p.langs.map(l => `<xhtml:link rel="alternate" hreflang="${LANGS[l].dict['lang.hreflang']}" href="${absUrl(l, postPath(p))}"/>`).join('') +
       `<xhtml:link rel="alternate" hreflang="x-default" href="${absUrl(p.langs.includes('zh') ? 'zh' : p.lang, postPath(p))}"/>` : '';
@@ -551,7 +617,7 @@ function buildSeoFiles() {
     write(`manifest${lang === 'ko' ? '.ko' : ''}.webmanifest`, JSON.stringify(m, null, 2));
   }
   // Service Worker：預先快取外殼資產
-  const precache = ['/', '/ko/', '/offline.html', '/icons/icon.svg', ...['css/app.css', 'js/core.js', 'img/sprites/ratking-face.png', 'img/sprites/ratking.gif', 'fonts/round-zh.woff2'].filter(k => assetMap[k]).map(k => '/assets/' + assetMap[k])];
+  const precache = ['/', '/ko/', '/offline.html', '/icons/icon.svg', ...['css/app.css', 'js/core.js', 'js/game.js', 'js/stats.js', 'img/sprites/ratking-face.png', 'img/sprites/ratking.gif', 'fonts/round-zh.woff2', 'fonts/round-ko.woff2'].filter(k => assetMap[k]).map(k => '/assets/' + assetMap[k])];
   const version = hash(JSON.stringify(assetMap) + BUILD_DATE);
   let sw = read(path.join(SRC, 'sw.js'));
   sw = sw.replace('__VERSION__', version).replace('__PRECACHE__', JSON.stringify(precache));

@@ -5,6 +5,8 @@ require __DIR__ . '/config.php';
 date_default_timezone_set('Asia/Taipei');
 
 function cfg(string $k, $default = null) { return $GLOBALS['SC_CONFIG'][$k] ?? $default; }
+/** 本機測試用：設環境變數 SC_NO_LIMITS=1 才略過全站連線名額與節奏（排程 cron 也要遵守，免得和訪客一起超過官方限制） */
+function no_limits(): bool { return getenv('SC_NO_LIMITS') === '1'; }
 
 /** 輸出 JSON（附 ETag，相同內容回 304） */
 function json_out(array $data, int $code = 200, int $maxAge = 0): void
@@ -16,7 +18,8 @@ function json_out(array $data, int $code = 200, int $maxAge = 0): void
     header('X-Content-Type-Options: nosniff');
     header('X-Robots-Tag: noindex');
     header($maxAge > 0 && $code === 200 ? "Cache-Control: public, max-age=$maxAge, stale-while-revalidate=30" : 'Cache-Control: no-store');
-    $etag = '"' . substr(md5($body), 0, 20) . '"';
+    // ETag 不含每秒都在變的 age，內容沒變就能回 304
+    $etag = '"' . substr(md5(is_array($data) ? json_encode(array_diff_key($data, ['age' => 1]), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) : $body), 0, 20) . '"';
     header("ETag: $etag");
     if ($code === 200 && trim($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); exit; }
     echo $body;
@@ -63,13 +66,14 @@ function cache_write(string $path, array $data): void
 }
 
 /** 取得檔案鎖後執行（同一查詢同時只會有一個請求去抓官方，其他人等它寫好快取） */
-function with_lock(string $path, callable $fn, float $timeout = 25.0)
+function with_lock(string $path, callable $fn, float $timeout = 25.0, ?bool &$timedOut = null)
 {
+    $timedOut = false;
     $fh = @fopen($path . '.lock', 'c');
     if (!$fh) return $fn();
     $start = microtime(true);
     while (!flock($fh, LOCK_EX | LOCK_NB)) {
-        if (microtime(true) - $start > $timeout) { fclose($fh); return null; }
+        if (microtime(true) - $start > $timeout) { fclose($fh); $timedOut = true; return null; }
         usleep(150000);
     }
     try { return $fn(); }
@@ -138,7 +142,7 @@ function upstream_budget(int $pages): bool
  */
 function upstream_slots_acquire(int $want, float $timeout = 20.0): array
 {
-    if (PHP_SAPI === 'cli') return [];
+    if (no_limits()) return [];
     $max = max(1, (int)cfg('upstream_slots', 2));
     $dir = rtrim((string)cfg('cache_dir'), '/') . '/slots';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
@@ -166,7 +170,7 @@ function upstream_slots_release(array $got): void
  */
 function upstream_pace(int $n, float $maxWait): bool
 {
-    if (PHP_SAPI === 'cli') return true;
+    if (no_limits()) return true;
     $gap = (float)cfg('upstream_gap', 0.6);
     $file = rtrim((string)cfg('cache_dir'), '/') . '/pace.json';
     $start = (float)locked_json($file, function (array $d) use ($n, $gap, $maxWait) {
@@ -183,7 +187,7 @@ function upstream_pace(int $n, float $maxWait): bool
 /** 官方回「忙碌／太頻繁」時：全站下一個請求至少等 $sec 秒（upstream_pace 會照這個時間排隊） */
 function upstream_backoff(float $sec): void
 {
-    if (PHP_SAPI === 'cli') { usleep((int)($sec * 1e6)); return; }
+    if (no_limits()) { usleep((int)($sec * 1e6)); return; }
     $file = rtrim((string)cfg('cache_dir'), '/') . '/pace.json';
     locked_json($file, function (array $d) use ($sec) {
         return [['next' => max((float)($d['next'] ?? 0), microtime(true) + $sec)], true];

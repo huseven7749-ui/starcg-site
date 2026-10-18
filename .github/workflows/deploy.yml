@@ -57,7 +57,7 @@ jobs:
       - name: 同步寵物圖鑑
         run: |
           OUT=$(ssh -p "${{ secrets.SG_PORT }}" -o BatchMode=yes "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}" \
-            "cd '${{ secrets.SG_PATH }}' && { [ -s data/pets.json ] || cp data/pets.seed.json data/pets.json; } && php cron/sync-pets.php --images=60 2>&1; php cron/pets-status.php" 2>&1) \
+            "cd '${{ secrets.SG_PATH }}' && { [ -s data/pets.json ] || cp data/pets.seed.json data/pets.json; } && php cron/sync-pets.php --images=60 2>&1; php cron/pets-status.php; php cron/cleanup.php" 2>&1) \
             || OUT="圖鑑同步失敗（網站照常上線，api/pets.php 會再自動重試）：$OUT"
           echo "$OUT"
           echo "::notice title=寵物圖鑑::$(echo "$OUT" | tr '\n' ' ')"

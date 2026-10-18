@@ -7,7 +7,8 @@ declare(strict_types=1);
 require __DIR__ . '/_lib.php';
 
 $id = (string)($_GET['id'] ?? '');
-if (!preg_match('/^\d{1,9}$/', $id)) { http_response_code(404); exit; }
+// 道具圖片編號最多 7 位數；超出就直接 404（擋亂打的編號）
+if (!preg_match('/^\d{1,7}$/', $id) || (int)$id < 1) { http_response_code(404); exit; }
 $sources = [
     sprintf('https://member.starcg.net/metamo/item/%s.gif', $id),
     sprintf('https://member.starcg.net/metamo/png/%s.png', $id),
@@ -26,6 +27,17 @@ function send_img(string $file): void
 }
 if (is_file($file)) send_img($file);
 
+// 官方確定沒有的圖：記 1 天，不再去問
+$miss = rtrim((string)cfg('cache_dir'), '/') . "/img404/$id";
+if (is_file($miss) && time() - (int)@filemtime($miss) < 86400) { http_response_code(404); header('Cache-Control: public, max-age=3600'); exit; }
+// 每個 IP 每分鐘最多讓伺服器向官方取 60 張新圖（一般瀏覽一頁不到 30 張），不佔查價次數
+$ipOk = (bool)locked_json(rtrim((string)cfg('cache_dir'), '/') . '/rl/img-' . substr(sha1(client_ip()), 0, 16) . '.json', function (array $d) {
+    $now = time(); $d = array_values(array_filter($d, fn($t) => is_int($t) && $now - $t < 60));
+    if (count($d) >= (int)cfg('item_img_per_ip', 60)) return [$d, false];
+    $d[] = $now; return [$d, true];
+});
+if (!$ipOk) { http_response_code(429); header('Retry-After: 30'); exit; }
+
 // 全站每分鐘取圖上限（不佔訪客的查價次數）；超過就暫時讓瀏覽器直接向官方取
 $budget = (bool)locked_json(rtrim((string)cfg('cache_dir'), '/') . '/img-budget.json', function (array $d) {
     $min = (int)floor(time() / 60);
@@ -38,8 +50,8 @@ if (!$budget) { header('Location: ' . $sources[0], true, 302); exit; }
 $isImg = fn(?array $r): bool => $r && $r['code'] === 200 && is_string($r['body']) && strlen($r['body']) > 40 && strlen($r['body']) < 500_000
     && (strncmp($r['body'], 'GIF8', 4) === 0 || strncmp($r['body'], "\x89PNG", 4) === 0);
 // 和查價共用全站 2 條連線名額（官方同一 IP 同時連線太多會擋查價）；等不到就讓瀏覽器直接向官方取這一次
-$slots = upstream_slots_acquire(1, 6.0);
-if (!$slots && PHP_SAPI !== 'cli') { header('Location: ' . $sources[0], true, 302); exit; }
+$slots = upstream_slots_acquire(1, 4.0);
+if (!$slots && !no_limits()) { header('Location: ' . $sources[0], true, 302); exit; }
 $r = null;
 try {
     foreach ($sources as $u) {
@@ -51,6 +63,7 @@ try {
 if (!$isImg($r)) {
     // 官方兩種格式都沒有這張圖：回 404，前端就不顯示圖片
     $missing = ($r['code'] ?? 0) === 404;
+    if ($missing) { @mkdir(dirname($miss), 0755, true); @touch($miss); }
     http_response_code($missing ? 404 : 502);
     header('Cache-Control: ' . ($missing ? 'public, max-age=3600' : 'no-store'));   // 官方暫時連不上不要快取
     exit;

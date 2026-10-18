@@ -28,7 +28,7 @@ if ($needFetch && !rate_allow()) fail('too many requests, please wait a minute',
 
 $out = []; $failed = [];
 foreach ($names as $n) {
-    [$d] = cached_get('market', "m|$type|1|$n" . $sfx, (int)cfg('market_ttl', 60), $fresh, fn() => market_fetch($n, $type, true, null, $lang), false);
+    [$d] = cached_get('market', "m|$type|1|$n" . $sfx, (int)cfg('market_ttl', 60), $fresh, fn() => market_fetch($n, $type, true, (int)cfg('batch_max_pages', 5), $lang), false);
     if ($d) $out[$n] = with_age($d); else $failed[] = $n;
 }
 if (!$out) fail_upstream(upstream_cooldown() > 0 ? 503 : 502);

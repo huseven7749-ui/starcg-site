@@ -182,6 +182,7 @@ const replay = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.
   const orig = inp.placeholder, pre = T('guide.searchPre');
   let w = 0, c = 0, del = false;
   const tick = () => {
+    if (document.hidden) return setTimeout(tick, 2000);   // 分頁在背景：先不動
     if (document.activeElement === inp || inp.value) { inp.placeholder = orig; c = 0; del = false; return setTimeout(tick, 1500); }
     const word = searchEx[w % searchEx.length] || '';
     c += del ? -1 : 1;

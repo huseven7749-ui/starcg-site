@@ -75,10 +75,13 @@ function showMoreDex() {
   dexShown += next.length;
   $('#dex-more').hidden = dexShown >= dexList.length;
 }
+// 搜尋用字串（名稱、韓文名、造型名）只正規化一次，打字篩選時不用每隻寵物重算
+const SKEY = new WeakMap();
+const searchKey = p => SKEY.get(p) ?? SKEY.set(p, [p.name, p.kn, ...(p.skins || []).map(s => s.name)].filter(Boolean).map(normName).join('\u0001')).get(p);
 function renderDex() {
   const q = normName(F.q.value);
   const race = F.race.value, tier = F.tier.value, el = F.el.value, sort = F.sort.value;
-  let list = PETS.filter(p => (!q || normName(p.name).includes(q) || (p.kn && normName(p.kn).includes(q)) || (p.skins || []).some(s => normName(s.name).includes(q)))
+  let list = PETS.filter(p => (!q || searchKey(p).includes(q))
     && (!race || p.race === race) && (!tier || tierOf(p.cardTier) === tier) && (!el || p[el] > 0));
   const key = p => sort === 'total' ? p.bp.reduce((a, b) => a + b, 0) : sort === 'slots' ? p.skillSlots : sort === 'wash' ? p.washPrice : sort === 'id' ? -p.id : p.bp[Number(sort)];
   dexList = list.slice().sort((a, b) => (key(b) - key(a)) || a.id - b.id);
@@ -188,7 +191,7 @@ function compute() {
     `<div class="stat-tile hl" style="grid-column:span 1"><span>${esc(T('pet.score'))}</span><b>${fmt(sc.total)}</b></div>`;
   $('#score-sub').textContent = T('pet.scoreParts', { b: fmt(sc.base), s: fmt(sc.skill), f: fmt(sc.full) });
   S.last = { ...r, score: sc.total };
-  renderLvTable();
+  lvLater();                 // 等級表要跑 10 次模擬，打字時延後 150ms 再一起算
   saveState();
 }
 // ───── 爆點提示 ─────
@@ -264,6 +267,7 @@ function allocFor(limit, strategy, ratio) {
   for (let k = 0; rest > 0; k = (k + 1) % 5, rest--) a[order[k][1]]++;
   return a;
 }
+function lvLater() { (lvLater.d ||= debounce(renderLvTable, 150))(); }   // 宣告會提升，初始化時先呼叫也不會出錯
 function renderLvTable() {
   const strategy = $('#lv-strategy').value;
   const ratio = S.manual.some(v => v) ? S.manual : zero();

@@ -14,6 +14,11 @@ $pages = max(1, min((int)cfg('history_max_pages', 10), (int)($_GET['pages'] ?? 2
 if ($q === '') fail('missing q');
 $lang = api_lang(); $sfx = $lang === 'ko' ? '|ko' : '';
 
+// 同一商品已經有「抓更多頁」的新鮮快取就直接用（例如先查 3 頁、再按載入更多到 6 頁）
+for ($n = (int)cfg('history_max_pages', 10); $n > $pages; $n--) {
+    $c = cache_read(cache_path('history', "h|$type|$range|$n|$q" . $sfx));
+    if ($c && time() - (int)$c['fetchedAt'] < (int)cfg('history_ttl', 180)) json_out(with_age($c + ['cached' => true]), 200, 60);
+}
 [$data, $code] = cached_get('history', "h|$type|$range|$pages|$q" . $sfx, (int)cfg('history_ttl', 180), false,
     fn() => history_fetch($q, $type, $pages, $range, $lang));
 if (!$data) fail_upstream($code);

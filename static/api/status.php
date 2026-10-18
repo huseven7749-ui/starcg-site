@@ -10,4 +10,4 @@ $recent = array_values(array_filter($log, fn($x) => is_array($x) && $now - (int)
 $by = [];
 foreach ($recent as $x) { $k = ($x['s'] ?? '?') . ' ' . ($x['c'] ?? 0); $by[$k] = ($by[$k] ?? 0) + 1; }
 json_out(['ok' => true, 'now' => $now, 'failsLastHour' => count($recent), 'byStageCode' => $by,
-    'last' => array_map(fn($x) => ['ago' => $now - (int)$x['t'], 's' => $x['s'] ?? '', 'c' => $x['c'] ?? 0, 'e' => $x['e'] ?? '', 'b' => $x['b'] ?? ''], array_slice($recent, -10))], 200, 0);
+    'last' => array_map(fn($x) => ['ago' => $now - (int)$x['t'], 's' => $x['s'] ?? '', 'c' => $x['c'] ?? 0], array_slice($recent, -10))], 200, 0);
