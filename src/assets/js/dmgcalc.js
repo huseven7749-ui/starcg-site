@@ -31,7 +31,7 @@ export const PET_REMODEL = [                                                  //
 export const effective = v => (v <= SOFT_CAP ? v : SOFT_CAP + SOFT_RATE * (v - SOFT_CAP));
 
 // ───── 屬性相剋（cgsword.com/propCal.html）─────
-// 地剋水、水剋火、火剋風、風剋地。每種屬性 0～10 格（歌姬等特殊角色單一屬性可到 12 格）。
+// 地剋水、水剋火、火剋風、風剋地。每種屬性 0～10 格（一般角色合計 10 格；歌姬地水火風各 4 格）。
 // 分數 ＝ Σ［（攻方第 i 屬性 − 守方第 i 屬性）× 10 ＋ 攻方第 i 屬性 ×（守方下一屬性 − 守方上一屬性）］；倍率 ＝ 1 ＋ 分數 × 0.3%
 export const ELEMS = ['earth', 'water', 'fire', 'wind'];
 export function elementScore(a, d) {

@@ -212,7 +212,8 @@ t('屬性相剋與種族關係（cgsword 公式）', () => {
   near(elementMult([10, 0, 0, 0], [2, 2, 2, 2]), 1.06, 1e-9);            // 打全屬性 2：+6%
   near(elementMult([10, 0, 0, 0], [5, 5, 5, 5]), 0.70, 1e-9);            // 打全屬性 5：−30%
   near(elementMult([0, 0, 3, 7], [2, 0, 0, 8]), 1.114, 1e-9);            // 火3風7 打 風8地2（cgsword 範例）
-  near(elementMult([12, 0, 0, 0], [0, 10, 0, 0]), 1.42, 1e-9);           // 歌姬 地12 打 水10
+  near(elementMult([4, 4, 4, 4], [0, 10, 0, 0]), 1.18, 1e-9);            // 歌姬（各 4）打 水10
+  near(elementMult([10, 0, 0, 0], [4, 4, 4, 4]), 0.82, 1e-9);            // 地10 打 歌姬
   assert.equal(raceRelation('dragon', 'flying'), 'full');
   assert.equal(raceRelation('dragon', 'beast'), 'half');
   assert.equal(raceRelation('flying', 'dragon'), 'fullRev');

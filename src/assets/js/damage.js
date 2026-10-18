@@ -59,12 +59,14 @@ function renderRef() {
     RACES.filter(r => RACE_BEATS[r]).map(r => `<tr><th scope="row">${rc(r)}</th><td>${rc(RACE_BEATS[r][0])}</td><td>${rc(RACE_BEATS[r][1])}</td></tr>`).join('') +
     `<tr><th scope="row">${rc('evil')}</th><td colspan="2">${esc(T('dmg.evil'))}</td></tr></tbody>`;
   const avg = (a, d) => physical({ atk: 300, def: 150, atkLv: 1, defLv: 1, weapon: 0.15, crystal: elementMult(a, d) - 1, race: 0, skill: 1, pet: null }).attack.normal.avg;
-  const defs = [['none', [0, 0, 0, 0]], ['water', [0, 10, 0, 0]], ['fire', [0, 0, 10, 0]], ['wind', [0, 0, 0, 10]]];
+  const defs = [['none', [0, 0, 0, 0]], ['earth', [10, 0, 0, 0]], ['water', [0, 10, 0, 0]], ['fire', [0, 0, 10, 0]], ['wind', [0, 0, 0, 10]], ['all2', [2, 2, 2, 2]]];
+  const N = [10, 0, 0, 0], G = [4, 4, 4, 4];
   $('#diva-tbl').innerHTML = `<thead><tr><th>${esc(T('dmg.diva.col.def'))}</th><th class="num">${esc(T('dmg.diva.col.noElem'))}</th><th class="num">${esc(T('dmg.diva.col.normal'))}</th><th class="num">${esc(T('dmg.diva.col.diva'))}</th><th class="num">${esc(T('dmg.diva.col.diff'))}</th></tr></thead><tbody>` +
     defs.map(([k, d]) => {
-      const z = avg([0, 0, 0, 0], d), n = avg([10, 0, 0, 0], d), g = avg([12, 0, 0, 0], d);
-      return `<tr><th scope="row">${esc(T('dmg.diva.' + k))}</th><td class="num">${fmt(z)}</td><td class="num">${fmt(n)} <small>×${fmt(elementMult([10, 0, 0, 0], d), 2)}</small></td><td class="num"><b>${fmt(g)}</b> <small>×${fmt(elementMult([12, 0, 0, 0], d), 2)}</small></td><td class="num">+${fmt((g / n - 1) * 100, 1)}%</td></tr>`;
+      const z = avg([0, 0, 0, 0], d), n = avg(N, d), g = avg(G, d), diff = (g / n - 1) * 100;
+      return `<tr><th scope="row">${esc(T('dmg.diva.' + k))}</th><td class="num">${fmt(z)}</td><td class="num">${fmt(n)} <small>×${fmt(elementMult(N, d), 2)}</small></td><td class="num"><b>${fmt(g)}</b> <small>×${fmt(elementMult(G, d), 2)}</small></td><td class="num">${diff >= 0 ? '+' : ''}${fmt(diff, 1)}%</td></tr>`;
     }).join('') + '</tbody>';
+  $('#diva-def').textContent = T('dmg.diva.def', { m: fmt(elementMult(N, G), 2) });
 }
 
 // 技能快速帶入
@@ -162,7 +164,10 @@ $('#pane-phys').addEventListener('input', e => {
   renderPhys(); save();
 });
 // 帶入歌姬：攻擊方單一屬性 地 12
-$('#p-diva').addEventListener('click', () => { EL('p-ae').forEach((id, i) => { $('#' + id).value = i === 0 ? 12 : 0; }); renderPhys(); save(); });
+// 帶入歌姬：地水火風各 4
+const DIVA = [4, 4, 4, 4];
+$('#p-diva').addEventListener('click', () => { EL('p-ae').forEach((id, i) => { $('#' + id).value = DIVA[i]; }); renderPhys(); save(); });
+$('#p-diva-def').addEventListener('click', () => { EL('p-de').forEach((id, i) => { $('#' + id).value = DIVA[i]; }); renderPhys(); save(); });
 $('#m-caster').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { caster = b.value; fillMagicLv(); renderMagic(); save(); } });
 $('#pane-magic').addEventListener('input', () => { renderMagic(); save(); });
 

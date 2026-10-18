@@ -23,7 +23,7 @@
           <label class="field"><span>{{t:dmg.atkRace}}</span><select class="input" id="p-arace"><option value="">{{t:dmg.race.any}}</option><option value="human">{{t:dmg.rc.human}}</option><option value="dragon">{{t:dmg.rc.dragon}}</option><option value="undead">{{t:dmg.rc.undead}}</option><option value="flying">{{t:dmg.rc.flying}}</option><option value="insect">{{t:dmg.rc.insect}}</option><option value="plant">{{t:dmg.rc.plant}}</option><option value="beast">{{t:dmg.rc.beast}}</option><option value="special">{{t:dmg.rc.special}}</option><option value="metal">{{t:dmg.rc.metal}}</option><option value="evil">{{t:dmg.rc.evil}}</option></select></label>
         </div>
         <div class="field elem-field"><span>{{t:dmg.atkElem}}<button type="button" class="btn sm ghost" id="p-diva">{{t:dmg.divaBtn}}</button></span>
-          <div class="elem-row"><label class="elem-in e0"><span>{{t:dmg.e.earth}}</span><input class="input sm" id="p-ae0" type="number" min="0" max="12" value="0" inputmode="numeric"></label><label class="elem-in e1"><span>{{t:dmg.e.water}}</span><input class="input sm" id="p-ae1" type="number" min="0" max="12" value="0" inputmode="numeric"></label><label class="elem-in e2"><span>{{t:dmg.e.fire}}</span><input class="input sm" id="p-ae2" type="number" min="0" max="12" value="0" inputmode="numeric"></label><label class="elem-in e3"><span>{{t:dmg.e.wind}}</span><input class="input sm" id="p-ae3" type="number" min="0" max="12" value="0" inputmode="numeric"></label></div></div>
+          <div class="elem-row"><label class="elem-in e0"><span>{{t:dmg.e.earth}}</span><input class="input sm" id="p-ae0" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e1"><span>{{t:dmg.e.water}}</span><input class="input sm" id="p-ae1" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e2"><span>{{t:dmg.e.fire}}</span><input class="input sm" id="p-ae2" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e3"><span>{{t:dmg.e.wind}}</span><input class="input sm" id="p-ae3" type="number" min="0" max="10" value="0" inputmode="numeric"></label></div></div>
         <div class="hr"></div>
         <div class="field"><span>{{t:dmg.skillPreset}}</span>
           <div class="row">
@@ -47,7 +47,7 @@
           <label class="field"><span>{{t:dmg.defSkill}}</span><select class="input" id="p-defskill"><option value="">{{t:dmg.defSkill.none}}</option><option value="yangyan">{{t:dmg.defSkill.yangyan}}</option><option value="zhuren">{{t:dmg.defSkill.zhuren}}</option></select></label>
           <label class="field"><span>{{t:dmg.defSkillLv}}</span><select class="input" id="p-deflv"><option value="1">Lv1</option><option value="2">Lv2</option><option value="3">Lv3</option><option value="4">Lv4</option><option value="5">Lv5</option><option value="6">Lv6</option><option value="7">Lv7</option><option value="8">Lv8</option><option value="9">Lv9</option><option value="10">Lv10</option><option value="11">Lv11</option></select></label>
         </div>
-        <div class="field elem-field"><span>{{t:dmg.defElem}}</span><div class="elem-row"><label class="elem-in e0"><span>{{t:dmg.e.earth}}</span><input class="input sm" id="p-de0" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e1"><span>{{t:dmg.e.water}}</span><input class="input sm" id="p-de1" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e2"><span>{{t:dmg.e.fire}}</span><input class="input sm" id="p-de2" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e3"><span>{{t:dmg.e.wind}}</span><input class="input sm" id="p-de3" type="number" min="0" max="10" value="0" inputmode="numeric"></label></div></div>
+        <div class="field elem-field"><span>{{t:dmg.defElem}}<button type="button" class="btn sm ghost" id="p-diva-def">{{t:dmg.divaDefBtn}}</button></span><div class="elem-row"><label class="elem-in e0"><span>{{t:dmg.e.earth}}</span><input class="input sm" id="p-de0" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e1"><span>{{t:dmg.e.water}}</span><input class="input sm" id="p-de1" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e2"><span>{{t:dmg.e.fire}}</span><input class="input sm" id="p-de2" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e3"><span>{{t:dmg.e.wind}}</span><input class="input sm" id="p-de3" type="number" min="0" max="10" value="0" inputmode="numeric"></label></div></div>
       </section>
       <section class="card">
         <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg>{{t:dmg.petTitle}}</h2>
@@ -138,6 +138,7 @@
     <h3 class="card-title">{{t:dmg.divaTitle}}{{tip:dmg.divaNote}}</h3>
     <p class="small muted" style="margin:0 0 8px">{{t:dmg.divaLead}}</p>
     <div class="tbl-wrap"><table class="tbl" id="diva-tbl"></table></div>
+    <p class="small" id="diva-def" style="margin:10px 0 0"></p>
   </section>
 </div>
 <div class="grid g3">
