@@ -22,8 +22,9 @@ function flatten() {
       const pet = (m.imageId && PETS.get(String(m.imageId))) || PETS.get('n:' + normName(m.name)) || null;
       const hasLv = m.lvMin != null;
       const lvMin = m.lvMin ?? 0, lvMax = m.lvMax ?? m.lvMin ?? 0;
-      // 等級分類只收：有等級、而且範圍最多跨 2 個區間的紀錄（像「1-49F Lv1–50」這種整段樓層合併的不放進等級分類）
-      const banded = hasLv && bandOf(lvMax) - bandOf(lvMin) <= 1;
+      // 等級分類：有等級的紀錄放進它橫跨的每一個區間（例如 Lv90–110 會出現在 81–90、91–100、101–110）。
+      // 只有整段樓層合併成 30 級以上的大範圍（像黃金通道「1-49F Lv1–50」）不放進等級分類
+      const banded = hasLv && lvMax - lvMin < 30;
       ROWS.push({ ...m, island, area: a, label: g.label, count: g.count, pet, key: normName(m.name), best: bestElem(m.elem),
         nameShow: LANG === 'ko' && pet?.kn ? pet.kn : m.name, hasLv, banded, lvMin, lvMax });
     }
