@@ -1,6 +1,7 @@
 """抓御劍軒 cgsword.com/bm（魔物分布）整理成 static/data/monster-map.json。
 - 只取事實資料：地點、樓層／區域、出現數量、魔物名稱、等級、地水火風、種族、卡片等級、可否封印、一級出沒座標。
   不複製網站的介紹文字、建議水晶與留言。
+- tools/monster-exclude.json 列的（BOSS 戰等）不收。
 - 每頁間隔 2 秒；抓過的頁面存在 tools/cache/bm/（不進版本庫），重跑不會再抓。
 - 資料是經典服（2014 年前），星詠魔力可能不同，網站上會註明來源與差異。
 用法：python tools/scrape-monster-map.py
@@ -84,6 +85,12 @@ def main():
         aid = href.split('/')[-1].split('-')[0]
         areas.append({'id': aid, 'name': name, 'path': path[:-1] if path and path[-1] == name else path, 'groups': groups})
         if i % 20 == 0: print(f'{i}/{len(links)} {name} 群組 {len(groups)}', flush=True)
+    # 排除清單（BOSS 戰等不是野外遇怪的）：tools/monster-exclude.json
+    exc = json.load(open(os.path.join(ROOT, 'tools', 'monster-exclude.json'), encoding='utf-8'))
+    for a in areas:
+        for g in a['groups']:
+            g['monsters'] = [m for m in g['monsters'] if not any(e['area'] == a['name'] and e['name'] == m['name'] for e in exc)]
+        a['groups'] = [g for g in a['groups'] if g['monsters']]
     n = sum(len(m['monsters']) for a in areas for m in a['groups'])
     data = {'source': 'https://cgsword.com/bm/', 'sourceName': '御劍軒 魔物分布', 'fetched': date.today().isoformat(), 'areas': [a for a in areas if a['groups']]}
     json.dump(data, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
