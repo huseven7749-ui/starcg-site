@@ -1,6 +1,7 @@
 // 傷害計算（純函式，瀏覽器與 Node 測試共用）
-// 依據：魔力寶貝原廠傷害公式、星詠魔力 gamerch「魔法精神理論」與「寵物須知／改造」公布的倍率，
-//       以及玩家社群實測整理的魔法基礎傷害與技能倍率。
+// 依據：魔力寶貝原廠傷害公式（御劍軒 cgsword.com「物理傷害計算」「屬性相剋計算器」）、
+//       星詠魔力攻略網 guide.starcg.net「物理攻擊技能」「職業專屬技能」「寵物技能」的技能倍率、
+//       星詠魔力 gamerch「魔法精神理論」與「寵物須知／改造」公布的倍率，以及玩家社群實測整理的魔法基礎傷害。
 
 // ───── 物理 ─────
 export const SOFT_CAP = 240;          // 攻擊／防禦超過 240 的部分只算 30%
@@ -29,40 +30,92 @@ export const PET_REMODEL = [                                                  //
 
 export const effective = v => (v <= SOFT_CAP ? v : SOFT_CAP + SOFT_RATE * (v - SOFT_CAP));
 
+// ───── 屬性相剋（cgsword.com/propCal.html）─────
+// 地剋水、水剋火、火剋風、風剋地。每種屬性 0～10 格（歌姬等特殊角色單一屬性可到 12 格）。
+// 分數 ＝ Σ［（攻方第 i 屬性 − 守方第 i 屬性）× 10 ＋ 攻方第 i 屬性 ×（守方下一屬性 − 守方上一屬性）］；倍率 ＝ 1 ＋ 分數 × 0.3%
+export const ELEMS = ['earth', 'water', 'fire', 'wind'];
+export function elementScore(a, d) {
+  let s = 0;
+  for (let i = 0; i < 4; i++) s += ((a[i] || 0) - (d[i] || 0)) * 10 + (a[i] || 0) * ((d[(i + 1) % 4] || 0) - (d[(i + 3) % 4] || 0));
+  return s;
+}
+export const elementMult = (a, d) => 1 + elementScore(a, d) * 0.003;
+
+// ───── 種族相剋（cgsword.com/HurtCalc.htm）：[全剋, 半剋] ─────
+export const RACES = ['human', 'dragon', 'undead', 'flying', 'insect', 'plant', 'beast', 'special', 'metal', 'evil'];
+export const RACE_BEATS = {
+  dragon: ['flying', 'beast'], flying: ['insect', 'undead'], insect: ['special', 'plant'], special: ['metal', 'dragon'], metal: ['dragon', 'human'],
+  undead: ['human', 'metal'], human: ['beast', 'insect'], beast: ['plant', 'flying'], plant: ['undead', 'special'],
+};
+/** 攻方種族對守方種族的關係：full／half／none／halfRev／fullRev（邪魔系剋所有種族） */
+export function raceRelation(a, d) {
+  if (!a || !d) return null;
+  if (a === 'evil') return d === 'evil' ? 'none' : 'full';
+  if (d === 'evil') return 'none';
+  const [f, h] = RACE_BEATS[a] || [], [rf, rh] = RACE_BEATS[d] || [];
+  if (f === d) return 'full'; if (h === d) return 'half';
+  if (rf === a) return 'fullRev'; if (rh === a) return 'halfRev';
+  return 'none';
+}
+
 /**
  * 物理傷害
- * @param o { atk, def, atkLv, defLv, weapon, crystal, race, skill(倍率, 1=100%), pet: { tier, full, remodel, beast } | null }
+ * @param o { atk, def, atkLv, defLv, weapon, crystal, race, skill(倍率, 1=100%), atkUp（諸刃等攻擊力加成，0.7=+70%）, defDown（陽炎等防禦降低）, hits（段數）, pet: { tier, full, remodel, beast } | null }
  * @returns { atkE, defE, base, crit, cases: { normal, crit, boss, bossCrit }（各含 min/avg/max）}
  */
 export function physical(o) {
-  const atkE = effective(Math.max(0, o.atk || 0));
-  const defE = effective(Math.max(0, o.def || 0));
+  // 諸刃／迅速果斷提高的是攻擊力本身（在 240 軟上限之前）；陽炎、諸刃讓防禦方的防禦力下降
+  const atk = Math.max(0, o.atk || 0) * (1 + (o.atkUp || 0));
+  const def = Math.max(0, o.def || 0) * Math.max(0, 1 - (o.defDown || 0));
+  const atkE = effective(atk);
+  const defE = effective(def);
   const base = atkE > 0 ? (atkE * atkE * 3) / (atkE + defE * 3) : 0;
-  const crit = (Math.max(0, o.def || 0) * Math.max(1, o.atkLv || 1)) / (Math.max(1, o.defLv || 1) * 2);
+  const crit = (def * Math.max(1, o.atkLv || 1)) / (Math.max(1, o.defLv || 1) * 2);
   const p = o.pet;
   const full = p?.full ? PET_FULL[p.tier] || 0 : 0;
   const beast = p?.beast ? PET_BEAST[p.tier] || 0 : 0;
   const remodel = p ? PET_REMODEL[p.remodel || 0]?.[p.tier] || 0 : 0;
-  const pre = base * (1 + (o.weapon || 0)) * (1 + (o.crystal || 0));
+  // 武器、水晶屬性、種族先乘；必殺追加在這之後才加（不受種族、屬性影響）；技能倍率與寵物加成最後乘
+  const pre = base * (1 + (o.weapon || 0)) * (1 + (o.crystal || 0)) * (1 + (o.race || 0));
   const calc = (withCrit, boss, skill) => {
-    const mult = (1 + (o.race || 0)) * skill * (1 + full) * (1 + beast) * (boss ? 1 + remodel : 1);
+    const mult = skill * (1 + full) * (1 + beast) * (boss ? 1 + remodel : 1);
     const one = r => Math.max(0, Math.floor((pre * r + (withCrit ? crit : 0)) * mult));
     return { min: one(RAND.min), avg: one(RAND.avg), max: one(RAND.max) };
   };
   const skill = o.skill ?? 1;
   return {
-    atkE, defE, base, crit, mods: { full, beast, remodel },
+    atkE, defE, base, crit, hits: Math.max(1, o.hits || 1), mods: { full, beast, remodel },
     attack: { normal: calc(false, false, 1), crit: calc(true, false, 1), boss: calc(false, true, 1), bossCrit: calc(true, true, 1) },
     skill: { normal: calc(false, false, skill), crit: calc(true, false, skill), boss: calc(false, true, skill), bossCrit: calc(true, true, skill) },
   };
 }
 
-// ───── 技能倍率（％）─────
-export const SKILL_QIANKUN = lv => 100 + lv * 10;                  // 乾坤一擊
+// ───── 技能倍率（％）：星詠魔力攻略網 guide.starcg.net /skills/物理攻擊技能、/skills/職業專屬技能、/pets/skills ─────
+// Lv11 是◆等級。攻略網沒有公布的數值不列（例如崩擊 Lv11 只寫「極大」）。
+export const SKILL_QIANKUN = lv => 100 + lv * 10;                  // 乾坤一擲
 export const SKILL_HUIXUAN = { 1: [56, 70, 84], 2: [60, 75, 90], 3: [64, 80, 96], 4: [68, 85, 102], 5: [72, 90, 108], 6: [76, 95, 114],
-  7: [80, 100, 120], 8: [84, 105, 126], 9: [88, 110, 132], 10: [92, 115, 138], 11: [96, 120, 144] };   // 迴旋：等級 × 第幾刀
-export const SKILL_ZHUIYUE = { 1: 70, 2: 75, 3: 80, 4: 85, 5: 75, 6: 78, 7: 81, 8: 85, 9: 75, 10: 80, 11: 95 };
-export const zhuiyuePve = lv => (lv >= 11 ? 45 : 20 + lv * 2);      // 追月對怪物額外加成
+  7: [80, 100, 120], 8: [84, 105, 126], 9: [88, 110, 132], 10: [92, 115, 138], 11: [96, 120, 144] };   // 迴旋利刃：等級 × 第幾刀
+export const SKILL_ZHUIYUE = { 1: 92, 2: 99, 3: 106, 4: 118, 5: 105, 6: 112, 7: 116, 8: 126, 9: 118, 10: 130, 11: 142 };   // 追月劍氣：攻略網列的總傷害（％）
+/**
+ * 技能資料：mult＝傷害倍率（％，每級），hits＝段數，per＝每段％，atkUp＝攻擊力加成％，rows＝可選分段（前排／後排）。
+ * acc＝命中修正，note＝提醒（i18n 鍵）。
+ */
+export const SKILLS = {
+  qiankun: { mult: [110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210], acc: [-2, -5, -7, -10, -12, -14, -17, -19, -22, -24, -26] },
+  bengji: { mult: [120, 143, 168, 195, 224, 255, 288, 323, 360, 399, null], note: 'guardOnly' },
+  fanji: { mult: [80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180] },
+  jiaojiao: { mult: [105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155] },
+  yiji: { mult: [104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144], note: 'bowOnly' },
+  chuanci: { rows: { front: [50, 50, 50, 55, 55, 55, 60, 60, 60, 70, 80], back: [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160] } },
+  lianji: { hits: [2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7], per: [50, 50, 33, 33, 25, 25, 20, 20, 16, 16, 14] },
+  zhuren: { atkUp: [7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77] },
+  xunsu: { atkUp: [60, 69, 78, 87, 96, 105, 113, 120, 127, 130, 133] },
+  huixuan: { stages: SKILL_HUIXUAN },
+  zhuiyue: { mult: Object.values(SKILL_ZHUIYUE) },
+  petQiankun: { tiers: [110, 130, 150, 170, 190] },
+};
+/** 防禦方技能：陽炎 每級防禦 −7%、諸刃 每級防禦 −5%（Lv11 −55%） */
+export const DEF_DOWN = { yangyan: lv => 7 * lv, zhuren: lv => 5 * lv };
 
 // ───── 魔法 ─────
 export const MAGIC_BASE = {

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { simulate, statsFromBp, petScore, decodeAlloc, gradeMeta, expectedTries, capManual, maxStarAdd, REMODEL, TIERS, freePoints, remodelPoints } from '../src/assets/js/petcalc.js';
 import { battleStats, runBattle, cardStars, raceBonus } from '../src/assets/js/petbattle.js';
 import { expected, simulate as farmSim, craft, stonePerRun, stoneSummary, stoneProfit, tierPrices, cardIncomePerRun, cardSetBreakEven, LAYERS } from '../src/assets/js/farmcalc.js';
-import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective } from '../src/assets/js/dmgcalc.js';
+import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective, elementMult, raceRelation } from '../src/assets/js/dmgcalc.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, parseImport, mergeRecords, inPeriod } from '../src/assets/js/mkstats.js';
 import { plan, orderRoute, dist, parseLoc, START_POINTS, START_GROUPS } from '../src/assets/js/route.js';
 import { isWalk, inMain, snap, bfs, makeDist, pathBetween, GW, GH } from '../src/assets/js/frangrid.js';
@@ -204,6 +204,23 @@ t('物理傷害：攻擊 500、防禦 300（超過 240 只算 30%）', () => {
   const p = physical({ atk: 500, def: 300, atkLv: 120, defLv: 100, weapon: 0.15, crystal: 0, race: 0.2, skill: 1, pet: { tier: 'gold', full: true, remodel: 5, beast: true } });
   assert.equal(p.attack.boss.avg, Math.floor(277.8131868 * 1.15 * 1.2 * 1.2 * 1.08 * 1.35));
   assert.equal(p.attack.normal.avg, Math.floor(277.8131868 * 1.15 * 1.2 * 1.2 * 1.08));
+});
+
+t('屬性相剋與種族關係（cgsword 公式）', () => {
+  near(elementMult([10, 0, 0, 0], [0, 10, 0, 0]), 1.30, 1e-9);           // 地10 打 水10：全剋 +30%
+  near(elementMult([10, 0, 0, 0], [0, 5, 5, 0]), 1.15, 1e-9);            // 打 水5火5：+15%
+  near(elementMult([10, 0, 0, 0], [2, 2, 2, 2]), 1.06, 1e-9);            // 打全屬性 2：+6%
+  near(elementMult([10, 0, 0, 0], [5, 5, 5, 5]), 0.70, 1e-9);            // 打全屬性 5：−30%
+  near(elementMult([0, 0, 3, 7], [2, 0, 0, 8]), 1.114, 1e-9);            // 火3風7 打 風8地2（cgsword 範例）
+  near(elementMult([12, 0, 0, 0], [0, 10, 0, 0]), 1.42, 1e-9);           // 歌姬 地12 打 水10
+  assert.equal(raceRelation('dragon', 'flying'), 'full');
+  assert.equal(raceRelation('dragon', 'beast'), 'half');
+  assert.equal(raceRelation('flying', 'dragon'), 'fullRev');
+  assert.equal(raceRelation('beast', 'dragon'), 'halfRev');
+  assert.equal(raceRelation('human', 'plant'), 'none');
+  assert.equal(raceRelation('evil', 'metal'), 'full');
+  const up = physical({ atk: 200, def: 100, atkLv: 1, defLv: 1, weapon: 0, crystal: 0, race: 0, skill: 1, atkUp: 0.7, pet: null });
+  near(up.atkE, 240 + (340 - 240) * 0.3, 1e-9);                         // 諸刃 Lv10：攻擊 200 → 340，超過 240 只算 30%
 });
 
 t('魔法傷害：需求精神、精神差、法杖魔攻', () => {

@@ -1802,3 +1802,13 @@ html[data-view="mobile"] .pc-grid { grid-template-columns: repeat(2, minmax(0, 1
 .more-posts > summary::-webkit-details-marker { display: none; }
 .more-posts[open] > summary { display: none; }
 .more-posts:not([open]) > .post-list { display: none; }   /* 收合時確實不顯示（全站 details 有展開動畫樣式）*/
+
+/* ───── 傷害計算：地水火風輸入 ───── */
+.elem-field { margin-top: 12px; }
+.elem-field > span { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.elem-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.elem-in { display: flex; align-items: center; gap: 6px; border-radius: var(--r-sm); padding: 4px 8px; border: 1.5px solid var(--line); }
+.elem-in span { font-weight: 800; }
+.elem-in .input { min-width: 0; width: 100%; text-align: center; padding-left: 4px; padding-right: 4px; }
+.elem-in.e0 span { color: #8A6A1E; } .elem-in.e1 span { color: #2F6FB3; } .elem-in.e2 span { color: #C2412D; } .elem-in.e3 span { color: #2E8A4E; }
+.sk-note { margin: 6px 0 0; }

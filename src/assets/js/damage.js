@@ -1,6 +1,6 @@
 // 傷害計算機（站內版）
 import { $, $$, T, esc, fmt, store, debounce } from './core.js';
-import { physical, magic, CRYSTAL, RACE, SKILL_QIANKUN, SKILL_HUIXUAN, SKILL_ZHUIYUE, zhuiyuePve, MAGIC_BASE } from './dmgcalc.js';
+import { physical, magic, CRYSTAL, RACE, SKILLS, DEF_DOWN, RACES, RACE_BEATS, elementMult, raceRelation, MAGIC_BASE } from './dmgcalc.js';
 import { track } from './game.js';
 import { SPRITES } from './dummysprites.js';
 import { sfx, sfxOn, setSfx } from './sfx.js';
@@ -10,8 +10,10 @@ const CRY = Object.fromEntries(CRYSTAL), RAC = Object.fromEntries(RACE);
 const num = id => Number(document.getElementById(id).value) || 0;
 const val = id => document.getElementById(id).value;
 const chk = id => document.getElementById(id).checked;
-const IDS = ['p-atk', 'p-alv', 'p-weapon', 'p-skill', 'p-def', 'p-dlv', 'p-crystal', 'p-race', 'p-pet', 'p-tier', 'p-rm', 'p-full', 'p-beast',
-  'sk-type', 'sk-lv', 'sk-hit', 'sk-pve', 'm-type', 'm-lv', 'm-spirit', 'm-target', 'm-staff', 'm-insight', 'm-crystal', 'm-race', 'm-pve', 'm-pet', 'm-tier', 'm-rm', 'm-full', 'm-beast'];
+const EL = pre => [0, 1, 2, 3].map(i => `${pre}${i}`);
+const IDS = ['p-atk', 'p-alv', 'p-weapon', 'p-skill', 'p-atkup', 'p-hits', 'p-arace', ...EL('p-ae'), 'p-def', 'p-dlv', 'p-drace', 'p-race', 'p-defskill', 'p-deflv', ...EL('p-de'),
+  'p-pet', 'p-tier', 'p-rm', 'p-full', 'p-beast',
+  'sk-type', 'sk-lv', 'sk-hit', 'm-type', 'm-lv', 'm-spirit', 'm-target', 'm-staff', 'm-insight', 'm-crystal', 'm-race', 'm-pve', 'm-pet', 'm-tier', 'm-rm', 'm-full', 'm-beast'];
 let caster = 'char', tab = 'phys';
 let lastPhys = null;
 
@@ -20,43 +22,82 @@ const tile = (label, body, sub = '') => `<div class="stat-tile"><span>${esc(labe
 const pct = x => fmt(x * 100, 1) + '%';
 
 // ───── 物理 ─────
+const elems = pre => EL(pre).map(id => Math.max(0, Math.min(12, num(id))));
+const elemMul = () => elementMult(elems('p-ae'), elems('p-de'));
 function renderPhys() {
   const pet = chk('p-pet') ? { tier: val('p-tier'), full: chk('p-full'), remodel: num('p-rm'), beast: chk('p-beast') } : null;
   $('#p-petbox').classList.toggle('is-off', !pet); $$('#p-petbox input, #p-petbox select').forEach(x => { x.disabled = !pet; });
+  const ds = val('p-defskill');
+  $('#p-deflv').disabled = !ds;
+  const em = elemMul();
+  const hits = Math.max(1, Math.floor(num('p-hits')) || 1);
   const r = physical({
     atk: num('p-atk'), def: num('p-def'), atkLv: num('p-alv'), defLv: num('p-dlv'),
-    weapon: val('p-weapon') === 'weapon' ? 0.15 : 0, crystal: CRY[val('p-crystal')], race: RAC[val('p-race')],
-    skill: num('p-skill') / 100, pet,
+    weapon: val('p-weapon') === 'weapon' ? 0.15 : 0, crystal: em - 1, race: RAC[val('p-race')],
+    skill: num('p-skill') / 100, atkUp: num('p-atkup') / 100, defDown: ds ? DEF_DOWN[ds](Number(val('p-deflv')) || 1) / 100 : 0, hits, pet,
   });
   lastPhys = r;
-  $('#p-kv').innerHTML = tile(T('dmg.atkE'), fmt(r.atkE, 1)) + tile(T('dmg.defE'), fmt(r.defE, 1)) + tile(T('dmg.base'), fmt(r.base, 1)) + tile(T('dmg.critAdd'), '+' + fmt(r.crit, 1));
+  const rel = val('p-race');
+  $('#p-kv').innerHTML = tile(T('dmg.atkE'), fmt(r.atkE, 1)) + tile(T('dmg.defE'), fmt(r.defE, 1)) + tile(T('dmg.base'), fmt(r.base, 1)) + tile(T('dmg.critAdd'), '+' + fmt(r.crit, 1)) +
+    tile(T('dmg.elemMul'), '×' + fmt(em, 3)) + tile(T('dmg.raceRel'), esc(T('dmg.r.' + rel)));
   const cols = ['normal', 'crit', 'boss', 'bossCrit'];
   const row = (label, data) => `<tr><th scope="row">${esc(label)}</th>${cols.map(c => `<td class="num" data-label="${esc(T('dmg.col.' + c))}">${range(data[c])}</td>`).join('')}</tr>`;
+  const times = d => Object.fromEntries(Object.entries(d).map(([k, v]) => [k, { min: v.min * hits, avg: v.avg * hits, max: v.max * hits }]));
   $('#p-table').innerHTML = `<thead><tr><th></th>${cols.map(c => `<th class="num">${esc(T('dmg.col.' + c))}</th>`).join('')}</tr></thead>
-    <tbody>${row(T('dmg.row.attack'), r.attack)}${row(T('dmg.row.skill', { p: fmt(num('p-skill')) }), r.skill)}</tbody>`;
+    <tbody>${row(T('dmg.row.attack'), r.attack)}${row(T('dmg.row.skill', { p: fmt(num('p-skill')) }), r.skill)}${hits > 1 ? row(T('dmg.row.skillHits', { p: fmt(num('p-skill')), n: hits }), times(r.skill)) : ''}</tbody>`;
+}
+
+// 種族：兩邊都選了就自動判斷剋制關係
+function autoRace() {
+  const rel = raceRelation(val('p-arace'), val('p-drace'));
+  if (rel) $('#p-race').value = rel;
+}
+// 種族相剋表、歌姬範例（速查區，靜態）
+function renderRef() {
+  const rc = id => esc(T('dmg.rc.' + id));
+  $('#race-chart').innerHTML = `<thead><tr><th>${esc(T('dmg.rc.col.race'))}</th><th>${esc(T('dmg.rc.col.full'))}</th><th>${esc(T('dmg.rc.col.half'))}</th></tr></thead><tbody>` +
+    RACES.filter(r => RACE_BEATS[r]).map(r => `<tr><th scope="row">${rc(r)}</th><td>${rc(RACE_BEATS[r][0])}</td><td>${rc(RACE_BEATS[r][1])}</td></tr>`).join('') +
+    `<tr><th scope="row">${rc('evil')}</th><td colspan="2">${esc(T('dmg.evil'))}</td></tr></tbody>`;
+  const avg = (a, d) => physical({ atk: 300, def: 150, atkLv: 1, defLv: 1, weapon: 0.15, crystal: elementMult(a, d) - 1, race: 0, skill: 1, pet: null }).attack.normal.avg;
+  const defs = [['none', [0, 0, 0, 0]], ['water', [0, 10, 0, 0]], ['fire', [0, 0, 10, 0]], ['wind', [0, 0, 0, 10]]];
+  $('#diva-tbl').innerHTML = `<thead><tr><th>${esc(T('dmg.diva.col.def'))}</th><th class="num">${esc(T('dmg.diva.col.noElem'))}</th><th class="num">${esc(T('dmg.diva.col.normal'))}</th><th class="num">${esc(T('dmg.diva.col.diva'))}</th><th class="num">${esc(T('dmg.diva.col.diff'))}</th></tr></thead><tbody>` +
+    defs.map(([k, d]) => {
+      const z = avg([0, 0, 0, 0], d), n = avg([10, 0, 0, 0], d), g = avg([12, 0, 0, 0], d);
+      return `<tr><th scope="row">${esc(T('dmg.diva.' + k))}</th><td class="num">${fmt(z)}</td><td class="num">${fmt(n)} <small>×${fmt(elementMult([10, 0, 0, 0], d), 2)}</small></td><td class="num"><b>${fmt(g)}</b> <small>×${fmt(elementMult([12, 0, 0, 0], d), 2)}</small></td><td class="num">+${fmt((g / n - 1) * 100, 1)}%</td></tr>`;
+    }).join('') + '</tbody>';
 }
 
 // 技能快速帶入
 function fillSkillLv() {
-  const type = val('sk-type');
+  const type = val('sk-type'), sk = SKILLS[type];
   const lv = $('#sk-lv'), hit = $('#sk-hit');
   lv.hidden = type === 'attack';
-  hit.hidden = type !== 'huixuan';
-  $('#sk-pve-wrap').hidden = type !== 'zhuiyue';
-  const cur = Number(lv.value) || 11;
-  lv.innerHTML = Array.from({ length: 11 }, (_, i) => `<option value="${i + 1}">Lv${i + 1}</option>`).join('');
-  lv.value = String(Math.min(11, cur));
-  const h = Number(hit.value) || 3;
-  hit.innerHTML = [1, 2, 3].map(n => `<option value="${n}">${esc(T('dmg.sk.hit', { n }))}</option>`).join('');
-  hit.value = String(h);
+  const tiers = !!sk?.tiers;
+  const cur = Number(lv.value) || (tiers ? 5 : 11);
+  lv.innerHTML = tiers ? sk.tiers.map((_, i) => `<option value="${i + 1}">${esc(T('dmg.sk.tier', { n: i + 1 }))}</option>`).join('')
+    : Array.from({ length: 11 }, (_, i) => `<option value="${i + 1}">Lv${i + 1}</option>`).join('');
+  lv.value = String(Math.min(tiers ? sk.tiers.length : 11, cur));
+  // 第二個選單：迴旋＝第幾刀、穿刺＝前排／後排
+  const opts = sk?.stages ? [1, 2, 3].map(n => [n, T('dmg.sk.hit', { n })]) : sk?.rows ? [['front', T('dmg.sk.front')], ['back', T('dmg.sk.back')]] : null;
+  hit.hidden = !opts;
+  if (opts) { const h = hit.value; hit.innerHTML = opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join(''); if ([...hit.options].some(o => o.value === h)) hit.value = h; }
 }
 function applySkill() {
-  const type = val('sk-type'), lv = Number(val('sk-lv')) || 1;
-  let p = 100;
-  if (type === 'qiankun') p = SKILL_QIANKUN(lv);
-  else if (type === 'huixuan') p = SKILL_HUIXUAN[lv][(Number(val('sk-hit')) || 1) - 1];
-  else if (type === 'zhuiyue') p = SKILL_ZHUIYUE[lv] + (chk('sk-pve') ? zhuiyuePve(lv) : 0);
-  $('#p-skill').value = p;
+  const type = val('sk-type'), sk = SKILLS[type], lv = Number(val('sk-lv')) || 1;
+  let p = 100, up = 0, hits = 1;
+  const notes = [];
+  if (sk?.mult) p = sk.mult[lv - 1];
+  else if (sk?.tiers) p = sk.tiers[lv - 1];
+  else if (sk?.stages) p = sk.stages[lv][(Number(val('sk-hit')) || 1) - 1];
+  else if (sk?.rows) p = sk.rows[val('sk-hit') === 'back' ? 'back' : 'front'][lv - 1];
+  else if (sk?.per) { p = sk.per[lv - 1]; hits = sk.hits[lv - 1]; notes.push(T('dmg.note.hits', { p, n: hits })); }
+  if (sk?.atkUp) { up = sk.atkUp[lv - 1]; notes.push(T('dmg.note.atkUp')); }
+  if (p == null) { p = 100; notes.push(T('dmg.note.noData')); }
+  if (sk?.acc) notes.push(T('dmg.note.acc', { n: sk.acc[lv - 1] }));
+  if (sk?.note) notes.push(T('dmg.note.' + sk.note));
+  if (type !== 'attack') notes.push(T('dmg.note.src'));
+  $('#p-skill').value = p; $('#p-atkup').value = up; $('#p-hits').value = hits;
+  const n = $('#sk-note'); n.hidden = !notes.length; n.textContent = notes.join(' ');
   renderPhys(); save();
 }
 
@@ -116,15 +157,19 @@ function setTab(t) {
 $('#dmg-tabs').addEventListener('click', e => { const b = e.target.closest('[role=tab]'); if (b) { setTab(b.dataset.tab); save(); } });
 $('#pane-phys').addEventListener('input', e => {
   if (e.target.closest('#sk-type')) { fillSkillLv(); applySkill(); return; }
-  if (e.target.closest('#sk-lv, #sk-hit, #sk-pve')) { applySkill(); return; }
+  if (e.target.closest('#sk-lv, #sk-hit')) { applySkill(); return; }
+  if (e.target.closest('#p-arace, #p-drace')) autoRace();
   renderPhys(); save();
 });
+// 帶入歌姬：攻擊方單一屬性 地 12
+$('#p-diva').addEventListener('click', () => { EL('p-ae').forEach((id, i) => { $('#' + id).value = i === 0 ? 12 : 0; }); renderPhys(); save(); });
 $('#m-caster').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { caster = b.value; fillMagicLv(); renderMagic(); save(); } });
 $('#pane-magic').addEventListener('input', () => { renderMagic(); save(); });
 
 load();
 renderPhys();
 renderMagic();
+renderRef();
 
 // ───── 痛打 GM01：選一個角色出手，在算出的範圍內隨機傷害，看實際分布；GM01 會反擊 ─────
 const DM = { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [], hp: 1, pool: 1, countered: 0, myHp: 1, myPool: 1 };

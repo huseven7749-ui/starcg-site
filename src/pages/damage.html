@@ -18,15 +18,23 @@
           <label class="field"><span>{{t:dmg.atkLv}}</span><input class="input" id="p-alv" type="number" min="1" max="200" value="120" inputmode="numeric"></label>
           <label class="field"><span>{{t:dmg.weapon}}</span><select class="input" id="p-weapon"><option value="weapon">{{t:dmg.weapon.has}}</option><option value="none">{{t:dmg.weapon.none}}</option></select></label>
           <label class="field"><span>{{t:dmg.skill}}</span><input class="input" id="p-skill" type="number" min="0" max="1000" value="100" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.atkUp}}</span><input class="input" id="p-atkup" type="number" min="0" max="300" value="0" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.hits}}</span><input class="input" id="p-hits" type="number" min="1" max="15" value="1" inputmode="numeric"></label>
+          <label class="field"><span>{{t:dmg.atkRace}}</span><select class="input" id="p-arace"><option value="">{{t:dmg.race.any}}</option><option value="human">{{t:dmg.rc.human}}</option><option value="dragon">{{t:dmg.rc.dragon}}</option><option value="undead">{{t:dmg.rc.undead}}</option><option value="flying">{{t:dmg.rc.flying}}</option><option value="insect">{{t:dmg.rc.insect}}</option><option value="plant">{{t:dmg.rc.plant}}</option><option value="beast">{{t:dmg.rc.beast}}</option><option value="special">{{t:dmg.rc.special}}</option><option value="metal">{{t:dmg.rc.metal}}</option><option value="evil">{{t:dmg.rc.evil}}</option></select></label>
         </div>
+        <div class="field elem-field"><span>{{t:dmg.atkElem}}<button type="button" class="btn sm ghost" id="p-diva">{{t:dmg.divaBtn}}</button></span>
+          <div class="elem-row"><label class="elem-in e0"><span>{{t:dmg.e.earth}}</span><input class="input sm" id="p-ae0" type="number" min="0" max="12" value="0" inputmode="numeric"></label><label class="elem-in e1"><span>{{t:dmg.e.water}}</span><input class="input sm" id="p-ae1" type="number" min="0" max="12" value="0" inputmode="numeric"></label><label class="elem-in e2"><span>{{t:dmg.e.fire}}</span><input class="input sm" id="p-ae2" type="number" min="0" max="12" value="0" inputmode="numeric"></label><label class="elem-in e3"><span>{{t:dmg.e.wind}}</span><input class="input sm" id="p-ae3" type="number" min="0" max="12" value="0" inputmode="numeric"></label></div></div>
         <div class="hr"></div>
         <div class="field"><span>{{t:dmg.skillPreset}}</span>
           <div class="row">
-            <select class="input sm" id="sk-type" style="width:auto" aria-label="{{t:dmg.skillPreset}}"><option value="attack">{{t:dmg.sk.attack}}</option><option value="qiankun">{{t:dmg.sk.qiankun}}</option><option value="huixuan">{{t:dmg.sk.huixuan}}</option><option value="zhuiyue">{{t:dmg.sk.zhuiyue}}</option></select>
+            <select class="input sm" id="sk-type" style="width:auto" aria-label="{{t:dmg.skillPreset}}"><option value="attack">{{t:dmg.sk.attack}}</option>
+              <optgroup label="{{t:dmg.skg.char}}"><option value="qiankun">{{t:dmg.sk.qiankun}}</option><option value="lianji">{{t:dmg.sk.lianji}}</option><option value="bengji">{{t:dmg.sk.bengji}}</option><option value="zhuren">{{t:dmg.sk.zhuren}}</option><option value="xunsu">{{t:dmg.sk.xunsu}}</option><option value="jiaojiao">{{t:dmg.sk.jiaojiao}}</option><option value="yiji">{{t:dmg.sk.yiji}}</option><option value="fanji">{{t:dmg.sk.fanji}}</option><option value="chuanci">{{t:dmg.sk.chuanci}}</option></optgroup>
+              <optgroup label="{{t:dmg.skg.job}}"><option value="huixuan">{{t:dmg.sk.huixuan}}</option><option value="zhuiyue">{{t:dmg.sk.zhuiyue}}</option></optgroup>
+              <optgroup label="{{t:dmg.skg.pet}}"><option value="petQiankun">{{t:dmg.sk.petQiankun}}</option></optgroup></select>
             <select class="input sm" id="sk-lv" style="width:auto" aria-label="Lv"></select>
             <select class="input sm" id="sk-hit" style="width:auto" aria-label="hit" hidden></select>
-            <label class="switch" id="sk-pve-wrap" hidden><input type="checkbox" id="sk-pve" checked><span>{{t:dmg.sk.pve}}</span></label>
           </div>
+          <p class="small muted sk-note" id="sk-note" hidden></p>
         </div>
       </section>
       <section class="card">
@@ -34,9 +42,12 @@
         <div class="grid g2 keep2">
           <label class="field"><span>{{t:dmg.defVal}}</span><input class="input" id="p-def" type="number" min="0" value="300" inputmode="numeric"></label>
           <label class="field"><span>{{t:dmg.defLv}}</span><input class="input" id="p-dlv" type="number" min="1" max="200" value="100" inputmode="numeric"></label>
-          <label class="field"><span>{{t:dmg.crystal}}</span><select class="input" id="p-crystal"><option value="full">{{t:dmg.c.full}}</option><option value="half">{{t:dmg.c.half}}</option><option value="all2">{{t:dmg.c.all2}}</option><option value="none" selected>{{t:dmg.c.none}}</option><option value="all3">{{t:dmg.c.all3}}</option><option value="halfRev">{{t:dmg.c.halfRev}}</option><option value="all4">{{t:dmg.c.all4}}</option><option value="fullRev">{{t:dmg.c.fullRev}}</option><option value="all5">{{t:dmg.c.all5}}</option></select></label>
+          <label class="field"><span>{{t:dmg.defRace}}</span><select class="input" id="p-drace"><option value="">{{t:dmg.race.any}}</option><option value="human">{{t:dmg.rc.human}}</option><option value="dragon">{{t:dmg.rc.dragon}}</option><option value="undead">{{t:dmg.rc.undead}}</option><option value="flying">{{t:dmg.rc.flying}}</option><option value="insect">{{t:dmg.rc.insect}}</option><option value="plant">{{t:dmg.rc.plant}}</option><option value="beast">{{t:dmg.rc.beast}}</option><option value="special">{{t:dmg.rc.special}}</option><option value="metal">{{t:dmg.rc.metal}}</option><option value="evil">{{t:dmg.rc.evil}}</option></select></label>
           <label class="field"><span>{{t:dmg.raceSel}}</span><select class="input" id="p-race"><option value="full">{{t:dmg.r.full}}</option><option value="half">{{t:dmg.r.half}}</option><option value="none" selected>{{t:dmg.r.none}}</option><option value="halfRev">{{t:dmg.r.halfRev}}</option><option value="fullRev">{{t:dmg.r.fullRev}}</option></select></label>
+          <label class="field"><span>{{t:dmg.defSkill}}</span><select class="input" id="p-defskill"><option value="">{{t:dmg.defSkill.none}}</option><option value="yangyan">{{t:dmg.defSkill.yangyan}}</option><option value="zhuren">{{t:dmg.defSkill.zhuren}}</option></select></label>
+          <label class="field"><span>{{t:dmg.defSkillLv}}</span><select class="input" id="p-deflv"><option value="1">Lv1</option><option value="2">Lv2</option><option value="3">Lv3</option><option value="4">Lv4</option><option value="5">Lv5</option><option value="6">Lv6</option><option value="7">Lv7</option><option value="8">Lv8</option><option value="9">Lv9</option><option value="10">Lv10</option><option value="11">Lv11</option></select></label>
         </div>
+        <div class="field elem-field"><span>{{t:dmg.defElem}}</span><div class="elem-row"><label class="elem-in e0"><span>{{t:dmg.e.earth}}</span><input class="input sm" id="p-de0" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e1"><span>{{t:dmg.e.water}}</span><input class="input sm" id="p-de1" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e2"><span>{{t:dmg.e.fire}}</span><input class="input sm" id="p-de2" type="number" min="0" max="10" value="0" inputmode="numeric"></label><label class="elem-in e3"><span>{{t:dmg.e.wind}}</span><input class="input sm" id="p-de3" type="number" min="0" max="10" value="0" inputmode="numeric"></label></div></div>
       </section>
       <section class="card">
         <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pets"/></svg>{{t:dmg.petTitle}}</h2>
@@ -118,6 +129,17 @@
 </section>
 
 <h2 class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:dmg.refTitle}}</h2>
+<div class="grid g2">
+  <section class="card">
+    <h3 class="card-title">{{t:dmg.raceChart}}{{tip:dmg.raceChartNote}}</h3>
+    <div class="tbl-wrap"><table class="tbl" id="race-chart"></table></div>
+  </section>
+  <section class="card">
+    <h3 class="card-title">{{t:dmg.divaTitle}}{{tip:dmg.divaNote}}</h3>
+    <p class="small muted" style="margin:0 0 8px">{{t:dmg.divaLead}}</p>
+    <div class="tbl-wrap"><table class="tbl" id="diva-tbl"></table></div>
+  </section>
+</div>
 <div class="grid g3">
   <section class="card">
     <h3 class="card-title">{{t:dmg.raceTitle}}</h3>
