@@ -52,21 +52,12 @@ function autoRace() {
   const rel = raceRelation(val('p-arace'), val('p-drace'));
   if (rel) $('#p-race').value = rel;
 }
-// 種族相剋表、歌姬範例（速查區，靜態）
+// 種族相剋表（速查區，靜態）
 function renderRef() {
   const rc = id => esc(T('dmg.rc.' + id));
   $('#race-chart').innerHTML = `<thead><tr><th>${esc(T('dmg.rc.col.race'))}</th><th>${esc(T('dmg.rc.col.full'))}</th><th>${esc(T('dmg.rc.col.half'))}</th></tr></thead><tbody>` +
     RACES.filter(r => RACE_BEATS[r]).map(r => `<tr><th scope="row">${rc(r)}</th><td>${rc(RACE_BEATS[r][0])}</td><td>${rc(RACE_BEATS[r][1])}</td></tr>`).join('') +
     `<tr><th scope="row">${rc('evil')}</th><td colspan="2">${esc(T('dmg.evil'))}</td></tr></tbody>`;
-  const avg = (a, d) => physical({ atk: 300, def: 150, atkLv: 1, defLv: 1, weapon: 0.15, crystal: elementMult(a, d) - 1, race: 0, skill: 1, pet: null }).attack.normal.avg;
-  const defs = [['none', [0, 0, 0, 0]], ['earth', [10, 0, 0, 0]], ['water', [0, 10, 0, 0]], ['fire', [0, 0, 10, 0]], ['wind', [0, 0, 0, 10]], ['all2', [2, 2, 2, 2]]];
-  const N = [10, 0, 0, 0], G = [4, 4, 4, 4];
-  $('#diva-tbl').innerHTML = `<thead><tr><th>${esc(T('dmg.diva.col.def'))}</th><th class="num">${esc(T('dmg.diva.col.noElem'))}</th><th class="num">${esc(T('dmg.diva.col.normal'))}</th><th class="num">${esc(T('dmg.diva.col.diva'))}</th><th class="num">${esc(T('dmg.diva.col.diff'))}</th></tr></thead><tbody>` +
-    defs.map(([k, d]) => {
-      const z = avg([0, 0, 0, 0], d), n = avg(N, d), g = avg(G, d), diff = (g / n - 1) * 100;
-      return `<tr><th scope="row">${esc(T('dmg.diva.' + k))}</th><td class="num">${fmt(z)}</td><td class="num">${fmt(n)} <small>×${fmt(elementMult(N, d), 2)}</small></td><td class="num"><b>${fmt(g)}</b> <small>×${fmt(elementMult(G, d), 2)}</small></td><td class="num">${diff >= 0 ? '+' : ''}${fmt(diff, 1)}%</td></tr>`;
-    }).join('') + '</tbody>';
-  $('#diva-def').textContent = T('dmg.diva.def', { m: fmt(elementMult(N, G), 2) });
 }
 
 // 技能快速帶入
@@ -163,10 +154,6 @@ $('#pane-phys').addEventListener('input', e => {
   if (e.target.closest('#p-arace, #p-drace')) autoRace();
   renderPhys(); save();
 });
-// 帶入歌姬：地水火風各 4
-const DIVA = [4, 4, 4, 4];
-$('#p-diva').addEventListener('click', () => { EL('p-ae').forEach((id, i) => { $('#' + id).value = DIVA[i]; }); renderPhys(); save(); });
-$('#p-diva-def').addEventListener('click', () => { EL('p-de').forEach((id, i) => { $('#' + id).value = DIVA[i]; }); renderPhys(); save(); });
 $('#m-caster').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { caster = b.value; fillMagicLv(); renderMagic(); save(); } });
 $('#pane-magic').addEventListener('input', () => { renderMagic(); save(); });
 
@@ -174,6 +161,50 @@ load();
 renderPhys();
 renderMagic();
 renderRef();
+
+// ───── 屬性相剋計算器：多個攻擊方 × 多個防禦方，算屬性差距的增減傷 ─────
+const EC_KEY = 'sc.elemCalc', EC_MAX = 6, EK = ['earth', 'water', 'fire', 'wind'];
+const ecLoad = () => { const s = store.get(EC_KEY); return s && Array.isArray(s.atk) && Array.isArray(s.def) && s.atk.length && s.def.length ? s : { atk: [[0, 0, 0, 0], [10, 0, 0, 0]], def: [[0, 0, 0, 0], [0, 0, 10, 0], [0, 10, 0, 0]] }; };
+const EC = ecLoad();
+const ecLabel = v => v.some(x => x > 0) ? v.map((x, i) => (x > 0 ? T('dmg.e.' + EK[i]) + x : '')).filter(Boolean).join(' ') : T('dmg.ec.none');
+function ecRow(side, v, i) {
+  const sum = v.reduce((a, b) => a + b, 0);
+  return `<li data-side="${side}" data-i="${i}"><span class="ec-no">${side === 'atk' ? 'A' : 'D'}${i + 1}</span>` +
+    v.map((x, k) => `<label class="elem-in e${k}"><span>${esc(T('dmg.e.' + EK[k]))}</span><input class="input sm" type="number" min="0" max="10" value="${x}" inputmode="numeric" data-k="${k}"></label>`).join('') +
+    (EC[side].length > 1 ? `<button type="button" class="btn sm icon ghost" data-del aria-label="${esc(T('common.remove'))}"><svg class="ic"><use href="#i-trash"/></svg></button>` : '<span></span>') +
+    (sum > 10 ? `<small class="ec-warn">${esc(T('dmg.ec.over'))}</small>` : '') + '</li>';
+}
+function renderEC() {
+  $('#ec-atk').innerHTML = EC.atk.map((v, i) => ecRow('atk', v, i)).join('');
+  $('#ec-def').innerHTML = EC.def.map((v, i) => ecRow('def', v, i)).join('');
+  $('#ec-add-atk').hidden = EC.atk.length >= EC_MAX; $('#ec-add-def').hidden = EC.def.length >= EC_MAX;
+  renderECTable();
+}
+function renderECTable() {
+  $('#ec-tbl').innerHTML = `<thead><tr><th>${esc(T('dmg.ec.corner'))}</th>${EC.def.map((d, j) => `<th class="num">D${j + 1}<br><small>${esc(ecLabel(d))}</small></th>`).join('')}</tr></thead><tbody>` +
+    EC.atk.map((a, i) => `<tr><th scope="row">A${i + 1} <small>${esc(ecLabel(a))}</small></th>${EC.def.map(d => {
+      const p = elementMult(a, d) * 100, cls = p > 100.05 ? 'ec-up' : p < 99.95 ? 'ec-down' : '';
+      return `<td class="num ${cls}"><b>${fmt(p, 1)}%</b></td>`;
+    }).join('')}</tr>`).join('') + '</tbody>';
+}
+const ecSave = () => store.set(EC_KEY, EC);
+$('.ec').addEventListener('input', e => {
+  const inp = e.target.closest('input[data-k]'); if (!inp) return;
+  const li = inp.closest('li'), side = li.dataset.side, i = +li.dataset.i, k = +inp.dataset.k;
+  EC[side][i][k] = Math.max(0, Math.min(10, Math.round(Number(inp.value) || 0)));
+  const sum = EC[side][i].reduce((a, b) => a + b, 0), warn = li.querySelector('.ec-warn');
+  if (sum > 10 && !warn) li.insertAdjacentHTML('beforeend', `<small class="ec-warn">${esc(T('dmg.ec.over'))}</small>`);
+  else if (sum <= 10 && warn) warn.remove();
+  renderECTable(); ecSave();
+});
+$('.ec').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'ec-add-atk' || b.id === 'ec-add-def') { const side = b.id.slice(7); if (EC[side].length < EC_MAX) EC[side].push([0, 0, 0, 0]); }
+  else if (b.hasAttribute('data-del')) { const li = b.closest('li'); EC[li.dataset.side].splice(+li.dataset.i, 1); }
+  else return;
+  renderEC(); ecSave();
+});
+renderEC();
 
 // ───── 痛打 GM01：選一個角色出手，在算出的範圍內隨機傷害，看實際分布；GM01 會反擊 ─────
 const DM = { hits: 0, total: 0, max: 0, crits: 0, streak: 0, recent: [], hp: 1, pool: 1, countered: 0, myHp: 1, myPool: 1 };

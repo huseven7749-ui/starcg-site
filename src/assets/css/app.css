@@ -1839,3 +1839,17 @@ html[data-view="mobile"] .pc-grid { grid-template-columns: repeat(2, minmax(0, 1
 .mon-best { color: var(--ink); font-weight: 700; }
 
 .mainnav .mainnav-more { font: inherit; background: none; border: 0; cursor: pointer; color: inherit; }
+
+/* 屬性相剋計算器 */
+.ec-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ec-list { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 6px; }
+.ec-list li { display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)) auto; gap: 4px; align-items: center; }
+.ec-list .elem-in { padding: 2px 4px; gap: 2px; font-size: .8rem; }
+.ec-list .elem-in .input { padding: 2px; height: 28px; }
+.ec-no { font-weight: 800; font-size: .8rem; color: var(--ink-2); width: 1.8em; }
+.ec-warn { grid-column: 2 / -1; color: var(--coral, #d9654a); font-size: .75rem; }
+.ec-tbl th small { font-weight: 600; color: var(--ink-2); }
+.ec-tbl .ec-up b { color: #2e8b57; }
+.ec-tbl .ec-down b { color: #c0392b; }
+html[data-view="mobile"] .ec-sides { grid-template-columns: 1fr; }
+@media (max-width: 640px) { .ec-sides { grid-template-columns: 1fr; } }

@@ -25,6 +25,23 @@ function updateCount() {
 }
 
 // ───── 候選商品 ─────
+// 道具（素材、料理等）沒有靜態名錄：輸入關鍵字時順便問市場目前有哪些同名商品，補進候選
+const REMOTE = new Map();
+const remoteFor = q => REMOTE.get(q) || [];
+const fetchRemote = debounce(async q => {
+  if (!q || PREVIEW || REMOTE.has(q) || S.kind === 'pet' || S.kind === 'equip') return;
+  REMOTE.set(q, []);
+  try {
+    const d = await api('market', { q, type: 'item' }, { timeout: 20000 });
+    const seen = new Set(), names = [];
+    for (const it of d.items || []) {
+      const k = normName(it.n || '');
+      if (k && !seen.has(k)) { seen.add(k); names.push({ n: it.n, kn: it.kn }); }
+    }
+    REMOTE.set(q, names);
+  } catch { REMOTE.delete(q); return; }
+  if (normName(S.q) === q) renderCands();
+}, 350);
 function candidates() {
   const q = normName(S.q);
   let list = [];
@@ -46,6 +63,12 @@ function candidates() {
     list = list.filter(x => (seen.has(x.n) ? false : seen.add(x.n)));
   }
   if (q) list = list.filter(x => normName(x.n).includes(q));
+  if (q && (S.kind === 'item' || S.kind === 'all')) {
+    const have = new Set(list.map(x => normName(x.n)));
+    const extra = remoteFor(q).filter(x => !have.has(normName(x.n)) && (S.kind === 'all' || C.kindOf(x.n) === 'item'))
+      .map(x => ({ n: x.n, sub: (LANG === 'ko' && x.kn ? x.kn + '・' : '') + T('bk.onMarket'), kind: C.kindOf(x.n) }));
+    list = [...extra, ...list];
+  }
   return list;
 }
 function renderQuick() {
@@ -225,8 +248,8 @@ function groupCard(g, gi, isBest) {
 
 // ───── 事件 ─────
 function bind() {
-  $('#bk-q').addEventListener('input', debounce(e => { S.q = e.target.value; S.showAll = false; renderCands(); }, 120));
-  $('#bk-kind').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.kind = b.value; S.showAll = false; seg($('#bk-kind'), S.kind); saveCfg(); renderQuick(); renderCands(); });
+  $('#bk-q').addEventListener('input', debounce(e => { S.q = e.target.value; S.showAll = false; renderCands(); fetchRemote(normName(S.q)); }, 120));
+  $('#bk-kind').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.kind = b.value; S.showAll = false; seg($('#bk-kind'), S.kind); saveCfg(); renderQuick(); renderCands(); fetchRemote(normName(S.q)); });
   $('#bk-quick').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
