@@ -51,4 +51,25 @@ $out = locked_json($file, function (array $d) use ($now, $today, $id, $write, $v
     return [$d, ['ok' => true, 'online' => max($online, 1), 'today' => $d['days'][$today] ?? 0, 'total' => $d['total'], 'visitors' => $d['visitors']]];
 });
 if (!$out) fail('busy', 503);
+
+// 網站自帶的排程：沒在 SiteGround 設 Cron 也沒關係。有人瀏覽時，距離上次超過 10 分鐘就在回應送出後
+// 順便收集成交紀錄、檢查價格提醒（同一時間只會有一個請求去跑）。
+$tickFile = $dir . '/tick.json';
+$due = $write && locked_json($tickFile, function (array $d) use ($now) {
+    if ($now - (int)($d['at'] ?? 0) < 600) return [$d, false];
+    $d['at'] = $now; return [$d, true];
+});
+if ($due) {
+    register_shutdown_function(function () {
+        if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+        ignore_user_abort(true);
+        @set_time_limit(240);
+        try { require_once __DIR__ . '/_records.php'; records_ingest(5); } catch (Throwable $e) { error_log('tick ingest: ' . $e->getMessage()); }
+        try {
+            require_once __DIR__ . '/_alerts.php';
+            $lock = @fopen(alerts_dir() . '/run.lock', 'c');
+            if ($lock && flock($lock, LOCK_EX | LOCK_NB)) alerts_run();
+        } catch (Throwable $e) { error_log('tick alerts: ' . $e->getMessage()); }
+    });
+}
 json_out($out);

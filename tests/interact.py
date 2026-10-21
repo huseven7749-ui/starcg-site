@@ -48,7 +48,7 @@ async def main():
             await pg.screenshot(path=f'{OUT}/{vname}-exchange-dark.png', full_page=True)
             if vname == 'mob':
                 await pg.goto(BASE + '/', wait_until='networkidle')
-                await pg.click('.tabbar [data-act=more]'); await pg.wait_for_timeout(400)
+                await pg.click('.tabbar [data-act=menu]'); await pg.wait_for_timeout(400)
                 await pg.screenshot(path=f'{OUT}/mob-more.png')
             print(vname, 'errors:', errs)
             await ctx.close()

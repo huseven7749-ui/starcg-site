@@ -10,9 +10,9 @@ const ALERT_COOLDOWN = 6 * 3600;   // 同一個商品 6 小時內不重複通知
 function alerts_dir(): string { $d = rtrim((string)cfg('cache_dir'), '/') . '/alerts'; if (!is_dir($d)) @mkdir($d, 0700, true); return $d; }
 function alerts_file(): string { return alerts_dir() . '/members.json'; }
 function alerts_hash(string $s): string { return hash('sha256', 'sc-alert|' . $s); }
-function alerts_read(): array { $d = json_decode((string)@file_get_contents(alerts_file()), true); return is_array($d) ? $d : []; }
+function alerts_read(): array { $d = json_decode((string)@file_get_contents(alerts_file()), true); return alerts_sync(is_array($d) ? $d : []); }
 /** 加鎖改寫 members.json；$fn 收到整份資料，回傳 [新資料, 回傳值] */
-function alerts_mutate(callable $fn) { return locked_json(alerts_file(), $fn); }
+function alerts_mutate(callable $fn) { return locked_json(alerts_file(), fn(array $all) => $fn(alerts_sync($all))); }
 
 /** 站長金鑰：部署時由 GitHub Secret ALERT_ADMIN_KEY 寫到 cache/alerts/admin.key（cache 資料夾禁止外部讀取，也不會被部署覆蓋） */
 function alerts_admin_key(): string
@@ -68,6 +68,33 @@ function alerts_notify(array $m, string $title, string $text, string $link = '')
     if (!empty($m['discord']) && alerts_send_discord((string)$m['discord'], $title, $text . ($link ? "\n$link" : ''), $link)) $ok[] = 'discord';
     if (!empty($m['email']) && alerts_send_mail((string)$m['email'], $title, $text . ($link ? "\n\n$link" : '') . "\n\n— starcg.online 價格提醒（到網站的「價格提醒」頁可以修改或停用）")) $ok[] = 'email';
     return $ok;
+}
+
+/** 名冊（倉庫裡 _alert_codes.php，由 tools/alert-code.py 維護）：id → 設定 */
+function alerts_registry(): array
+{
+    static $reg = null;
+    if ($reg === null) {
+        $reg = [];
+        $list = is_file(__DIR__ . '/_alert_codes.php') ? (require __DIR__ . '/_alert_codes.php') : [];
+        foreach (is_array($list) ? $list : [] as $e) if (!empty($e['id']) && !empty($e['code'])) $reg[(string)$e['id']] = $e;
+    }
+    return $reg;
+}
+/** 把名冊的狀態套到會員資料：會員編號當標籤、停用、解除裝置綁定 */
+function alerts_sync(array $all): array
+{
+    foreach (alerts_registry() as $id => $e) {
+        if (!isset($all[$id])) continue;
+        $all[$id]['label'] = (string)($e['no'] ?? ($all[$id]['label'] ?? ''));
+        $all[$id]['revoked'] = !empty($e['revoked']);
+        $reset = (int)($e['reset'] ?? 0);
+        if ($reset > (int)($all[$id]['resetSeen'] ?? 0)) {
+            unset($all[$id]['device'], $all[$id]['token'], $all[$id]['boundAt']);
+            $all[$id]['resetSeen'] = $reset;
+        }
+    }
+    return $all;
 }
 
 /** 找出一筆會員資料（用 token） */

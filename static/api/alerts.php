@@ -71,6 +71,12 @@ if ($action === 'activate') {
     $id = substr(alerts_hash('c|' . $code), 0, 16);
     $token = bin2hex(random_bytes(24));
     $r = alerts_mutate(function (array $all) use ($id, $code, $dev, $token) {
+        // 名冊裡有、但還沒開通過的開通碼：第一次開通時建立會員資料
+        $reg = alerts_registry()[$id] ?? null;
+        if (!isset($all[$id]) && $reg && hash_equals((string)$reg['code'], alerts_hash('c|' . $code))) {
+            $all[$id] = ['code' => (string)$reg['code'], 'label' => (string)($reg['no'] ?? ''), 'created' => time(), 'items' => [], 'enabled' => true];
+            $all = alerts_sync($all);
+        }
         $m = $all[$id] ?? null;
         if (!$m || !hash_equals((string)$m['code'], alerts_hash('c|' . $code))) return [$all, 'bad code'];
         if (!empty($m['revoked'])) return [$all, 'revoked'];

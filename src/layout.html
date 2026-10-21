@@ -62,10 +62,21 @@
         <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"/></svg>
       </button>
       <button class="icon-btn game-btn" type="button" data-act="game" aria-label="{{t:game.title}}"><span class="game-av"></span><span class="game-lv">Lv.1</span></button>
-      <button class="icon-btn" type="button" data-act="settings" aria-label="{{t:a11y.settings}}"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
+      <button class="icon-btn set-btn" type="button" data-act="settings" aria-label="{{t:a11y.settings}}"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
+      <button class="icon-btn menu-btn" type="button" data-act="menu" aria-controls="mnav" aria-expanded="false" aria-label="{{t:nav.menuOpen}}"><svg class="ic ic-open" aria-hidden="true"><use href="#i-menu"/></svg><svg class="ic ic-close" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
   </div>
+  <nav class="mnav" id="mnav" aria-label="{{t:nav.menu}}" hidden>
+    <div class="mnav-in">{{mobileNav}}
+      <div class="mnav-acts">
+        <a class="cta-reg" href="{{registerUrl}}" target="_blank" rel="sponsored noopener"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><span>{{t:cta.registerLong}}</span></a>
+        <button type="button" class="btn ghost" data-act="game"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:game.title}}</button>
+        <button type="button" class="btn ghost" data-act="settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>{{t:settings.title}}</button>
+      </div>
+    </div>
+  </nav>
 </header>
+<div class="mnav-scrim" data-act="menu-close" hidden></div>
 <main id="main" tabindex="-1">
 {{breadcrumb}}
 {{body}}
@@ -90,18 +101,6 @@
   </div>
 </footer>
 <nav class="tabbar" aria-label="{{t:a11y.tabbar}}">{{tabbar}}</nav>
-<dialog class="sheet" id="sheet-more">
-  <div class="sheet-grab" aria-hidden="true"></div>
-  <div class="sheet-links">{{moreLinks}}
-    <a class="sheet-link" href="#" data-act="game"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span>{{t:game.title}}</span></a>
-    <a class="sheet-link sheet-link-sponsor" href="{{sponsorUrl}}" target="_blank" rel="noopener" data-act="sponsor"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>{{t:nav.sponsor}}</span></a>
-    <a class="sheet-link" href="https://member.starcg.net/market.php" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg><span>{{t:nav.officialMarket}}</span></a>
-    <a class="sheet-link" href="https://guide.starcg.net/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>{{t:nav.guide}}</span></a>
-  </div>
-  <p class="small" style="margin:0 0 8px;text-align:center;color:var(--pink-d);font-weight:700">{{t:cta.registerSub}}</p>
-  <a class="cta-reg cta-reg-lg" href="{{registerUrl}}" target="_blank" rel="sponsored noopener"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg><span>{{t:cta.registerLong}}</span></a>
-  <button type="button" class="btn ghost wide" data-act="settings">{{t:settings.title}}</button>
-</dialog>
 <dialog class="sheet" id="sheet-settings" aria-labelledby="set-title">
   <div class="sheet-grab" aria-hidden="true"></div>
   <h2 id="set-title">{{t:settings.title}}</h2>

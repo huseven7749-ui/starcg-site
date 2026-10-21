@@ -27,6 +27,8 @@ export default {
   'nav.pets': '寵物成長',
   'nav.remodel': '改造圖成本',
   'nav.damage': '傷害計算',
+  'nav.menu': '選單',
+  'nav.menuOpen': '打開選單',
   'nav.more': '更多',
   'nav.tab.market': '市場',
   'nav.tab.exchange': '匯率',

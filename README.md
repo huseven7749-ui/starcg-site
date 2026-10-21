@@ -187,6 +187,8 @@ python3 tests/seo_check.py dist https://starcg.online
 ## 價格提醒（會員功能，/alerts/）
 - 會員用「開通碼」開通，一組碼綁一台裝置（瀏覽器）。最多 3 個商品，低於目標價時發 Discord Webhook 或 Email 通知；同商品 6 小時內不重複通知，除非更便宜。
 - 檢查由 `cron/alerts.php` 執行；`cron/ingest.php`（每 10 分鐘那個）也會順便跑。沒設 ingest 的話，在 SiteGround Cron Jobs 加：`*/10 * * * * php …/public_html/cron/alerts.php`。
+- 開通碼（建議做法）：`python3 tools/alert-code.py new` 產生一組開通碼與會員編號（M001…），commit＋push 部署後就能用；`reset M001` 解除裝置綁定、`revoke M001` 停用。倉庫是公開的，名冊 `static/api/_alert_codes.php` 只存開通碼雜湊和會員編號，會員名字另外記在 Claude 專案文件「價格提醒會員名冊」。
+- 排程：不用另外設 Cron。`api/stats.php`（每個頁面都會呼叫）在距離上次超過 10 分鐘時，會在回應送出後順便收集成交紀錄、檢查價格提醒；有設 SiteGround Cron 也可以，兩邊不會重複跑。
 - 站長管理：打開 `https://starcg.online/alerts/#admin`，輸入站長金鑰後可產生開通碼、解除裝置綁定、停用。站長金鑰放 GitHub Secret `ALERT_ADMIN_KEY`（12 字以上），部署時寫到伺服器 `cache/alerts/admin.key`。
 - 會員資料存在伺服器 `cache/alerts/members.json`（只存開通碼與裝置的雜湊）。Email 用主機內建 mail()，寄件人 `noreply@starcg.online`（可用 config `alerts_mail_from` 改）。
 

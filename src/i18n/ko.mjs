@@ -26,6 +26,8 @@ export default {
   'nav.pets': '펫 성장',
   'nav.remodel': '개조도 비용',
   'nav.damage': '데미지 계산',
+  'nav.menu': '메뉴',
+  'nav.menuOpen': '메뉴 열기',
   'nav.more': '더보기',
   'nav.tab.market': '시세',
   'nav.tab.exchange': '환율',

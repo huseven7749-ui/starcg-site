@@ -356,7 +356,46 @@ addEventListener('pageshow', e => { if (e.persisted) reapplyPrefs(); });
 addEventListener('storage', e => { if (e.key === 'sc.theme' || e.key === 'sc.layout') reapplyPrefs(); });
 addEventListener('resize', debounce(() => { if ((html.dataset.layoutPref || 'auto') === 'auto') applyLayout('auto'); }, 200));
 
+// ───── 導覽：電腦版大分類下拉、手機版漢堡選單 ─────
+function toggleDropdown(btn, open) {
+  const panel = document.getElementById(btn.getAttribute('aria-controls'));
+  if (!panel) return;
+  // 滑鼠剛移入時已經展開，這時的點擊不要又把它收起來
+  const justHovered = Date.now() - Number(btn.closest('.nav-dd')?.dataset.hoverAt || 0) < 600;
+  const show = open ?? (justHovered || btn.getAttribute('aria-expanded') !== 'true');
+  if (show) $$('.nav-dd-btn[aria-expanded="true"]').forEach(b => { if (b !== btn) { b.setAttribute('aria-expanded', 'false'); document.getElementById(b.getAttribute('aria-controls')).hidden = true; } });
+  btn.setAttribute('aria-expanded', String(show)); panel.hidden = !show;
+}
+const closeDropdowns = () => $$('.nav-dd-btn[aria-expanded="true"]').forEach(b => toggleDropdown(b, false));
+function toggleMenu(open) {
+  const m = document.getElementById('mnav'); if (!m) return;
+  const show = open ?? m.hidden;
+  m.hidden = !show; document.querySelector('.mnav-scrim').hidden = !show;
+  $$('[data-act="menu"]').forEach(b => b.setAttribute('aria-expanded', String(show)));
+  html.classList.toggle('menu-open', show);
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-dd')) closeDropdowns();
+  if (e.target.closest('#mnav a, #mnav [data-act="game"]')) toggleMenu(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelector('.nav-dd-btn[aria-expanded="true"]');
+  if (open) { closeDropdowns(); open.focus(); }
+  if (!document.getElementById('mnav')?.hidden) { toggleMenu(false); document.querySelector('.menu-btn')?.focus(); }
+});
+// 滑鼠移入就展開（有滑鼠的裝置）；移出稍等再收起
+if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  $$('.nav-dd').forEach(dd => {
+    let timer;
+    dd.addEventListener('mouseenter', () => { clearTimeout(timer); if (dd.querySelector('.nav-dd-btn').getAttribute('aria-expanded') !== 'true') dd.dataset.hoverAt = Date.now(); toggleDropdown(dd.querySelector('.nav-dd-btn'), true); });
+    dd.addEventListener('mouseleave', () => { timer = setTimeout(() => toggleDropdown(dd.querySelector('.nav-dd-btn'), false), 220); });
+  });
+}
+addEventListener('pageshow', () => { closeDropdowns(); toggleMenu(false); });
+
 export function openSheet(id) {
+  toggleMenu(false);
   $$('dialog.sheet[open]').forEach(d => d.close());
   const d = document.getElementById(id);
   if (!d) return;
@@ -371,7 +410,9 @@ document.addEventListener('click', e => {
     const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
     store.setRaw('sc.theme', next); applyTheme(next); syncSeg();
   } else if (act === 'settings') { e.preventDefault(); openSheet('sheet-settings'); }
-  else if (act === 'more') { openSheet('sheet-more'); }
+  else if (act === 'menu') { toggleMenu(); }
+  else if (act === 'menu-close') { toggleMenu(false); }
+  else if (act === 'dd') { toggleDropdown(t); }
   else if (act === 'sponsor' && document.getElementById('sheet-sponsor')) { e.preventDefault(); openSheet('sheet-sponsor'); }
   else if (act === 'close') { t.closest('dialog')?.close(); }
   else if (act === 'lang') { store.setRaw('sc.lang', t.dataset.lang); }

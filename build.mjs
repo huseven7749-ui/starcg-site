@@ -50,7 +50,12 @@ const PAGES = [
   { id: 'posts', path: '/posts/', tpl: 'posts', js: null, priority: '0.7', freq: 'weekly' },
   { id: '404', path: '/404.html', tpl: '404', js: null, noindex: true, file: true },
 ];
-const NAV = ['home', 'market', 'exchange', 'pets', 'monsters', 'damage', 'maze', 'posts'];   // 改造成本放在「更多」
+// 導覽分類（首頁工具區、電腦版下拉、手機版漢堡選單共用同一份分組）
+const NAV_GROUPS = [
+  { id: 'trade', icon: 'market', items: ['market', 'alerts', 'exchange'] },
+  { id: 'calc', icon: 'damage', items: ['damage', 'craft', 'pets', 'remodel'] },
+  { id: 'guide', icon: 'book', items: ['monsters', 'maze', 'posts'] },
+];
 const TOOLS_ALL = ['market', 'exchange', 'pets', 'monsters', 'craft', 'alerts', 'remodel', 'damage', 'maze', 'posts'];   // 頁尾列出全部工具
 
 // ───────────────────────── 工具函式 ─────────────────────────
@@ -503,25 +508,29 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
       v.latestPosts = page.id === 'home' && plist.length ?
         `<h2 class="section-title"><svg class="ic" aria-hidden="true"><use href="#i-posts"/></svg>${esc(t('home.postsTitle'))}<a class="section-more" href="${pageHref(lang, '/posts/', fromPath)}">${esc(t('home.postsMore'))}</a></h2><div class="post-list post-list-3">${plist.slice(0, 3).map(p => postCard(p, lang, fromPath, t)).join('')}</div>` : '';
       // 導覽列
-      v.mainnav = NAV.map(id => {
+      // 導覽列：首頁＋三個大分類下拉（電腦版），手機版是漢堡選單（同一份分類）
+      const isCur = id => id === page.id || (id === 'posts' && page.id === 'post');
+      const navItem = (id, cls) => {
         const p = PAGES.find(x => x.id === id);
-        const cur = id === page.id || (id === 'posts' && page.id === 'post') ? ' aria-current="page"' : '';
-        return `<a href="${pageHref(lang, p.path, fromPath)}"${cur} title="${esc(t('nav.' + id))}"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(t('nav.short.' + id))}</span></a>`;
-      }).join('') +
-        // 「更多」：改造成本等放在這裡（和手機版同一個面板）
-        `<button type="button" class="mainnav-more" data-act="more"${['remodel', 'craft', 'alerts'].includes(page.id) ? ' aria-current="page"' : ''} title="${esc(t('nav.more'))}"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>${esc(t('nav.more'))}</span></button>`;
+        return `<a class="${cls} t-${id}" href="${pageHref(lang, p.path, fromPath)}"${isCur(id) ? ' aria-current="page"' : ''}><span class="t-ic dd-ic"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg></span><span class="dd-txt"><b>${esc(t('nav.' + id))}</b><small>${esc(t('home.tool.' + id))}</small></span></a>`;
+      };
+      const navExtra = cls => `<div class="${cls}">` +
+        `<a href="https://member.starcg.net/market.php" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg>${esc(t('nav.officialMarket'))}</a>` +
+        `<a href="https://guide.starcg.net/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>${esc(t('nav.guide'))}</a>` +
+        `<a href="${esc(SPONSOR[lang] || "#")}" target="_blank" rel="noopener" data-act="sponsor"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>${esc(t('nav.sponsor'))}</a></div>`;
+      const homeP = PAGES.find(x => x.id === 'home');
+      v.mainnav = `<a class="nav-link" href="${pageHref(lang, homeP.path, fromPath)}"${page.id === 'home' ? ' aria-current="page"' : ''}><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>${esc(t('nav.home'))}</span></a>` +
+        NAV_GROUPS.map(g => `<div class="nav-dd"><button type="button" class="nav-dd-btn${g.items.some(isCur) ? ' is-cur' : ''}" data-act="dd" aria-expanded="false" aria-controls="dd-${g.id}"><svg class="ic" aria-hidden="true"><use href="#i-${g.icon}"/></svg><span>${esc(t('home.tg.' + g.id))}</span><svg class="ic dd-chev" aria-hidden="true"><use href="#i-chevron"/></svg></button>` +
+          `<div class="nav-dd-panel" id="dd-${g.id}" hidden>${g.items.map(id => navItem(id, 'dd-item')).join('')}${g.id === 'guide' ? navExtra('dd-extra') : ''}</div></div>`).join('');
+      v.mobileNav = NAV_GROUPS.map(g => `<section class="mnav-g"><h2 class="mnav-h"><svg class="ic" aria-hidden="true"><use href="#i-${g.icon}"/></svg>${esc(t('home.tg.' + g.id))}</h2><div class="mnav-items">${g.items.map(id => navItem(id, 'mnav-item')).join('')}</div></section>`).join('') + navExtra('mnav-extra');
       const tab = (id, label) => {
         const p = PAGES.find(x => x.id === id);
         const cur = id === page.id ? ' aria-current="page"' : '';
         return `<a href="${pageHref(lang, p.path, fromPath)}"${cur}><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(label)}</span></a>`;
       };
-      const moreActive = ['pets', 'remodel', 'damage', 'monsters', 'craft', 'alerts', 'posts', 'post'].includes(page.id) ? ' aria-current="page"' : '';
+      const moreActive = !['home', 'market', 'exchange', 'maze'].includes(page.id) ? ' aria-current="page"' : '';
       v.tabbar = tab('home', t('nav.home')) + tab('market', t('nav.tab.market')) + tab('exchange', t('nav.tab.exchange')) + tab('maze', t('nav.short.maze')) +
-        `<button type="button" data-act="more"${moreActive}><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span>${esc(t('nav.more'))}</span></button>`;
-      v.moreLinks = ['craft', 'alerts', 'remodel', 'pets', 'monsters', 'damage', 'posts'].map(id => {
-        const p = PAGES.find(x => x.id === id);
-        return `<a class="sheet-link" href="${pageHref(lang, p.path, fromPath)}"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg><span>${esc(t('nav.' + id))}</span></a>`;
-      }).join('');
+        `<button type="button" data-act="menu" aria-controls="mnav" aria-expanded="false"${moreActive}><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg><span>${esc(t('nav.menu'))}</span></button>`;
       v.footerTools = TOOLS_ALL.map(id => `<li><a href="${pageHref(lang, PAGES.find(x => x.id === id).path, fromPath)}">${esc(t('nav.' + id))}</a></li>`).join('');
       v.scheduleHtml = page.id === 'home' ? renderSchedule(schedule, t, lang) : '';
       v.sprite = read(path.join(SRC, 'partials', 'sprite.svg'));

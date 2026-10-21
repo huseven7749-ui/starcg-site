@@ -154,7 +154,7 @@ async def act(pg, pid, step):
     if pid == 'home' and step == 'game':
         await pg.click('.top-actions .game-btn'); await pg.wait_for_timeout(500)
     if pid == 'home' and step == 'more':
-        await pg.click('.tabbar [data-act=more]'); await pg.wait_for_timeout(400)
+        await pg.click('.tabbar [data-act=menu]'); await pg.wait_for_timeout(400)
     if pid == 'home' and step == 'settings':
         await pg.click('.top-actions [data-act=settings]'); await pg.wait_for_timeout(400)
 
