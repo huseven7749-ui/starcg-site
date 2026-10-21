@@ -1365,6 +1365,7 @@ export default {
   'al.err.admin_key_not_configured': '서버에 운영자 키가 설정되지 않았어요(GitHub Secret ALERT_ADMIN_KEY).',
   'al.err.wrong_key': '운영자 키가 맞지 않아요.',
   'al.err.preview': '미리보기에서는 쓸 수 없어요.',
+  'al.err.bad_format': '활성화 코드는 XXXX-XXXX-XXXX 형식(영문·숫자 12자)이에요. 관리자 키는 주소 끝에 #admin을 붙인 관리 페이지에서 입력하세요.',
   'al.err.generic': '오류가 발생했어요. 잠시 후 다시 시도해 주세요.',
   'al.admin.title': '운영자 관리',
   'al.admin.key': '운영자 키',

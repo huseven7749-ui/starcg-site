@@ -516,10 +516,10 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
       };
       const navExtra = cls => `<div class="${cls}">` +
         `<a href="https://member.starcg.net/market.php" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg>${esc(t('nav.officialMarket'))}</a>` +
-        `<a href="https://guide.starcg.net/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>${esc(t('nav.guide'))}</a>` +
-        `<a href="${esc(SPONSOR[lang] || "#")}" target="_blank" rel="noopener" data-act="sponsor"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>${esc(t('nav.sponsor'))}</a></div>`;
+        `<a href="https://guide.starcg.net/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>${esc(t('nav.guide'))}</a></div>`;
       const homeP = PAGES.find(x => x.id === 'home');
       v.mainnav = `<a class="nav-link" href="${pageHref(lang, homeP.path, fromPath)}"${page.id === 'home' ? ' aria-current="page"' : ''}><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>${esc(t('nav.home'))}</span></a>` +
+        `<a class="nav-sponsor" href="${esc(SPONSOR[lang] || '#')}" target="_blank" rel="noopener" data-act="sponsor"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>${esc(t('nav.sponsor'))}</span></a>` +
         NAV_GROUPS.map(g => `<div class="nav-dd"><button type="button" class="nav-dd-btn${g.items.some(isCur) ? ' is-cur' : ''}" data-act="dd" aria-expanded="false" aria-controls="dd-${g.id}"><svg class="ic" aria-hidden="true"><use href="#i-${g.icon}"/></svg><span>${esc(t('home.tg.' + g.id))}</span><svg class="ic dd-chev" aria-hidden="true"><use href="#i-chevron"/></svg></button>` +
           `<div class="nav-dd-panel" id="dd-${g.id}" hidden>${g.items.map(id => navItem(id, 'dd-item')).join('')}${g.id === 'guide' ? navExtra('dd-extra') : ''}</div></div>`).join('');
       v.mobileNav = NAV_GROUPS.map(g => `<section class="mnav-g"><h2 class="mnav-h"><svg class="ic" aria-hidden="true"><use href="#i-${g.icon}"/></svg>${esc(t('home.tg.' + g.id))}</h2><div class="mnav-items">${g.items.map(id => navItem(id, 'mnav-item')).join('')}</div></section>`).join('') + navExtra('mnav-extra');

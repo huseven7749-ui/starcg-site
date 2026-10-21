@@ -66,6 +66,8 @@ async function loadMe() {
 function bindMember() {
   $('#al-act-form').addEventListener('submit', async e => {
     e.preventDefault();
+    // 開通碼是 12 個英數字（XXXX-XXXX-XXXX）；格式不對就先提醒，不送出（例如貼成站長金鑰）
+    if ($('#al-code').value.replace(/[^a-z0-9]/gi, '').length !== 12) { say('#al-act-msg', T('al.err.bad_format')); return; }
     say('#al-act-msg', T('al.working'));
     try {
       const d = await call('activate', { code: $('#al-code').value, device: deviceId() });
@@ -98,7 +100,11 @@ function renderMembers(list) {
 }
 function bindAdmin() {
   if (location.hash !== '#admin') return;
-  $('#al-admin').hidden = false;
+  // 站長管理放到最上面，直接把游標移到金鑰欄
+  const box = $('#al-admin'), first = document.querySelector('main .card');
+  if (first && first !== box) first.before(box);
+  box.hidden = false;
+  box.scrollIntoView({ block: 'start' }); $('#al-admin-key').focus({ preventScroll: true });
   $('#al-admin-login').addEventListener('submit', async e => {
     e.preventDefault();
     ADMIN_KEY = $('#al-admin-key').value;

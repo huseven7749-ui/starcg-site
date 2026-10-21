@@ -63,10 +63,11 @@ if (str_starts_with($action, 'admin_')) {
 
 // ───── 會員 ─────
 if ($action === 'activate') {
-    if (!attempt_allow('act', 10)) fail('too many attempts', 429);
+    // 格式不對的不算嘗試次數（例如把站長金鑰貼到這裡）
     $code = alerts_norm_code((string)($in['code'] ?? ''));
     $dev = (string)($in['device'] ?? '');
-    if ($code === '') fail('bad code', 400);
+    if ($code === '') fail('bad format', 400);
+    if (!attempt_allow('act', 10)) fail('too many attempts', 429);
     if (!preg_match('/^[a-z0-9]{8,40}$/i', $dev)) fail('bad device', 400);
     $id = substr(alerts_hash('c|' . $code), 0, 16);
     $token = bin2hex(random_bytes(24));

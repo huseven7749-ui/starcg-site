@@ -1977,3 +1977,20 @@ html[data-view="mobile"] .mnav-scrim:not([hidden]) { display: block; position: f
 .mnav-acts .cta-reg { grid-column: 1 / -1; justify-content: center; }
 .mnav-acts .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .mnav-acts .btn .ic { width: 18px; height: 18px; }
+
+/* 贊助站長：放在首頁旁邊，粉色膠囊比較顯眼 */
+.mainnav .nav-sponsor {
+  display: flex; align-items: center; gap: 6px; padding: 7px 13px; margin: 0 4px; border-radius: 999px; white-space: nowrap;
+  font-weight: 700; font-size: .9rem; text-decoration: none !important; color: var(--pink-d);
+  background: var(--pink-l); border: 1.5px solid color-mix(in srgb, var(--pink) 45%, transparent); transition: transform .15s, box-shadow .15s;
+}
+.mainnav .nav-sponsor .ic { width: 18px; height: 18px; animation: heartBeat 1.6s ease-in-out infinite; }
+.mainnav .nav-sponsor:hover { transform: translateY(-1px); box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--pink) 60%, transparent); }
+@keyframes heartBeat { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.18); } 40% { transform: scale(.95); } }
+@media (max-width: 1060px) { html[data-view="desktop"] .mainnav .nav-sponsor span { display: none; } html[data-view="desktop"] .mainnav .nav-sponsor { padding: 7px 9px; } }
+.mnav-acts .mnav-sponsor { grid-column: 1 / -1; background: var(--pink-l); color: var(--pink-d); border: 1.5px solid color-mix(in srgb, var(--pink) 45%, transparent); font-weight: 800; text-decoration: none !important; }
+/* 韓文字比較長：頂列放不下時依序收起副標、分類圖示、贊助文字、註冊按鈕改短版 */
+@media (max-width: 1560px) { html[lang^="ko"][data-view="desktop"] .brand-txt small { display: none; } html[lang^="ko"][data-view="desktop"] .top-actions .cta-full { display: none; } html[lang^="ko"][data-view="desktop"] .top-actions .cta-short { display: inline; } }
+@media (max-width: 1360px) { html[lang^="ko"][data-view="desktop"] .nav-dd-btn > .ic:first-child, html[lang^="ko"][data-view="desktop"] .nav-link .ic { display: none; } html[lang^="ko"][data-view="desktop"] .mainnav .nav-link, html[lang^="ko"][data-view="desktop"] .mainnav .nav-dd-btn { padding-inline: 8px; } }
+@media (max-width: 1240px) { html[lang^="ko"][data-view="desktop"] .mainnav .nav-sponsor span { display: none; } html[lang^="ko"][data-view="desktop"] .mainnav .nav-sponsor { padding: 7px 9px; } }
+@media (max-width: 1100px) { html[lang^="ko"][data-view="desktop"] .bn-full { display: none; } html[lang^="ko"][data-view="desktop"] .bn-short { display: inline; } }

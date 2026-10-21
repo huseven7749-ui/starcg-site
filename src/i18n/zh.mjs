@@ -1364,6 +1364,7 @@ export default {
   'al.err.admin_key_not_configured': '伺服器還沒設定站長金鑰（GitHub Secret ALERT_ADMIN_KEY）。',
   'al.err.wrong_key': '站長金鑰不正確。',
   'al.err.preview': '預覽版沒有後端，無法使用。',
+  'al.err.bad_format': '開通碼的格式是 XXXX-XXXX-XXXX（12 個英文字母或數字）。站長金鑰請到網址後面加 #admin 的站長管理頁輸入。',
   'al.err.generic': '發生錯誤，請稍後再試。',
   'al.admin.title': '站長管理',
   'al.admin.key': '站長金鑰',
