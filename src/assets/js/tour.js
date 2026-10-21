@@ -158,7 +158,9 @@ if (steps) {
   // RETURNING 在 localStorage 被擋時會改用 cookie 判斷，所以不會每次都跳出來
   const first = !RETURNING;
   const seen = store.get(SEEN_KEY, {}) || {};
-  if (first && !seen[page] && !new URLSearchParams(location.search).has('s')) {
+  // 網址指定了分頁或搜尋（例如從生產材料計算跳到批次採購）就不自動出場，免得導覽把畫面切走
+  const qs = new URLSearchParams(location.search);
+  if (first && !seen[page] && !qs.has('s') && !qs.has('tab') && !qs.has('q')) {
     const wel = document.getElementById('sheet-welcome');
     // 歡迎面板還開著就每 0.5 秒看一次（不依賴 dialog 的 close 事件，部分內建瀏覽器不會觸發）
     const wait = () => (wel?.open ? setTimeout(wait, 500) : setTimeout(startTour, 700));

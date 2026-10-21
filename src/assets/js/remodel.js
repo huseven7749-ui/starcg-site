@@ -173,7 +173,7 @@ function renderStones() {
 function renderTries() {
   const tier = $('#t-tier').value, pay = $('#t-pay').value;
   let from = Number($('#t-from').value), to = Number($('#t-to').value);
-  if (to <= from) { to = Math.min(5, from + 1); $('#t-to').value = to; }
+  if (to <= from) { to = Math.min(6, from + 1); $('#t-to').value = to; }
   const fee = TIERS[tier].fee[pay];
   let setPrice = parseAmount($('#t-set').value);
   if (!isFinite(setPrice)) setPrice = 0;
