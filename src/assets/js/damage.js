@@ -1,6 +1,6 @@
 // 傷害計算機（站內版）
 import { $, $$, T, esc, fmt, store, debounce } from './core.js';
-import { physical, magic, CRYSTAL, RACE, SKILLS, DEF_DOWN, RACES, RACE_BEATS, elementMult, raceRelation, MAGIC_BASE } from './dmgcalc.js';
+import { physical, magic, CRYSTAL, RACE, SKILLS, DEF_DOWN, DEF_SOFT, RACES, RACE_BEATS, elementMult, raceRelation, MAGIC_BASE } from './dmgcalc.js';
 import { track } from './game.js';
 import { SPRITES } from './dummysprites.js';
 import { sfx, sfxOn, setSfx } from './sfx.js';
@@ -11,7 +11,7 @@ const num = id => Number(document.getElementById(id).value) || 0;
 const val = id => document.getElementById(id).value;
 const chk = id => document.getElementById(id).checked;
 const EL = pre => [0, 1, 2, 3].map(i => `${pre}${i}`);
-const IDS = ['p-atk', 'p-alv', 'p-weapon', 'p-skill', 'p-atkup', 'p-hits', 'p-arace', ...EL('p-ae'), 'p-def', 'p-dlv', 'p-drace', 'p-race', 'p-defskill', 'p-deflv', ...EL('p-de'),
+const IDS = ['p-atk', 'p-alv', 'p-weapon', 'p-skill', 'p-atkup', 'p-hits', 'p-arace', ...EL('p-ae'), 'p-def', 'p-dlv', 'p-defcls', 'p-drace', 'p-race', 'p-defskill', 'p-deflv', ...EL('p-de'),
   'p-pet', 'p-tier', 'p-rm', 'p-full', 'p-beast',
   'sk-type', 'sk-lv', 'sk-hit', 'm-type', 'm-lv', 'm-spirit', 'm-target', 'm-staff', 'm-insight', 'm-crystal', 'm-race', 'm-pve', 'm-pet', 'm-tier', 'm-rm', 'm-full', 'm-beast'];
 let caster = 'char', tab = 'phys';
@@ -34,7 +34,7 @@ function renderPhys() {
   const r = physical({
     atk: num('p-atk'), def: num('p-def'), atkLv: num('p-alv'), defLv: num('p-dlv'),
     weapon: val('p-weapon') === 'weapon' ? 0.15 : 0, crystal: em - 1, race: RAC[val('p-race')],
-    skill: num('p-skill') / 100, atkUp: num('p-atkup') / 100, defDown: ds ? DEF_DOWN[ds](Number(val('p-deflv')) || 1) / 100 : 0, hits, pet,
+    skill: num('p-skill') / 100, atkUp: num('p-atkup') / 100, defDown: ds ? DEF_DOWN[ds](Number(val('p-deflv')) || 1) / 100 : 0, defSoft: DEF_SOFT[val('p-defcls')], hits, pet,
   });
   lastPhys = r;
   const rel = val('p-race');
@@ -83,10 +83,11 @@ function applySkill() {
   else if (sk?.tiers) p = sk.tiers[lv - 1];
   else if (sk?.stages) p = sk.stages[lv][(Number(val('sk-hit')) || 1) - 1];
   else if (sk?.rows) p = sk.rows[val('sk-hit') === 'back' ? 'back' : 'front'][lv - 1];
-  else if (sk?.per) { p = sk.per[lv - 1]; hits = sk.hits[lv - 1]; notes.push(T('dmg.note.hits', { p, n: hits })); }
+  else if (sk?.per) { p = sk.per[lv - 1]; hits = sk.hits[lv - 1]; notes.push(T('dmg.note.hits', { p, n: sk.hitsMin && sk.hitsMin[lv - 1] !== hits ? `${sk.hitsMin[lv - 1]}～${hits}` : hits })); }
   if (sk?.atkUp) { up = sk.atkUp[lv - 1]; notes.push(T('dmg.note.atkUp')); }
   if (p == null) { p = 100; notes.push(T('dmg.note.noData')); }
   if (sk?.acc) notes.push(T('dmg.note.acc', { n: sk.acc[lv - 1] }));
+  if (sk?.shape) notes.push(T('dmg.note.shape' + sk.shape(lv)));
   if (sk?.note) notes.push(T('dmg.note.' + sk.note));
   if (type !== 'attack') notes.push(T('dmg.note.src'));
   $('#p-skill').value = p; $('#p-atkup').value = up; $('#p-hits').value = hits;

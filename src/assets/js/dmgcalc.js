@@ -25,10 +25,12 @@ export const PET_REMODEL = [                                                  //
   { normal: 0.12, silver: 0.17, gold: 0.23 },
   { normal: 0.16, silver: 0.22, gold: 0.29 },
   { normal: 0.20, silver: 0.27, gold: 0.35 },
-  { normal: 0.25, silver: 0.33, gold: 0.42 },   // 第 6 次：金卡 42% 為遊戲內數值；普、銀依前五次的級距推估
+  { normal: 0.25, silver: 0.33, gold: 0.42 },   // 第 6 次（攻略網 /pets/upgrade；需滿星 25 星）
 ];
 
-export const effective = v => (v <= SOFT_CAP ? v : SOFT_CAP + SOFT_RATE * (v - SOFT_CAP));
+// 星詠調整：防禦超過 240 的部分，士兵職業算 35%、重裝職業算 40%（攻略網「戰鬥公式與 240 臨界值理論」）
+export const DEF_SOFT = { normal: 0.3, soldier: 0.35, heavy: 0.4 };
+export const effective = (v, rate = SOFT_RATE) => (v <= SOFT_CAP ? v : SOFT_CAP + rate * (v - SOFT_CAP));
 
 // ───── 屬性相剋（cgsword.com/propCal.html）─────
 // 地剋水、水剋火、火剋風、風剋地。每種屬性 0～10 格（一般角色合計 10 格；歌姬地水火風各 4 格）。
@@ -68,7 +70,7 @@ export function physical(o) {
   const atk = Math.max(0, o.atk || 0) * (1 + (o.atkUp || 0));
   const def = Math.max(0, o.def || 0) * Math.max(0, 1 - (o.defDown || 0));
   const atkE = effective(atk);
-  const defE = effective(def);
+  const defE = effective(def, o.defSoft || SOFT_RATE);
   const base = atkE > 0 ? (atkE * atkE * 3) / (atkE + defE * 3) : 0;
   const crit = (def * Math.max(1, o.atkLv || 1)) / (Math.max(1, o.defLv || 1) * 2);
   const p = o.pet;
@@ -107,11 +109,11 @@ export const SKILLS = {
   jiaojiao: { mult: [105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155] },
   yiji: { mult: [104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144], note: 'bowOnly' },
   chuanci: { rows: { front: [50, 50, 50, 55, 55, 55, 60, 60, 60, 70, 80], back: [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160] } },
-  lianji: { hits: [2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7], per: [50, 50, 33, 33, 25, 25, 20, 20, 16, 16, 14] },
+  lianji: { hits: [2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7], hitsMin: [2, 2, 2, 2, 4, 4, 5, 5, 6, 6, 7], per: [50, 50, 33, 33, 25, 25, 20, 20, 16, 16, 14] },
   zhuren: { atkUp: [7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77] },
   xunsu: { atkUp: [60, 69, 78, 87, 96, 105, 113, 120, 127, 130, 133] },
   huixuan: { stages: SKILL_HUIXUAN },
-  zhuiyue: { mult: Object.values(SKILL_ZHUIYUE) },
+  zhuiyue: { mult: Object.values(SKILL_ZHUIYUE), shape: lv => (lv <= 4 ? 'I' : lv <= 8 ? 'T' : 'III') },   // 5、9 級換範圍，所以倍率會先降
   petQiankun: { tiers: [110, 130, 150, 170, 190] },
 };
 /** 防禦方技能：陽炎 每級防禦 −7%、諸刃 每級防禦 −5%（Lv11 −55%） */

@@ -39,15 +39,14 @@ export const REMODEL = [
   { rate: 0.15, pity: 13, lv: 120 },
   { rate: 0.10, pity: 15, lv: 130 },
 ];
-// 第 6 次改造：各卡等固定 +8 BP
+// 改造上限 6 次；每次（含第 6 次）依卡等 +6/7/8 BP（攻略網 /pets/upgrade：六改合計 36／42／48）
 export const REMODEL_MAX = 6;
-export const REMODEL_BP6 = 8;
 export const remodelLv = n => (REMODEL[Math.min(n, REMODEL.length) - 1] || REMODEL[REMODEL.length - 1]).lv;
-/** 改造帶來的自由點數：1～5 次依卡等每次 +6/7/8，第 6 次固定 +8 */
+/** 改造帶來的自由點數：每次依卡等 +6/7/8 */
 export function remodelPoints(tier, remodelCount) {
   const t = TIERS[tier];
   const n = Math.max(0, Math.min(REMODEL_MAX, remodelCount | 0));
-  return (t ? t.remodelBp * Math.min(n, 5) : 0) + (n > 5 ? REMODEL_BP6 * (n - 5) : 0);
+  return t ? t.remodelBp * n : 0;
 }
 export const SKILL_WEIGHT = { 6: 10, 7: 30, 8: 60, 9: 100, 10: 150 };
 export const PET_ALLOC_POWERS = [64 ** 4, 64 ** 3, 64 ** 2, 64, 1];

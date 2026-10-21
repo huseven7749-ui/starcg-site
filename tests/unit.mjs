@@ -76,7 +76,7 @@ t('改造點數：金卡 3 改 = 24 點', () => {
 
 t('改造點數：第 6 次固定 +8（金 5 改 40、6 改 48；普 6 改 38）', () => {
   assert.equal(remodelPoints('金', 5), 40); assert.equal(remodelPoints('金', 6), 48);
-  assert.equal(remodelPoints('普', 6), 30 + 8); assert.equal(remodelPoints('銀', 6), 35 + 8);
+  assert.equal(remodelPoints('普', 6), 36); assert.equal(remodelPoints('銀', 6), 42);
   assert.equal(freePoints(120, '金', 6), 119 + 48);
   const r = simulate({ base: [20, 20, 20, 20, 20], rand: [0, 0, 0, 0, 0], level: 120, tier: '金', remodel: 6, manual: [0, 0, 0, 0, 0] });
   assert.equal(r.limit, 119 + 48);
@@ -195,6 +195,7 @@ t('改造圖售價：普、銀照合成比例與手續費對齊金卡，並算�
 
 t('物理傷害：攻擊 500、防禦 300（超過 240 只算 30%）', () => {
   near(effective(500), 318, 1e-9); near(effective(300), 258, 1e-9); near(effective(200), 200, 1e-9);
+  near(effective(500, 0.4), 344, 1e-9); near(effective(500, 0.35), 331, 1e-9);
   const r = physical({ atk: 500, def: 300, atkLv: 120, defLv: 100, weapon: 0.15, crystal: 0, race: 0, skill: 1.5, pet: null });
   near(r.base, 303372 / 1092, 1e-9);      // 318² × 3 ÷ (318 + 258 × 3)
   near(r.crit, 180, 1e-9);                // 300 × 120 ÷ (100 × 2)

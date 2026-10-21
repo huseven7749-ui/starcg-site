@@ -704,6 +704,9 @@ html[data-view="mobile"] .cardify thead { display: none; }
 html[data-view="mobile"] .cardify tr { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 8px 12px; margin-bottom: 10px; }
 html[data-view="mobile"] .cardify td { border: 0; padding: 4px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right; }
 html[data-view="mobile"] .cardify td::before { content: attr(data-label); font-size: .8rem; color: var(--ink-2); font-weight: 700; text-align: left; }
+html[data-view="mobile"] .cardify tfoot, html[data-view="mobile"] .cardify tfoot tr { display: block; }
+html[data-view="mobile"] .cardify td.tnote { display: block; text-align: left; }
+html[data-view="mobile"] .cardify td.tnote::before { content: none; }
 html[data-view="mobile"] .cardify td .input { max-width: 58%; }
 html[data-view="mobile"] dialog.sheet { margin: auto 0 0; width: 100%; max-width: 100%; border-radius: 26px 26px 0 0; }
 html[data-view="mobile"] dialog.sheet[open] { animation: sheetUp .25s cubic-bezier(.2, .9, .3, 1.1); }

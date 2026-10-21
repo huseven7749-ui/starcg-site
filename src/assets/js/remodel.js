@@ -193,7 +193,7 @@ function renderTries() {
       <td class="num" data-label="${L('rm.eTries')}">${fmt(e, 2)}</td><td class="num" data-label="${L('rm.eCost')}">${esc(fmtWan(stageCost))}</td>
       <td class="num" data-label="${L('rm.worst')}">${esc(fmtWan(worst))}</td></tr>`);
   }
-  $('#t-table').innerHTML = `<thead><tr><th>${L('rm.stage')}</th><th class="num">${L('rm.rate')}</th><th class="num">${L('rm.pity')}</th><th class="num">${L('rm.eTries')}</th><th class="num">${L('rm.eCost')}</th><th class="num">${L('rm.worst')}</th></tr></thead><tbody>${rows.join('')}</tbody>`;
+  $('#t-table').innerHTML = `<thead><tr><th>${L('rm.stage')}</th><th class="num">${L('rm.rate')}</th><th class="num">${L('rm.pity')}</th><th class="num">${L('rm.eTries')}</th><th class="num">${L('rm.eCost')}</th><th class="num">${L('rm.worst')}</th></tr></thead><tbody>${rows.join('')}</tbody>${to > 5 ? `<tfoot><tr><td colspan="6" class="small muted tnote">${L('rm.sixthNote')}</td></tr></tfoot>` : ''}`;
   const bp = remodelPoints(tier, to) - remodelPoints(tier, from);
   const r = rates.get();
   const tile = (label, body, sub = '', hl = false) => `<div class="stat-tile${hl ? ' hl' : ''}"><span>${esc(label)}</span><b>${body}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;

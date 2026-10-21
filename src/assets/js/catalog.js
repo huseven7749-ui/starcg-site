@@ -3,7 +3,7 @@ import { BASE, T, normName, loadPets } from './core.js';
 import { tierOf } from './petcalc.js';
 
 export const EQ_CATS = ['sword', 'axe', 'spear', 'bow', 'staff', 'dagger', 'boomerang', 'shield', 'helmet', 'hat', 'armor', 'clothes', 'robe', 'boots', 'shoes',
-  'necklace', 'amulet', 'ring', 'bracelet', 'headband', 'fudan', 'princess-legend', 'water-dragon'];
+  'necklace', 'amulet', 'ring', 'bracelet', 'earring', 'headband', 'instrument', 'fudan', 'princess-legend', 'water-dragon'];
 export const CRYSTALS = ['地的水晶碎片', '水的水晶碎片', '火的水晶碎片', '風的水晶碎片'];
 export const eqCatName = c => { const k = 'eqc.' + c, v = T(k); return v === k ? c : v; };
 export const raceName = r => { const k = 'race.' + r, v = T(k); return v === k ? r : v; };
