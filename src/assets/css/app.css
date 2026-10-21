@@ -1918,3 +1918,4 @@ html[data-view="mobile"] .cr-plan { position: static; }
 html[data-view="mobile"] .al-item { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); }
 html[data-view="mobile"] .al-item .al-n { grid-column: 2 / -1; }
 @media (max-width: 640px) { .al-item { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); } .al-item .al-n { grid-column: 2 / -1; } }
+.bk-quick .bk-mats { margin: 4px 0; font-size: .9rem; }

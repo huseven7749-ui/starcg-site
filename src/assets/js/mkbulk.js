@@ -1,5 +1,5 @@
 // 批次採購：多項商品一次查價，依分流／幣別規劃購買攤位與路線
-import { $, $$, T, api, esc, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState, LANG } from './core.js';
+import { $, $$, T, api, esc, BASE, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState, LANG } from './core.js';
 import { loadCatalog, EQ_CATS, CRYSTALS, eqCatName, raceName } from './catalog.js';
 import { plan, parseLoc, START_POINTS, START_GROUPS, TOWN } from './route.js';
 import { makeDist, pathBetween } from './frangrid.js';
@@ -10,7 +10,16 @@ import { tierOf } from './petcalc.js';
 
 const LIST_KEY = 'sc.bulk', CFG_KEY = 'sc.bulkcfg', START_KEY = 'sc.starts';
 const MAX_ITEMS = 60, CAND_SHOW = 48;
-const DEF = { kind: 'pet', petMode: 'bounty', cat: '', race: '', sv: 'all', cur: 'both', strat: 'route', tol: 15, basis: 'piece', start: 'castleS', x: 153, y: 103, src: 'player' };
+const BOUNTY_WEAPONS = new Set(['sword', 'axe', 'spear', 'bow', 'staff', 'dagger', 'boomerang']);
+// 生產配方（買材料自己做懸賞裝備用），需要時才載入
+let CRAFT = null;
+const loadCraft = () => CRAFT || (CRAFT = fetch(BASE + 'data/crafting.json').then(r => r.json()).then(d => {
+  const m = new Map();
+  for (const list of Object.values(d.cats || {})) for (const it of list) if (!m.has(normName(it.n))) m.set(normName(it.n), it.m);
+  return m;
+}).catch(() => { CRAFT = null; return new Map(); }));
+const marketName = n => n.replace(/^[一二三四五六七八九十]+級/, '');
+const DEF = { kind: 'bounty', bMode: 'pet', bMats: false, petMode: 'bounty', cat: '', race: '', sv: 'all', cur: 'both', strat: 'route', tol: 15, basis: 'piece', start: 'castleS', x: 153, y: 103, src: 'player' };
 let C = null;
 const S = { ...DEF, ...(store.get(CFG_KEY) || {}), q: '', showAll: false, results: null, busy: false };
 const saveCfg = () => { const { q, showAll, results, busy, ...rest } = S; store.set(CFG_KEY, rest); };
@@ -45,7 +54,12 @@ const fetchRemote = debounce(async q => {
 function candidates() {
   const q = normName(S.q);
   let list = [];
-  if (S.kind === 'pet') {
+  if (S.kind === 'bounty') {
+    // 懸賞：寵物／武器／防具（對照星詠魔力攻略網「懸賞裝備及寵物」）
+    if (S.bMode === 'pet') list = C.bountyPets.map(b => ({ n: b.n, sub: [b.freq, b.tier && `${b.tier}${b.lv || ''}`, b.area, b.where].filter(Boolean).join('・'), kind: 'pet' }));
+    else list = C.bountyEquip.filter(e => (S.bMode === 'weapon') === BOUNTY_WEAPONS.has(e.c))
+      .map(e => ({ n: e.n, sub: `${eqCatName(e.c)} ${e.grade}・${T('bk.shopPrice', { p: e.price })}${S.bMats ? '・' + T('bk.matsMode') : ''}`, kind: 'equip' }));
+  } else if (S.kind === 'pet') {
     const src = S.petMode === 'bounty' ? C.bountyPets.map(b => ({ n: b.n, sub: [b.area, b.where].filter(Boolean).join('・'), tier: b.tier })) : C.pets.filter(p => !S.race || p.race === S.race).map(p => ({ n: p.name, sub: raceName(p.race), tier: tierOf(p.cardTier) }));
     list = src.map(x => ({ ...x, kind: 'pet' }));
   } else if (S.kind === 'equip') {
@@ -73,7 +87,11 @@ function candidates() {
 }
 function renderQuick() {
   const box = $('#bk-quick');
-  if (S.kind === 'pet') {
+  if (S.kind === 'bounty') {
+    box.innerHTML = `<div class="seg seg-sm" id="bk-bmode">${['pet', 'weapon', 'armor'].map(v => `<button type="button" value="${v}" aria-pressed="${S.bMode === v}">${esc(T('bk.b.' + v))}</button>`).join('')}</div>` +
+      (S.bMode !== 'pet' ? `<label class="switch bk-mats"><input type="checkbox" id="bk-bmats"${S.bMats ? ' checked' : ''}><span>${esc(T('bk.matsToggle'))}</span></label>` : '') +
+      `<p class="small muted" style="margin:0">${esc(T('bk.bountyNote'))}<a href="https://guide.starcg.net/production/bounty" target="_blank" rel="noopener">${esc(T('bk.bountyLink'))}</a></p>`;
+  } else if (S.kind === 'pet') {
     box.innerHTML = `<div class="seg seg-sm" id="bk-petmode"><button type="button" value="bounty" aria-pressed="${S.petMode === 'bounty'}">${esc(T('bk.petBounty'))}</button><button type="button" value="all" aria-pressed="${S.petMode === 'all'}">${esc(T('bk.petAll'))}</button></div>` +
       (S.petMode === 'all' ? `<div class="chips"><button type="button" class="chip${!S.race ? ' on' : ''}" data-race="">${esc(T('race.all'))}</button>${C.races.map(r => `<button type="button" class="chip${S.race === r ? ' on' : ''}" data-race="${esc(r)}">${esc(raceName(r))}</button>`).join('')}</div>` : '');
   } else if (S.kind === 'equip') {
@@ -107,6 +125,21 @@ function toggle(n, kind) {
   if (i >= 0) l.splice(i, 1);
   else { if (l.length >= MAX_ITEMS) { toast(T('bk.tooMany', { n: MAX_ITEMS })); return; } l.push({ n, kind: kind || C.kindOf(n), qty: 1 }); }
   setList(l);
+}
+
+/** 懸賞裝備改買材料：把這件裝備一件份的材料加進清單（重複點就再加一件份） */
+async function addMats(name) {
+  const mats = (await loadCraft()).get(normName(name));
+  if (!mats) { toast(T('bk.noRecipe', { n: name })); return; }
+  const l = getList();
+  for (const [full, q] of mats) {
+    const n = marketName(full);
+    const i = l.findIndex(x => normName(x.n) === normName(n));
+    if (i >= 0) l[i].qty = Math.min(9999, (l[i].qty || 1) + q);
+    else if (l.length < MAX_ITEMS) l.push({ n, kind: 'item', qty: q });
+  }
+  setList(l);
+  toast(T('bk.matsAdded', { n: name }));
 }
 
 // ───── 起點 ─────
@@ -253,15 +286,21 @@ function bind() {
   $('#bk-quick').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
-    if (b.closest('#bk-petmode')) S.petMode = b.value;
+    if (b.closest('#bk-bmode')) S.bMode = b.value;
+    else if (b.closest('#bk-petmode')) S.petMode = b.value;
     else if (b.dataset.race != null) S.race = b.dataset.race;
     else if (b.dataset.cat != null) S.cat = b.dataset.cat;
     S.showAll = false; saveCfg(); renderQuick(); renderCands();
   });
+  $('#bk-quick').addEventListener('change', e => {
+    if (e.target.id !== 'bk-bmats') return;
+    S.bMats = e.target.checked; saveCfg(); renderCands();
+  });
   $('#bk-cands').addEventListener('click', e => {
     const b = e.target.closest('[data-pick],[data-add],[data-cand-more]');
     if (!b) return;
-    if (b.dataset.pick != null) toggle(b.dataset.pick, b.dataset.kind);
+    if (b.dataset.pick != null && S.kind === 'bounty' && S.bMats && b.dataset.kind === 'equip') addMats(b.dataset.pick);
+    else if (b.dataset.pick != null) toggle(b.dataset.pick, b.dataset.kind);
     else if (b.dataset.add != null) { toggle(b.dataset.add, C.kindOf(b.dataset.add)); $('#bk-q').value = ''; S.q = ''; renderCands(); }
     else { S.showAll = true; renderCands(); }
   });
