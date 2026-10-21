@@ -30,6 +30,8 @@ export const store = {
     if (PREF_KEYS.has(k)) { try { window.name = NAME_TAG + JSON.stringify({ ...namePrefs(), [k]: v }); } catch { /* 忽略 */ } }
   },
 };
+// 價格提醒已開通的會員：選單裡的價格提醒恢復彩色
+if (store.get('sc.alertToken', '')) html.classList.add('al-member');
 
 // 回訪判斷：之前（另一次開啟瀏覽器分頁時）來過本站。同一次瀏覽中換頁不算回訪。
 // localStorage 被擋時改用 cookie 記，星野導覽等「第一次才出現」的東西就不會每次都跳出來。
@@ -410,6 +412,11 @@ document.addEventListener('click', e => {
     const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
     store.setRaw('sc.theme', next); applyTheme(next); syncSeg();
   } else if (act === 'settings') { e.preventDefault(); openSheet('sheet-settings'); }
+  else if (act === 'alerts-intro') {
+    // 已經開通的會員直接進頁面；還沒開通的先看介紹
+    if (store.get('sc.alertToken', '') || !document.getElementById('sheet-alerts-intro')) return;
+    e.preventDefault(); openSheet('sheet-alerts-intro');
+  }
   else if (act === 'menu') { toggleMenu(); }
   else if (act === 'menu-close') { toggleMenu(false); }
   else if (act === 'dd') { toggleDropdown(t); }

@@ -52,7 +52,7 @@ const PAGES = [
 ];
 // 導覽分類（首頁工具區、電腦版下拉、手機版漢堡選單共用同一份分組）
 const NAV_GROUPS = [
-  { id: 'trade', icon: 'market', items: ['market', 'alerts', 'exchange'] },
+  { id: 'trade', icon: 'market', items: ['market', 'exchange', 'alerts'] },
   { id: 'calc', icon: 'damage', items: ['damage', 'craft', 'pets', 'remodel'] },
   { id: 'guide', icon: 'book', items: ['monsters', 'maze', 'posts'] },
 ];
@@ -512,7 +512,8 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
       const isCur = id => id === page.id || (id === 'posts' && page.id === 'post');
       const navItem = (id, cls) => {
         const p = PAGES.find(x => x.id === id);
-        return `<a class="${cls} t-${id}" href="${pageHref(lang, p.path, fromPath)}"${isCur(id) ? ' aria-current="page"' : ''}><span class="t-ic dd-ic"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg></span><span class="dd-txt"><b>${esc(t('nav.' + id))}</b><small>${esc(t('home.tool.' + id))}</small></span></a>`;
+        const lock = id === 'alerts' ? ' is-locked" data-act="alerts-intro' : '';
+        return `<a class="${cls} t-${id}${lock}" href="${pageHref(lang, p.path, fromPath)}"${isCur(id) ? ' aria-current="page"' : ''}><span class="t-ic dd-ic"><svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg></span><span class="dd-txt"><b>${esc(t('nav.' + id))}${id === 'alerts' ? `<em class="lock-tag">${esc(t('al.intro.badge'))}</em>` : ''}</b><small>${esc(t('home.tool.' + id))}</small></span></a>`;
       };
       const navExtra = cls => `<div class="${cls}">` +
         `<a href="https://member.starcg.net/market.php" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-shop"/></svg>${esc(t('nav.officialMarket'))}</a>` +

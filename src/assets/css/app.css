@@ -1994,3 +1994,27 @@ html[data-view="mobile"] .mnav-scrim:not([hidden]) { display: block; position: f
 @media (max-width: 1360px) { html[lang^="ko"][data-view="desktop"] .nav-dd-btn > .ic:first-child, html[lang^="ko"][data-view="desktop"] .nav-link .ic { display: none; } html[lang^="ko"][data-view="desktop"] .mainnav .nav-link, html[lang^="ko"][data-view="desktop"] .mainnav .nav-dd-btn { padding-inline: 8px; } }
 @media (max-width: 1240px) { html[lang^="ko"][data-view="desktop"] .mainnav .nav-sponsor span { display: none; } html[lang^="ko"][data-view="desktop"] .mainnav .nav-sponsor { padding: 7px 9px; } }
 @media (max-width: 1100px) { html[lang^="ko"][data-view="desktop"] .bn-full { display: none; } html[lang^="ko"][data-view="desktop"] .bn-short { display: inline; } }
+
+/* 價格提醒（付費會員）：還沒開通前在選單、首頁顯示成灰色＋會員限定標籤；開通後恢復彩色 */
+.is-locked .t-ic, .is-locked .t-mouse { filter: grayscale(1); opacity: .75; }
+.is-locked .dd-txt b, .is-locked > b { color: var(--ink-2); }
+html.al-member .is-locked .t-ic, html.al-member .is-locked .t-mouse { filter: none; opacity: 1; }
+html.al-member .is-locked .dd-txt b, html.al-member .is-locked > b { color: inherit; }
+html.al-member .lock-tag, html.al-member .lock-badge { display: none; }
+.tool.is-locked { background: color-mix(in srgb, var(--card) 70%, var(--line)); }
+.lock-badge { position: absolute; top: 10px; right: 10px; z-index: 1; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 800; background: var(--ink-2); color: var(--card); }
+.lock-tag { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-style: normal; font-size: .66rem; font-weight: 800; background: var(--line); color: var(--ink-2); vertical-align: 2px; }
+.ali-head { display: flex; gap: 12px; align-items: center; }
+.ali-sp { flex: none; width: auto; height: 74px; }
+.ali-head h2 { margin: 4px 0 6px; }
+.ali-head p { margin: 0; color: var(--ink-2); font-size: .9rem; }
+.ali-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: var(--lemon-l); color: var(--lemon-d); font-size: .75rem; font-weight: 800; }
+.ali-badge .ic { width: 13px; height: 13px; }
+.ali-list { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; }
+.ali-list li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: var(--card-2); border: 1.5px solid var(--line); }
+.ali-list .ic { flex: none; width: 22px; height: 22px; color: var(--sky-d); margin-top: 2px; }
+.ali-list b { display: block; font-size: .95rem; }
+.ali-list span { font-size: .85rem; color: var(--ink-2); }
+.ali-note { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: var(--pink-l); color: var(--pink-d); font-weight: 700; font-size: .9rem; }
+.ali-note .ic { flex: none; width: 18px; height: 18px; }
+.al-intro .btn.wide + .btn.wide { margin-top: 8px; }

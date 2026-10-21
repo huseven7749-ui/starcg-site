@@ -118,6 +118,19 @@
   <button type="button" class="btn wide" data-act="welcome"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:wel.again}}</button>
   <button type="button" class="btn ghost wide" data-act="close">{{t:a11y.close}}</button>
 </dialog>
+<!-- 價格提醒介紹：付費會員功能，還沒開通的人點選單／首頁卡片會先看到這個 -->
+<dialog class="sheet al-intro" id="sheet-alerts-intro" aria-labelledby="ali-title">
+  <div class="sheet-grab" aria-hidden="true"></div>
+  <div class="ali-head">{{pic:adv-look ali-sp}}<div><span class="ali-badge"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg>{{t:al.intro.badge}}</span><h2 id="ali-title">{{t:al.intro.title}}</h2><p>{{t:al.intro.lead}}</p></div></div>
+  <ul class="ali-list">
+    <li><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg><span><b>{{t:al.intro.p1}}</b>{{t:al.intro.p1d}}</span></li>
+    <li><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span><b>{{t:al.intro.p2}}</b>{{t:al.intro.p2d}}</span></li>
+    <li><svg class="ic" aria-hidden="true"><use href="#i-alerts"/></svg><span><b>{{t:al.intro.p3}}</b>{{t:al.intro.p3d}}</span></li>
+  </ul>
+  <p class="ali-note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg>{{t:al.intro.paid}}</p>
+  <a class="btn primary wide" href="{{href:/alerts/}}" data-act="close">{{t:al.intro.have}}</a>
+  <button type="button" class="btn ghost wide" data-act="close">{{t:a11y.close}}</button>
+</dialog>
 <!-- 贊助站長：先請大家到教學影片留言，想贊助再點連結 -->
 <dialog class="sheet sponsor" id="sheet-sponsor" aria-labelledby="sp-title">
   <div class="sheet-grab" aria-hidden="true"></div>
