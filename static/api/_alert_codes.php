@@ -4,5 +4,12 @@
 // revoked：停用；reset：數字變大就解除裝置綁定（讓會員換裝置重新開通）
 declare(strict_types=1);
 return json_decode(<<<'JSON'
-[]
+[
+ {
+  "id": "388c56968e68b41b",
+  "code": "388c56968e68b41b1f0fea7f06c0977afe6e762f2666cc8720e26b869c11a2c1",
+  "no": "M001",
+  "created": "2026-10-21"
+ }
+]
 JSON, true) ?: [];
