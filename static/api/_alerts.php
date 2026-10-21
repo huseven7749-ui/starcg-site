@@ -132,12 +132,15 @@ function alerts_run(): string
     // 每個商品抓一次（沿用市場快取，2 分鐘內查過就不再打官方）
     $best = [];
     foreach (array_keys($want) as $n) {
-        [$d] = cached_get('market', "m|item|1|$n", (int)cfg('market_ttl', 120), false, fn() => market_fetch($n, 'item', true, 5), false);
+        // 名稱不用打完整：用模糊搜尋，所有名稱含這個關鍵字的商品都算（例如「妖草」會比對妖草的血、妖草的根…）
+        [$d] = cached_get('market', "m|item|0|$n", (int)cfg('market_ttl', 120), false, fn() => market_fetch($n, 'item', false, 5), false);
         if (!$d) continue;
         foreach (($d['items'] ?? []) as $row) {
             $c = (int)($row['c'] ?? 0); $p = (int)($row['p'] ?? 0);
             if ($p <= 0) continue;
-            if (!isset($best[$n][$c]) || $p < $best[$n][$c]['p']) $best[$n][$c] = ['p' => $p, 'q' => (int)($row['q'] ?? 1), 'st' => $d['stalls'][$row['s']] ?? []];
+            $rn = (string)($row['n'] ?? '');
+            if ($rn !== '' && mb_strpos(norm_name($rn), $n) === false) continue;
+            if (!isset($best[$n][$c]) || $p < $best[$n][$c]['p']) $best[$n][$c] = ['p' => $p, 'q' => (int)($row['q'] ?? 1), 'nm' => $rn ?: $n, 'st' => $d['stalls'][$row['s']] ?? []];
         }
         usleep(400000);
     }
@@ -151,16 +154,17 @@ function alerts_run(): string
                 $n = norm_name((string)($it['n'] ?? '')); $c = (int)($it['c'] ?? 0); $max = (int)($it['max'] ?? 0);
                 if ($n === '' || $max <= 0) continue;
                 $b = $best[$n][$c] ?? null;
-                $m['last'][$n] = $b ? ['p' => $b['p'], 'c' => $c, 'at' => $now] : ['p' => null, 'c' => $c, 'at' => $now];
+                $m['last'][$n] = $b ? ['p' => $b['p'], 'c' => $c, 'nm' => $b['nm'], 'at' => $now] : ['p' => null, 'c' => $c, 'at' => $now];
                 if (!$b || $b['p'] > $max) continue;
                 $prev = $m['sent'][$n . '|' . $c] ?? null;
                 if ($prev && $now - (int)$prev['at'] < ALERT_COOLDOWN && $b['p'] >= (int)$prev['p']) continue;
                 $cur = $c === 1 ? '魔晶' : '魔幣';
                 $st = $b['st'];
                 $where = trim((isset($st['sv']) && $st['sv'] !== null ? '分流 ' . $st['sv'] . '　' : '') . (string)($st['loc'] ?? ''));
-                $title = "【價格提醒】{$n} 只要 " . number_format($b['p']) . " {$cur}";
-                $text = "你設定的「{$n}」低於 " . number_format($max) . " {$cur} 了！\n目前最低：" . number_format($b['p']) . " {$cur}（數量 {$b['q']}）\n攤位：" . ((string)($st['n'] ?? '') ?: '—') . ($where ? "　$where" : '') . "\n攤位到期：" . ((string)($st['exp'] ?? '') ?: '—');
-                $ok = alerts_notify($m, $title, $text, $site . '/market/?q=' . rawurlencode($n));
+                $nm = (string)$b['nm'];
+                $title = "【價格提醒】{$nm} 只要 " . number_format($b['p']) . " {$cur}";
+                $text = "你設定的「{$n}」低於 " . number_format($max) . " {$cur} 了！\n商品：{$nm}\n目前最低：" . number_format($b['p']) . " {$cur}（數量 {$b['q']}）\n攤位：" . ((string)($st['n'] ?? '') ?: '—') . ($where ? "　$where" : '') . "\n攤位到期：" . ((string)($st['exp'] ?? '') ?: '—');
+                $ok = alerts_notify($m, $title, $text, $site . '/market/?q=' . rawurlencode($nm));
                 if ($ok) { $m['sent'][$n . '|' . $c] = ['p' => $b['p'], 'at' => $now]; $sent++; }
             }
         }

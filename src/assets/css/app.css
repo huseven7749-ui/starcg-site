@@ -2018,3 +2018,15 @@ html.al-member .lock-tag, html.al-member .lock-badge { display: none; }
 .ali-note { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: var(--pink-l); color: var(--pink-d); font-weight: 700; font-size: .9rem; }
 .ali-note .ic { flex: none; width: 18px; height: 18px; }
 .al-intro .btn.wide + .btn.wide { margin-top: 8px; }
+/* 價格提醒：商品名稱建議清單、手機版排版（第二列放價格與幣別，不會擠到編號那一欄） */
+.al-n { position: relative; }
+.al-sug { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; margin: 4px 0 0; padding: 4px; list-style: none; max-height: 280px; overflow-y: auto;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.al-sug[hidden] { display: none; }
+.al-sug li { padding: 8px 10px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.al-sug li:hover, .al-sug li[aria-selected="true"] { background: var(--card-2); color: var(--pink-d); }
+.al-sug .al-sug-any { font-size: .82rem; font-weight: 600; color: var(--ink-2); border-bottom: 1px dashed var(--line); border-radius: 10px 10px 0 0; }
+.al-hint { margin: 8px 0 0; }
+html[data-view="mobile"] .al-item .al-max { grid-column: 2; }
+html[data-view="mobile"] .al-item .al-c { grid-column: 3; }
+@media (max-width: 640px) { .al-item .al-max { grid-column: 2; } .al-item .al-c { grid-column: 3; } }

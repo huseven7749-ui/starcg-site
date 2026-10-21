@@ -1,6 +1,7 @@
 // 價格提醒（會員功能）：開通碼綁定這台裝置 → 設定最多 3 個商品的目標價 → 伺服器每 10 分鐘檢查，低於目標價就發 Discord／Email
 // 站長管理：網址加上 #admin，輸入站長金鑰後可以產生開通碼、解除裝置綁定、停用
-import { $, T, esc, fmt, store, toast, copy, BASE, LANG, PREVIEW } from './core.js';
+import { $, T, esc, fmt, store, toast, copy, BASE, LANG, PREVIEW, api, normName, debounce } from './core.js';
+import { loadCatalog, CRYSTALS } from './catalog.js';
 
 const MAX = 3, TOKEN_KEY = 'sc.alertToken', DEV_KEY = 'sc.alertDev';
 let ME = null, ADMIN_KEY = '';
@@ -32,10 +33,10 @@ const ago = s => { if (!s) return '–'; const m = Math.max(0, Math.round((Date.
 // ───── 會員設定 ─────
 function itemRow(it, i) {
   const last = ME?.last?.[it.n];
-  const lastTxt = it.n && last ? (last.p != null ? T('al.lowNow', { p: fmt(last.p), c: curName(last.c) }) : T('al.noneNow')) : '';
+  const lastTxt = it.n && last ? (last.p != null ? T('al.lowNow', { p: fmt(last.p), c: curName(last.c) }) + (last.nm && last.nm !== it.n ? `（${last.nm}）` : '') : T('al.noneNow')) : '';
   const hit = it.n && last && last.p != null && it.max > 0 && last.p <= it.max && last.c === it.c;
   return `<div class="al-item" data-i="${i}"><span class="al-no">${i + 1}</span>
-    <label class="field al-n"><span>${esc(T('al.item'))}</span><input class="input" data-k="n" value="${esc(it.n || '')}" maxlength="40" placeholder="${esc(T('al.itemPh'))}" lang="zh-Hant"></label>
+    <label class="field al-n"><span>${esc(T('al.item'))}</span><input class="input" data-k="n" value="${esc(it.n || '')}" maxlength="40" placeholder="${esc(T('al.itemPh'))}" lang="zh-Hant" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="al-sug-${i}"><ul class="al-sug" id="al-sug-${i}" role="listbox" hidden></ul></label>
     <label class="field al-max"><span>${esc(T('al.below'))}</span><input class="input" data-k="max" type="number" min="1" inputmode="numeric" value="${it.max || ''}" placeholder="0"></label>
     <label class="field al-c"><span>${esc(T('al.cur'))}</span><select class="input" data-k="c"><option value="0"${it.c ? '' : ' selected'}>${esc(T('common.coin'))}</option><option value="1"${it.c ? ' selected' : ''}>${esc(T('common.crystal'))}</option></select></label>
     ${lastTxt ? `<small class="al-last${hit ? ' hit' : ''}">${esc(lastTxt)}</small>` : ''}</div>`;
@@ -132,5 +133,70 @@ function bindAdmin() {
   });
 }
 
-bindMember(); bindAdmin(); loadMe();
+// ───── 商品名稱建議：輸入開頭就列出完整名稱可以選；也可以只打一部分 ─────
+let NAMES = null;
+const REMOTE = new Map();
+async function names() {
+  if (NAMES) return NAMES;
+  const set = new Set(CRYSTALS);
+  try {
+    const c = await loadCatalog();
+    c.equip.forEach(e => set.add(e.n)); c.bountyPets.forEach(p => set.add(p.n));
+  } catch { /* 忽略 */ }
+  try {
+    const d = await fetch(BASE + 'data/crafting.json').then(r => r.json());
+    for (const list of Object.values(d.cats || {})) for (const it of list) { set.add(it.n); for (const [m] of it.m || []) set.add(m.replace(/^[一二三四五六七八九十]+級/, '')); }
+  } catch { /* 忽略 */ }
+  NAMES = [...set];
+  return NAMES;
+}
+const fetchRemote = debounce(async (q, input) => {
+  if (!q || PREVIEW || REMOTE.has(q)) return;
+  REMOTE.set(q, []);
+  try {
+    const d = await api('market', { q, type: 'item' }, { timeout: 20000 });
+    REMOTE.set(q, [...new Set((d.items || []).map(x => x.n).filter(Boolean))]);
+  } catch { REMOTE.delete(q); return; }
+  if (document.activeElement === input && normName(input.value) === q) showSug(input);
+}, 400);
+async function showSug(input) {
+  const ul = input.parentElement.querySelector('.al-sug');
+  const q = normName(input.value.trim());
+  if (!q) { hideSug(input); return; }
+  const all = [...new Set([...(await names()), ...(REMOTE.get(q) || [])])];
+  const starts = [], has = [];
+  for (const n of all) { const k = normName(n); if (k === q) continue; if (k.startsWith(q)) starts.push(n); else if (k.includes(q)) has.push(n); }
+  const list = [...starts.sort((a, b) => a.length - b.length), ...has.sort((a, b) => a.length - b.length)].slice(0, 8);
+  ul.innerHTML = `<li class="al-sug-any" role="option" data-v="${esc(input.value.trim())}">${esc(T('al.sugAny', { q: input.value.trim() }))}</li>` +
+    list.map(n => `<li role="option" data-v="${esc(n)}">${esc(n)}</li>`).join('');
+  ul.hidden = false; input.setAttribute('aria-expanded', 'true');
+}
+function hideSug(input) { const ul = input.parentElement.querySelector('.al-sug'); if (ul) ul.hidden = true; input.setAttribute('aria-expanded', 'false'); }
+function bindSuggest() {
+  const box = $('#al-items');
+  box.addEventListener('input', e => { const i = e.target.closest('[data-k=n]'); if (!i) return; showSug(i); fetchRemote(normName(i.value.trim()), i); });
+  box.addEventListener('focusin', e => { const i = e.target.closest('[data-k=n]'); if (i && i.value.trim()) showSug(i); });
+  box.addEventListener('focusout', e => { const i = e.target.closest('[data-k=n]'); if (i) setTimeout(() => hideSug(i), 150); });
+  // 用 pointerdown 選擇，免得輸入框先失去焦點把清單收起來
+  box.addEventListener('pointerdown', e => {
+    const li = e.target.closest('.al-sug li'); if (!li) return;
+    e.preventDefault();
+    const i = li.closest('.field').querySelector('[data-k=n]');
+    i.value = li.dataset.v; hideSug(i);
+    i.closest('.al-item').querySelector('[data-k=max]').focus();
+  });
+  box.addEventListener('keydown', e => {
+    const i = e.target.closest('[data-k=n]'); if (!i) return;
+    const ul = i.parentElement.querySelector('.al-sug'); if (ul.hidden) return;
+    const items = [...ul.children], cur = ul.querySelector('[aria-selected=true]');
+    let k = items.indexOf(cur);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); k = (k + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items.forEach((li, j) => li.setAttribute('aria-selected', String(j === k)));
+    } else if (e.key === 'Enter' && cur) { e.preventDefault(); i.value = cur.dataset.v; hideSug(i); }
+    else if (e.key === 'Escape') hideSug(i);
+  });
+}
+
+bindSuggest(); bindMember(); bindAdmin(); loadMe();
 window.addEventListener('hashchange', () => { if (location.hash === '#admin') location.reload(); });
