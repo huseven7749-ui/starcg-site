@@ -1,5 +1,5 @@
 // 市場用目錄：裝備名錄、懸賞名錄、寵物圖鑑、村莊商店（皆為靜態 JSON，載入一次）
-import { BASE, T, normName, loadPets } from './core.js';
+import { BASE, T, normName, loadPets, loadKo } from './core.js';
 import { tierOf } from './petcalc.js';
 
 export const EQ_CATS = ['sword', 'axe', 'spear', 'bow', 'staff', 'dagger', 'boomerang', 'shield', 'helmet', 'hat', 'armor', 'clothes', 'robe', 'boots', 'shoes',
@@ -12,7 +12,7 @@ let promise = null;
 export function loadCatalog() {
   if (promise) return promise;
   const j = p => fetch(BASE + p).then(r => (r.ok ? r.json() : null)).catch(() => null);
-  promise = Promise.all([j('data/equipment.json'), j('data/bounty.json'), loadPets().catch(() => []), j('data/village-shops.json')]).then(([eq, bounty, pets, village]) => {
+  promise = Promise.all([j('data/equipment.json'), j('data/bounty.json'), loadPets().catch(() => []), j('data/village-shops.json'), loadKo()]).then(([eq, bounty, pets, village]) => {
     const equip = (eq?.items || []).map(([n, c, lv]) => ({ n, c, lv }));
     const equipByName = new Map(equip.map(e => [normName(e.n), e]));
     const bountyEquip = (bounty?.equip || []).map(([n, c, grade, price]) => ({ n, c, grade, price }));

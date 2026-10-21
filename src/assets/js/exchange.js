@@ -1,5 +1,5 @@
 // 魔幣・魔晶・法幣（台幣／港幣／人民幣／韓元／美金）匯率比價
-import { $, $$, T, api, esc, fmt, fmtWan, rates, store, toast, parseAmount, downloadCsv, debounce, loadFx, FIATS } from './core.js';
+import { $, $$, T, api, esc, fmt, fmtWan, rates, store, toast, parseAmount, downloadCsv, debounce, loadFx, FIATS, LANG } from './core.js';
 import { track } from './game.js';
 const trackCompare = debounce(() => track('exchange.compare'), 1200);
 
@@ -169,7 +169,7 @@ $('#b-clear').addEventListener('click', () => { rows = [{ name: '', crystal: '',
 $('#b-csv').addEventListener('click', () => {
   const r0 = rates.get();
   downloadCsv('starcg-exchange.csv', [
-    [T('ex.name'), T('ex.crystal'), T('ex.coin'), T('ex.better'), T('ex.save'), `100萬=${r0.crystalPerMil}`],
+    [T('ex.name'), T('ex.crystal'), T('ex.coin'), T('ex.better'), T('ex.save'), `${LANG === 'ko' ? '100만' : '100萬'}=${r0.crystalPerMil}`],
     ...rows.filter(r => r.name || r.crystal || r.coin).map(r => { const v = rowResult(r); return [r.name, num(r.crystal) || '', num(r.coin) || '', v ? (v.better === 'same' ? T('ex.same') : T('common.' + v.better)) : '', v ? v.pct.toFixed(1) + '%' : '']; }),
   ]);
 });

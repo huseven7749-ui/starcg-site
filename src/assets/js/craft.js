@@ -1,6 +1,8 @@
 // 生產材料計算：選要做的裝備／補品與數量，算出全部材料，可一鍵丟進批次採購
 // 資料：data/crafting.json（整理自星詠魔力攻略網「生產圖鑑」guide.starcg.net/crafting/，只收星詠魔力有的配方）
-import { $, $$, T, esc, fmt, store, debounce, toast, copy, normName, emptyState, BASE, LANG } from './core.js';
+import { $, $$, T, esc, fmt, store, debounce, toast, copy, normName, emptyState, BASE, LANG, loadKo, kn, kt } from './core.js';
+// 韓文版：有對照就顯示韓文，原本的中文名放在 title
+const nm = n => { const k = kn(n); return k !== n ? `<span title="${esc(n)}">${esc(k)}</span>` : `<span lang="zh-Hant">${esc(n)}</span>`; };
 
 const KEY = 'sc.craft', BULK_KEY = 'sc.bulk', BULK_MAX = 60, SHOW = 60;
 const CATS = ['weapon-sword', 'weapon-axe', 'weapon-spear', 'weapon-bow', 'weapon-staff', 'weapon-dagger', 'weapon-boomerang',
@@ -16,16 +18,16 @@ const lvLabel = it => it.g ? it.g : T('cr.lvN', { n: it.lv });
 
 function itemRow(it) {
   const on = S.list.some(x => x.id === it.id);
-  const mats = it.m.map(([n, q]) => `<span class="cr-m">${esc(n)}<b>×${q}</b></span>`).join('');
-  const meta = [it.t, it.p != null ? T('cr.price', { p: fmt(it.p) }) : '', it.note].filter(Boolean).map(esc).join('・');
+  const mats = it.m.map(([n, q]) => `<span class="cr-m">${nm(n)}<b>×${q}</b></span>`).join('');
+  const meta = [kt(it.t), it.p != null ? T('cr.price', { p: fmt(it.p) }) : '', kt(it.note)].filter(Boolean).map(esc).join('・');
   return `<li class="cr-item${on ? ' on' : ''}"><span class="cr-lv">${esc(lvLabel(it))}</span>` +
-    `<div class="cr-body"><b lang="zh-Hant">${esc(it.n)}</b>${S.q && it.cat !== S.cat ? `<span class="badge b-sky">${esc(catName(it.cat))}</span>` : ''}${meta ? `<small>${meta}</small>` : ''}<div class="cr-ms" lang="zh-Hant">${mats}</div></div>` +
+    `<div class="cr-body"><b>${nm(it.n)}</b>${S.q && it.cat !== S.cat ? `<span class="badge b-sky">${esc(catName(it.cat))}</span>` : ''}${meta ? `<small>${meta}</small>` : ''}<div class="cr-ms">${mats}</div></div>` +
     `<button type="button" class="btn sm ${on ? 'ghost' : 'primary'}" data-add="${it.id}">${esc(T(on ? 'cr.added' : 'cr.add'))}</button></li>`;
 }
 function renderList() {
   const q = normName(S.q.trim());
   // 有關鍵字時跨分類搜尋：成品名稱或材料名稱
-  const list = q ? ITEMS.filter(it => normName(it.n).includes(q) || it.m.some(([n]) => normName(n).includes(q))) : ITEMS.filter(it => it.cat === S.cat);
+  const list = q ? ITEMS.filter(it => normName(it.n).includes(q) || normName(kn(it.n)).includes(q) || it.m.some(([n]) => normName(n).includes(q) || normName(kn(n)).includes(q))) : ITEMS.filter(it => it.cat === S.cat);
   const shown = S.all ? list : list.slice(0, SHOW);
   $('#cr-count').textContent = q ? T('cr.found', { n: list.length }) : '';
   $('#cr-list').innerHTML = list.length ? `<ul class="cr-items">${shown.map(itemRow).join('')}</ul>` +
@@ -45,14 +47,14 @@ function renderPlan() {
   S.list = S.list.filter(x => BY_ID.has(x.id));
   $('#cr-sel').innerHTML = S.list.length ? S.list.map((x, i) => {
     const it = BY_ID.get(x.id);
-    return `<li class="bk-row" data-i="${i}"><span class="bk-name"><b lang="zh-Hant">${esc(it.n)}</b><span class="badge b-lav">${esc(catName(it.cat))} ${esc(lvLabel(it))}</span></span>` +
+    return `<li class="bk-row" data-i="${i}"><span class="bk-name"><b>${nm(it.n)}</b><span class="badge b-lav">${esc(catName(it.cat))} ${esc(lvLabel(it))}</span></span>` +
       `<span class="stepper"><button type="button" data-step="-1" aria-label="-">−</button><input class="input sm" type="number" min="1" max="999" value="${x.qty}" inputmode="numeric" aria-label="${esc(T('qty'))}"><button type="button" data-step="1" aria-label="+">＋</button></span>` +
       `<button class="btn sm icon ghost" type="button" data-del="${i}" aria-label="${esc(T('common.remove'))}"><svg class="ic"><use href="#i-trash"/></svg></button></li>`;
   }).join('') : `<li class="empty small">${emptyState('adv-sit', T('cr.empty'))}</li>`;
   const tot = totals();
   const href = n => `${BASE}${LANG === 'ko' ? 'ko/' : ''}market/?q=${encodeURIComponent(marketName(n))}`;
   $('#cr-mats').innerHTML = tot.length ? `<thead><tr><th>${esc(T('cr.mat'))}</th><th class="num">${esc(T('cr.need'))}</th><th></th></tr></thead><tbody>` +
-    tot.map(([n, q]) => `<tr><th scope="row" lang="zh-Hant">${esc(n)}</th><td class="num"><b>${fmt(q)}</b></td><td class="num"><a class="small" href="${href(n)}">${esc(T('cr.price2'))}</a></td></tr>`).join('') + '</tbody>'
+    tot.map(([n, q]) => `<tr><th scope="row">${nm(n)}</th><td class="num"><b>${fmt(q)}</b></td><td class="num"><a class="small" href="${href(n)}">${esc(T('cr.price2'))}</a></td></tr>`).join('') + '</tbody>'
     : `<tbody><tr><td class="muted small">${esc(T('cr.matsEmpty'))}</td></tr></tbody>`;
   $('#cr-bulk').disabled = $('#cr-copy').disabled = !tot.length;
   $('#cr-clear').hidden = !S.list.length;
@@ -67,7 +69,7 @@ function add(id) {
 async function init() {
   $('#cr-cats').innerHTML = CATS.map(c => `<button type="button" class="chip" value="${c}" aria-pressed="${c === S.cat}">${esc(catName(c))}</button>`).join('');
   let data;
-  try { data = await fetch(BASE + 'data/crafting.json').then(r => r.json()); }
+  try { [data] = await Promise.all([fetch(BASE + 'data/crafting.json').then(r => r.json()), loadKo()]); }
   catch { $('#cr-list').innerHTML = emptyState('adv-sit', T('cr.loadFail')); return; }
   ITEMS = [];
   for (const c of CATS) (data.cats[c] || []).forEach((it, k) => ITEMS.push({ ...it, cat: c, id: `${c}:${it.g || it.lv}:${it.n}:${k}` }));

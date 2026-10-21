@@ -1,6 +1,6 @@
 // 價格提醒（會員功能）：開通碼綁定這台裝置 → 設定最多 3 個商品的目標價 → 伺服器每 10 分鐘檢查，低於目標價就發 Discord／Email
 // 站長管理：網址加上 #admin，輸入站長金鑰後可以產生開通碼、解除裝置綁定、停用
-import { $, T, esc, fmt, store, toast, copy, BASE, LANG, PREVIEW, api, normName, debounce } from './core.js';
+import { $, T, esc, fmt, store, toast, copy, BASE, LANG, PREVIEW, api, normName, debounce, kn } from './core.js';
 import { loadCatalog, CRYSTALS } from './catalog.js';
 
 const MAX = 3, TOKEN_KEY = 'sc.alertToken', DEV_KEY = 'sc.alertDev';
@@ -165,10 +165,10 @@ async function showSug(input) {
   if (!q) { hideSug(input); return; }
   const all = [...new Set([...(await names()), ...(REMOTE.get(q) || [])])];
   const starts = [], has = [];
-  for (const n of all) { const k = normName(n); if (k === q) continue; if (k.startsWith(q)) starts.push(n); else if (k.includes(q)) has.push(n); }
+  for (const n of all) { const k = normName(n), kk = normName(kn(n)); if (k === q) continue; if (k.startsWith(q) || kk.startsWith(q)) starts.push(n); else if (k.includes(q) || kk.includes(q)) has.push(n); }
   const list = [...starts.sort((a, b) => a.length - b.length), ...has.sort((a, b) => a.length - b.length)].slice(0, 8);
   ul.innerHTML = `<li class="al-sug-any" role="option" data-v="${esc(input.value.trim())}">${esc(T('al.sugAny', { q: input.value.trim() }))}</li>` +
-    list.map(n => `<li role="option" data-v="${esc(n)}">${esc(n)}</li>`).join('');
+    list.map(n => { const k = kn(n); return `<li role="option" data-v="${esc(n)}">${esc(k)}${k !== n ? ` <small class="muted" lang="zh-Hant">${esc(n)}</small>` : ''}</li>`; }).join('');
   ul.hidden = false; input.setAttribute('aria-expanded', 'true');
 }
 function hideSug(input) { const ul = input.parentElement.querySelector('.al-sug'); if (ul) ul.hidden = true; input.setAttribute('aria-expanded', 'false'); }

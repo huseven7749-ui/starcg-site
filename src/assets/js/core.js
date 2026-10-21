@@ -94,6 +94,41 @@ export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 /** 顯示用名稱：韓文站有韓文名就用韓文，否則中文（資料比對一律用中文的 n） */
 export const dn = r => (LANG === 'ko' && r && r.kn) ? r.kn : (r?.n ?? '');
 
+// ───── 韓文版：站內名錄（地名、道具名、配方說明…）翻成韓文 ─────
+// ko-terms.json：地名、地區、配方說明等（人工翻譯）；api/dict.php：市場資料學到的道具名對照
+let TERMS = new Map(), ITEMS = new Map(), koReady = null;
+export function loadKo() {
+  if (LANG !== 'ko') return Promise.resolve();
+  return koReady || (koReady = Promise.all([
+    fetch(BASE + 'data/ko-terms.json').then(r => (r.ok ? r.json() : {})).catch(() => ({})),
+    PREVIEW ? Promise.resolve({}) : fetch(BASE + 'api/dict.php').then(r => (r.ok ? r.json() : {})).then(d => d.zh || {}).catch(() => ({})),
+  ]).then(([t, d]) => { TERMS = new Map(Object.entries(t || {})); ITEMS = new Map(Object.entries(d || {})); }));
+}
+/** 地名、地區、說明：韓文版有翻譯就用翻譯（多個地名用「、」分開時逐段翻） */
+export function kt(s) {
+  if (LANG !== 'ko' || !s) return s ?? '';
+  const v = TERMS.get(s); if (v) return v;
+  if (/[、，]/.test(s)) return s.split(/([、，])/).map(x => (x === '、' || x === '，' ? ', ' : TERMS.get(x.trim()) || x)).join('');
+  return s;
+}
+/** 道具名：韓文版有對照就顯示韓文（「一級銅條」這類生產材料先去掉級數再查） */
+export function kn(n) {
+  if (LANG !== 'ko' || !n) return n ?? '';
+  const core = n.replace(/^\[(.*)\]$/, '$1');
+  const direct = ITEMS.get(core) || TERMS.get(core); if (direct) return direct;
+  const m = core.match(/^([一二三四五六七八九十]+)級(.+)$/);
+  const ko = m && ITEMS.get(m[2]);
+  return ko ? `${'一二三四五六七八九十'.indexOf(m[1]) + 1}급 ${ko}` : n;
+}
+/** 卡等文字「3級銀卡」→ 依語言顯示 */
+export function cardText(s) {
+  if (LANG !== 'ko' || !s) return s ?? '';
+  const m = s.match(/^(\d+)?級?(普|銀|金)?卡?$/);
+  if (!m) return kt(s);
+  const tier = { 普: T('rm.tier.normal'), 銀: T('rm.tier.silver'), 金: T('rm.tier.gold') }[m[2]] || '';
+  return [m[1] ? `${m[1]}레벨` : '', tier ? `${tier} 카드` : ''].filter(Boolean).join(' ');
+}
+
 // ───── 匯率（全站共用，存在瀏覽器）─────
 // 預設：1 台幣 = 40 魔晶；3,000 魔晶 = 100 萬魔幣。其他法幣依每日匯率由台幣換算。
 const RATE_KEY = 'sc.rates.v2';
@@ -287,8 +322,11 @@ let petsPromise = null;
 export function loadPets() {
   if (!petsPromise) {
     // 走 api/pets.php：資料超過一天沒更新時伺服器會先向攻略網同步再回；失敗再退回靜態檔
-    petsPromise = fetch(`${BASE}api/pets.php`, { cache: 'no-cache' }).then(r => r.ok ? r : Promise.reject(r.status)).catch(() => fetch(`${BASE}data/pets.json`, { cache: 'no-cache' })).then(r => r.json()).then(list => list.map(p => ({
+    // 韓文站：順便帶入寵物韓文名（data/pet-names-ko.json，imageId → 韓文）到 kn
+    const koNames = LANG === 'ko' ? fetch(`${BASE}data/pet-names-ko.json`).then(r => (r.ok ? r.json() : {})).catch(() => ({})) : Promise.resolve({});
+    petsPromise = Promise.all([fetch(`${BASE}api/pets.php`, { cache: 'no-cache' }).then(r => r.ok ? r : Promise.reject(r.status)).catch(() => fetch(`${BASE}data/pets.json`, { cache: 'no-cache' })).then(r => r.json()), koNames]).then(([list, ko]) => list.map(p => ({
       ...p,
+      kn: p.kn || ko['n:' + p.name] || ko[String(p.imageId ?? '').match(/\d+/)?.[0] || ''] || '',
       imageId: String(p.imageId ?? '').match(/\d+/)?.[0] || '',
       cardTier: p.cardTier || '',
       bp: [p.hp, p.power, p.defense, p.speed, p.magic].map(Number),

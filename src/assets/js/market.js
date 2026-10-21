@@ -1,5 +1,5 @@
 // 市場查價器：市價比較、批次採購、資料管理
-import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, itemImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG } from './core.js';
+import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, itemImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG, kn } from './core.js';
 import { decodeAlloc, gradeMeta, tierOf } from './petcalc.js';
 import { lineChart } from './chart.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, inPeriod, stripBr, twTime, FEE } from './mkstats.js';
@@ -85,7 +85,7 @@ function fillEquipSelects() {
   if (S.eqLv && !lvs.includes(Number(S.eqLv))) S.eqLv = '';
   $('#eq-lv').value = S.eqLv;
   const names = equipNames();
-  $('#eq-name').innerHTML = `<option value="">${esc(T('mk.eq.nameAll', { n: names.length }))}</option>` + names.map(e => `<option value="${esc(e.n)}">${esc(e.n)}${S.eqLv ? '' : ` · ${esc(T('mk.eq.lvN', { n: e.lv }))}`}</option>`).join('');
+  $('#eq-name').innerHTML = `<option value="">${esc(T('mk.eq.nameAll', { n: names.length }))}</option>` + names.map(e => `<option value="${esc(e.n)}">${esc(kn(e.n))}${S.eqLv ? '' : ` · ${esc(T('mk.eq.lvN', { n: e.lv }))}`}</option>`).join('');
   if (S.eqName && !names.some(e => e.n === S.eqName)) S.eqName = '';
   $('#eq-name').value = S.eqName;
 }
@@ -106,7 +106,7 @@ function fillPetSelects() {
   if (!c) return;
   seg($('#pet-list'), S.petList);
   const list = petCandidates();
-  $('#pet-name').innerHTML = `<option value="">${esc(T('mk.pet.nameAll', { n: list.length }))}</option>` + list.slice(0, 600).map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  $('#pet-name').innerHTML = `<option value="">${esc(T('mk.pet.nameAll', { n: list.length }))}</option>` + list.slice(0, 600).map(p => `<option value="${esc(p.name)}">${esc(LANG === 'ko' && p.kn ? p.kn : p.name)}</option>`).join('');
   if (S.petName && !list.some(p => p.name === S.petName)) S.petName = '';
   $('#pet-name').value = S.petName;
 }
@@ -784,8 +784,8 @@ el.q.addEventListener('focus', async () => {
   suggested = true;
   const c = S.cat || await loadCatalog();
   const names = new Set([...(store.get(RECENT_KEY, []) || []), ...getWatch().map(w => w.n), ...getFavs().map(f => f.q)]);
-  c.pets.forEach(p => names.add(p.name));
-  c.equip.forEach(e => names.add(e.n));
+  c.pets.forEach(p => names.add(LANG === 'ko' && p.kn ? p.kn : p.name));
+  c.equip.forEach(e => names.add(kn(e.n)));
   $('#mk-suggest').innerHTML = [...names].slice(0, 1200).map(n => `<option value="${esc(n)}">`).join('');
 }, { once: true });
 

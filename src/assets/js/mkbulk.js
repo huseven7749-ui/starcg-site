@@ -1,5 +1,5 @@
 // 批次採購：多項商品一次查價，依分流／幣別規劃購買攤位與路線
-import { $, $$, T, api, esc, BASE, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState, LANG } from './core.js';
+import { $, $$, T, api, esc, BASE, fmt, fmtWan, store, toast, normName, debounce, PREVIEW, spriteImg, emptyState, runningState, LANG, kn, kt } from './core.js';
 import { loadCatalog, EQ_CATS, CRYSTALS, eqCatName, raceName } from './catalog.js';
 import { plan, parseLoc, START_POINTS, START_GROUPS, TOWN } from './route.js';
 import { makeDist, pathBetween } from './frangrid.js';
@@ -51,16 +51,22 @@ const fetchRemote = debounce(async q => {
   } catch { REMOTE.delete(q); return; }
   if (normName(S.q) === q) renderCands();
 }, 350);
+// 韓文版：寵物用圖鑑的韓文名、道具用市場學到的對照；翻不到就顯示中文（滑鼠移上去看原名）
+const dispName = (n, kind) => (LANG !== 'ko' ? n : (kind !== 'equip' && kind !== 'item' && C?.petByName.get(normName(n))?.kn) || kn(n));
+const nameHtml = (n, kind) => { const d = dispName(n, kind); return d !== n ? `<b title="${esc(n)}">${esc(d)}</b>` : `<b lang="zh-Hant">${esc(n)}</b>`; };
+const FREQ = { 經常: 'often', 罕見: 'rare', 極少: 'veryRare' };
+const freqText = f => (FREQ[f] ? T('bk.freq.' + FREQ[f]) : f);
+const tierText = t => ({ 普: T('rm.tier.normal'), 銀: T('rm.tier.silver'), 金: T('rm.tier.gold') }[t] || t);
 function candidates() {
   const q = normName(S.q);
   let list = [];
   if (S.kind === 'bounty') {
     // 懸賞：寵物／武器／防具（對照星詠魔力攻略網「懸賞裝備及寵物」）
-    if (S.bMode === 'pet') list = C.bountyPets.map(b => ({ n: b.n, sub: [b.freq, b.tier && `${b.tier}${b.lv || ''}`, b.area, b.where].filter(Boolean).join('・'), kind: 'pet' }));
+    if (S.bMode === 'pet') list = C.bountyPets.map(b => ({ n: b.n, sub: [freqText(b.freq), b.tier && `${tierText(b.tier)}${b.lv || ''}`, kt(b.area), kt(b.where)].filter(Boolean).join('・'), kind: 'pet' }));
     else list = C.bountyEquip.filter(e => (S.bMode === 'weapon') === BOUNTY_WEAPONS.has(e.c))
       .map(e => ({ n: e.n, sub: `${eqCatName(e.c)} ${e.grade}・${T('bk.shopPrice', { p: e.price })}${S.bMats ? '・' + T('bk.matsMode') : ''}`, kind: 'equip' }));
   } else if (S.kind === 'pet') {
-    const src = S.petMode === 'bounty' ? C.bountyPets.map(b => ({ n: b.n, sub: [b.area, b.where].filter(Boolean).join('・'), tier: b.tier })) : C.pets.filter(p => !S.race || p.race === S.race).map(p => ({ n: p.name, sub: raceName(p.race), tier: tierOf(p.cardTier) }));
+    const src = S.petMode === 'bounty' ? C.bountyPets.map(b => ({ n: b.n, sub: [kt(b.area), kt(b.where)].filter(Boolean).join('・'), tier: b.tier })) : C.pets.filter(p => !S.race || p.race === S.race).map(p => ({ n: p.name, sub: raceName(p.race), tier: tierOf(p.cardTier) }));
     list = src.map(x => ({ ...x, kind: 'pet' }));
   } else if (S.kind === 'equip') {
     const bounty = S.cat === '__bounty';
@@ -108,13 +114,13 @@ function renderCands() {
   const shown = S.showAll ? list : list.slice(0, CAND_SHOW);
   const q = S.q.trim();
   const custom = q && !list.some(x => normName(x.n) === normName(q)) ? `<button type="button" class="cand cand-add" data-add="${esc(q)}"><b>${esc(T('bk.addCustom', { n: q }))}</b><small>${esc(T('bk.addCustomSub'))}</small></button>` : '';
-  $('#bk-cands').innerHTML = (shown.length || custom ? custom + shown.map(x => `<button type="button" class="cand${sel.has(normName(x.n)) ? ' on' : ''}" data-pick="${esc(x.n)}" data-kind="${x.kind}" aria-pressed="${sel.has(normName(x.n))}"><b lang="zh-Hant">${esc(x.n)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</button>`).join('') : `<p class="muted small">${esc(T('noResult'))}</p>`) +
+  $('#bk-cands').innerHTML = (shown.length || custom ? custom + shown.map(x => `<button type="button" class="cand${sel.has(normName(x.n)) ? ' on' : ''}" data-pick="${esc(x.n)}" data-kind="${x.kind}" aria-pressed="${sel.has(normName(x.n))}">${nameHtml(x.n, x.kind)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</button>`).join('') : `<p class="muted small">${esc(T('noResult'))}</p>`) +
     (list.length > shown.length ? `<button type="button" class="btn sm ghost wide" data-cand-more>${esc(T('more', { n: list.length }))}</button>` : '');
 }
 function renderSel() {
   const l = getList();
   $('#bk-sel').innerHTML = l.length ? l.map((x, i) => `<li class="bk-row" data-i="${i}">
-      <span class="bk-name"><b lang="zh-Hant">${esc(x.n)}</b><span class="badge ${x.kind === 'pet' ? 'b-mint' : x.kind === 'equip' ? 'b-coral' : 'b-sky'}">${esc(T('mk.kind.' + (x.kind || 'item')))}</span></span>
+      <span class="bk-name">${nameHtml(x.n, x.kind)}<span class="badge ${x.kind === 'pet' ? 'b-mint' : x.kind === 'equip' ? 'b-coral' : 'b-sky'}">${esc(T('mk.kind.' + (x.kind || 'item')))}</span></span>
       <span class="stepper"><button type="button" data-step="-1" aria-label="-">−</button><input class="input sm" type="number" min="1" max="9999" value="${x.qty}" inputmode="numeric" aria-label="${esc(T('qty'))}"><button type="button" data-step="1" aria-label="+">＋</button></span>
       <button class="btn sm icon ghost" type="button" data-del="${i}" aria-label="${esc(T('common.remove'))}"><svg class="ic"><use href="#i-trash"/></svg></button></li>`).join('')
     : `<li class="empty small">${spriteImg('adv-sit')}<b>${esc(T('bk.selEmpty'))}</b></li>`;

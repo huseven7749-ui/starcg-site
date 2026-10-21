@@ -1,6 +1,8 @@
 // 魔物分布：依地區（島 → 地點 → 樓層）或依等級（每 10 等一個區間）查魔物出沒
 // 資料：data/monster-map.json（tools/scrape-monster-map.py 從御劍軒 cgsword.com/bm 整理，經典服資料）
-import { $, $$, T, esc, fmt, store, debounce, loadPets, petImgSrc, normName, emptyState, BASE, LANG } from './core.js';
+import { $, $$, T, esc, fmt, store, debounce, loadPets, petImgSrc, normName, emptyState, BASE, LANG, loadKo, kt, cardText } from './core.js';
+import { raceName } from './catalog.js';
+const cnt = c => (LANG === 'ko' ? String(c).replace(/隻$/, '마리') : c);
 import { elementMult } from './dmgcalc.js';
 
 const KEY = 'sc.monsters';
@@ -53,7 +55,7 @@ function pass(r) {
   if (S.band >= 0 && !inBand(r)) return false;
   if (S.q) {
     const q = normName(S.q);
-    if (!r.key.includes(q) && !normName(r.area.name).includes(q) && !(r.pet?.kn && normName(r.pet.kn).includes(q))) return false;
+    if (!r.key.includes(q) && !normName(r.area.name).includes(q) && !normName(kt(r.area.name)).includes(q) && !(r.pet?.kn && normName(r.pet.kn).includes(q))) return false;
   }
   if (S.view === 'region') {
     if (S.island && r.island !== S.island) return false;
@@ -74,15 +76,15 @@ function card(r, where = '') {
   const name = esc(r.nameShow);
   const link = r.pet ? `<a href="${BASE}pets/?q=${encodeURIComponent(r.pet.name)}">${name}</a>` : name;
   return `<li class="mon-card">${img(r)}<div class="mon-body"><b class="mon-name">${link}</b>
-    <span class="mon-meta"><span class="badge b-sky">${esc(lvText(r))}</span>${r.race ? `<span class="badge b-gray">${esc(r.race)}</span>` : ''}${r.card ? `<span class="badge b-lav">${esc(r.card)}</span>` : ''}${r.catch ? `<span class="badge b-ok">${esc(T('mon.catch'))}</span>` : ''}</span>
+    <span class="mon-meta"><span class="badge b-sky">${esc(lvText(r))}</span>${r.race ? `<span class="badge b-gray">${esc(raceName(r.race))}</span>` : ''}${r.card ? `<span class="badge b-lav">${esc(cardText(r.card))}</span>` : ''}${r.catch ? `<span class="badge b-ok">${esc(T('mon.catch'))}</span>` : ''}</span>
     ${elemBar(r.elem)}${r.best ? `<small class="mon-best">${esc(T('mon.best', { e: bestText(r.best), m: fmt(r.best.m, 2) }))}</small>` : ''}${r.lv1 ? `<small class="muted">${esc(T('mon.lv1', { p: r.lv1 }))}</small>` : ''}${where}</div></li>`;
 }
 
 function renderRegion(rows) {
   const byArea = new Map();
   for (const r of rows) { if (!byArea.has(r.area)) byArea.set(r.area, new Map()); const g = byArea.get(r.area); const k = r.label + '|' + r.count; if (!g.has(k)) g.set(k, []); g.get(k).push(r); }
-  return [...byArea.entries()].map(([a, groups]) => `<section class="card mon-area"><h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>${esc(a.name)}<span class="sub">${esc(a.path.join(' › '))}</span></h2>` +
-    [...groups.entries()].map(([k, rs]) => { const [label, count] = k.split('|'); return `<div class="mon-group">${label || count ? `<p class="mon-gh">${label ? `<b>${esc(label)}</b>` : ''}${count ? `<span class="muted">${esc(T('mon.count', { n: count }))}</span>` : ''}</p>` : ''}<ul class="mon-list">${rs.map(r => card(r)).join('')}</ul></div>`; }).join('') + '</section>').join('');
+  return [...byArea.entries()].map(([a, groups]) => `<section class="card mon-area"><h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>${esc(kt(a.name))}<span class="sub">${esc(a.path.map(kt).join(' › '))}</span></h2>` +
+    [...groups.entries()].map(([k, rs]) => { const [label, count] = k.split('|'); return `<div class="mon-group">${label || count ? `<p class="mon-gh">${label ? `<b>${esc(kt(label))}</b>` : ''}${count ? `<span class="muted">${esc(T('mon.count', { n: cnt(count) }))}</span>` : ''}</p>` : ''}<ul class="mon-list">${rs.map(r => card(r)).join('')}</ul></div>`; }).join('') + '</section>').join('');
 }
 function renderLevel(rows) {
   // 同一隻魔物合併成一張卡，列出所有出沒地點
@@ -96,7 +98,7 @@ function renderLevel(rows) {
       if (!m.has(r.key)) m.set(r.key, { ...r, lvMin: lo, lvMax: hi, places: [] });
       const it = m.get(r.key);
       it.lvMin = Math.min(it.lvMin, lo); it.lvMax = Math.max(it.lvMax, hi);
-      it.places.push(`${r.area.name}${r.label ? ' ' + r.label : ''}（${lvText(r)}）`);
+      it.places.push(`${kt(r.area.name)}${r.label ? ' ' + kt(r.label) : ''}（${lvText(r)}）`);
     }
   }
   return [...bands.keys()].sort((a, b) => a - b).map(b => {
@@ -126,11 +128,11 @@ function render() {
 
 function fillSelects() {
   const islands = [...new Set(DATA.areas.map(a => a.path[0] || a.name))];
-  $('#mon-island').innerHTML = `<option value="">${esc(T('common.all'))}</option>` + islands.map(i => `<option value="${esc(i)}">${esc(i)}</option>`).join('');
+  $('#mon-island').innerHTML = `<option value="">${esc(T('common.all'))}</option>` + islands.map(i => `<option value="${esc(i)}">${esc(kt(i))}</option>`).join('');
   $('#mon-island').value = islands.includes(S.island) ? S.island : (S.island = '');
   fillAreas();
   const races = [...new Set(ROWS.map(r => r.race).filter(Boolean))].sort();
-  $('#mon-race').innerHTML = `<option value="">${esc(T('common.all'))}</option>` + races.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  $('#mon-race').innerHTML = `<option value="">${esc(T('common.all'))}</option>` + races.map(r => `<option value="${esc(r)}">${esc(raceName(r))}</option>`).join('');
   $('#mon-race').value = races.includes(S.race) ? S.race : (S.race = '');
   $('#mon-elem').value = S.elem;
   $('#mon-catch').checked = S.catch;
@@ -140,7 +142,7 @@ function fillSelects() {
 }
 function fillAreas() {
   const list = DATA.areas.filter(a => !S.island || (a.path[0] || a.name) === S.island);
-  $('#mon-area').innerHTML = `<option value="">${esc(T('mon.areaAll', { n: list.length }))}</option>` + list.map(a => `<option value="${a.id}">${esc(a.path.slice(1).concat(a.name).join(' › '))}</option>`).join('');
+  $('#mon-area').innerHTML = `<option value="">${esc(T('mon.areaAll', { n: list.length }))}</option>` + list.map(a => `<option value="${a.id}">${esc(a.path.slice(1).concat(a.name).map(kt).join(' › '))}</option>`).join('');
   $('#mon-area').value = list.some(a => a.id === S.area) ? S.area : (S.area = '');
 }
 
@@ -158,7 +160,7 @@ $('#mon-q').addEventListener('input', debounce(e => { S.q = e.target.value.trim(
 const qs = new URLSearchParams(location.search);
 if (qs.get('q')) { S.q = qs.get('q').slice(0, 30); $('#mon-q').value = S.q; }
 if (qs.get('lv')) { S.view = 'level'; S.band = bandOf(Number(qs.get('lv')) || 1); }
-Promise.all([fetch(BASE + 'data/monster-map.json').then(r => r.json()), loadPets().catch(() => [])]).then(([d, pets]) => {
+Promise.all([fetch(BASE + 'data/monster-map.json').then(r => r.json()), loadPets().catch(() => []), loadKo()]).then(([d, pets]) => {
   DATA = d;
   for (const p of pets) {
     if (p.imageId) PETS.set(String(p.imageId).match(/\d+/)?.[0], p);
