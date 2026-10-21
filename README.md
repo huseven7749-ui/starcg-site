@@ -183,3 +183,12 @@ python3 tests/seo_check.py dist https://starcg.online
 - 封面／文內圖用看圖方式逐張打開確認：角色不可互相重疊或被裁切、標題不要孤字換行（單獨一個「？」）、文字不超出卡片。
 - 封面多個角色時由右往左依實際寬度加間距排列，不要手動指定座標。
 - 確認文章頁圖片都載得出來（naturalWidth > 0）、手機版不橫向溢出。
+
+## 價格提醒（會員功能，/alerts/）
+- 會員用「開通碼」開通，一組碼綁一台裝置（瀏覽器）。最多 3 個商品，低於目標價時發 Discord Webhook 或 Email 通知；同商品 6 小時內不重複通知，除非更便宜。
+- 檢查由 `cron/alerts.php` 執行；`cron/ingest.php`（每 10 分鐘那個）也會順便跑。沒設 ingest 的話，在 SiteGround Cron Jobs 加：`*/10 * * * * php …/public_html/cron/alerts.php`。
+- 站長管理：打開 `https://starcg.online/alerts/#admin`，輸入站長金鑰後可產生開通碼、解除裝置綁定、停用。站長金鑰放 GitHub Secret `ALERT_ADMIN_KEY`（12 字以上），部署時寫到伺服器 `cache/alerts/admin.key`。
+- 會員資料存在伺服器 `cache/alerts/members.json`（只存開通碼與裝置的雜湊）。Email 用主機內建 mail()，寄件人 `noreply@starcg.online`（可用 config `alerts_mail_from` 改）。
+
+## 生產材料計算（/craft/）
+- 配方 `static/data/crafting.json` 整理自星詠魔力攻略網生產圖鑑（guide.starcg.net/crafting/），只收星詠魔力有的 17 類；不收其他版本才有的炸彈、外傷藥、飾品、變身卡、寵物裝備。

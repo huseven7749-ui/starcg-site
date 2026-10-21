@@ -1895,3 +1895,26 @@ html[data-view="mobile"] .ec-sides { grid-template-columns: 1fr; }
 html[data-view="mobile"] .cr-layout { grid-template-columns: 1fr; }
 html[data-view="mobile"] .cr-plan { position: static; }
 @media (max-width: 900px) { .cr-layout { grid-template-columns: 1fr; } .cr-plan { position: static; } }
+
+/* 價格提醒 */
+.ph-alerts .ph-ic { background: var(--lemon-l); color: var(--lemon-d); box-shadow: var(--pop) color-mix(in srgb, var(--lemon) 55%, transparent); }
+.al-feats { margin: 0 0 12px; padding-left: 1.2em; color: var(--ink-2); display: grid; gap: 4px; }
+.al-act, .al-gen { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.al-act .field, .al-gen .field { flex: 1 1 220px; }
+.al-msg { margin: 8px 0 0; font-weight: 700; min-height: 1.2em; }
+.al-msg.ok { color: #2e8b57; } .al-msg.bad { color: #c0392b; }
+.al-set .card-title, .al-intro .card-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.al-on { margin-left: auto; font-size: .9rem; }
+.al-items { display: grid; gap: 10px; }
+.al-item { display: grid; grid-template-columns: 28px minmax(0, 2fr) minmax(0, 1fr) minmax(0, .8fr); gap: 8px; align-items: end; padding: 10px; border: 1.5px solid var(--line); border-radius: var(--r-md, 14px); }
+.al-no { font-weight: 800; color: var(--pink-d); align-self: center; text-align: center; }
+.al-last { grid-column: 2 / -1; color: var(--ink-2); }
+.al-last.hit { color: #2e8b57; font-weight: 700; }
+.al-sub { font-size: .95rem; margin: 16px 0 8px; }
+.al-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.al-codes { font-size: 1.05rem; letter-spacing: .06em; margin: 6px 0; white-space: pre-wrap; }
+.al-admin-btns { white-space: nowrap; }
+.al-admin-btns .btn { margin-left: 4px; }
+html[data-view="mobile"] .al-item { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); }
+html[data-view="mobile"] .al-item .al-n { grid-column: 2 / -1; }
+@media (max-width: 640px) { .al-item { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); } .al-item .al-n { grid-column: 2 / -1; } }

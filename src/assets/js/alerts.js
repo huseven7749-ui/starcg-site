@@ -1,0 +1,130 @@
+// 價格提醒（會員功能）：開通碼綁定這台裝置 → 設定最多 3 個商品的目標價 → 伺服器每 10 分鐘檢查，低於目標價就發 Discord／Email
+// 站長管理：網址加上 #admin，輸入站長金鑰後可以產生開通碼、解除裝置綁定、停用
+import { $, T, esc, fmt, store, toast, copy, BASE, LANG, PREVIEW } from './core.js';
+
+const MAX = 3, TOKEN_KEY = 'sc.alertToken', DEV_KEY = 'sc.alertDev';
+let ME = null, ADMIN_KEY = '';
+
+function deviceId() {
+  let d = store.get(DEV_KEY, '');
+  if (!/^[a-z0-9]{16,40}$/i.test(d)) {
+    d = Array.from(crypto.getRandomValues(new Uint8Array(20)), b => (b % 36).toString(36)).join('');
+    store.set(DEV_KEY, d);
+  }
+  return d;
+}
+async function call(action, body = {}) {
+  if (PREVIEW) throw new Error('preview');
+  const r = await fetch(`${BASE}api/alerts.php`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...body }) });
+  let d = null;
+  try { d = await r.json(); } catch { /* 忽略 */ }
+  if (!r.ok || !d || d.ok === false) throw new Error(d?.error || 'http-' + r.status);
+  return d;
+}
+const errText = e => {
+  const k = 'al.err.' + String(e.message || e).replace(/[^a-z]+/gi, '_');
+  const v = T(k); return v === k ? T('al.err.generic') : v;
+};
+const say = (id, text, ok = false) => { const el = $(id); el.textContent = text; el.classList.toggle('ok', ok); el.classList.toggle('bad', !ok && !!text); };
+const curName = c => T(c ? 'common.crystal' : 'common.coin');
+const ago = s => { if (!s) return '–'; const m = Math.max(0, Math.round((Date.now() / 1000 - s) / 60)); return m < 1 ? T('al.justNow') : m < 60 ? T('al.minAgo', { n: m }) : T('al.hourAgo', { n: Math.round(m / 60) }); };
+
+// ───── 會員設定 ─────
+function itemRow(it, i) {
+  const last = ME?.last?.[it.n];
+  const lastTxt = it.n && last ? (last.p != null ? T('al.lowNow', { p: fmt(last.p), c: curName(last.c) }) : T('al.noneNow')) : '';
+  const hit = it.n && last && last.p != null && it.max > 0 && last.p <= it.max && last.c === it.c;
+  return `<div class="al-item" data-i="${i}"><span class="al-no">${i + 1}</span>
+    <label class="field al-n"><span>${esc(T('al.item'))}</span><input class="input" data-k="n" value="${esc(it.n || '')}" maxlength="40" placeholder="${esc(T('al.itemPh'))}" lang="zh-Hant"></label>
+    <label class="field al-max"><span>${esc(T('al.below'))}</span><input class="input" data-k="max" type="number" min="1" inputmode="numeric" value="${it.max || ''}" placeholder="0"></label>
+    <label class="field al-c"><span>${esc(T('al.cur'))}</span><select class="input" data-k="c"><option value="0"${it.c ? '' : ' selected'}>${esc(T('common.coin'))}</option><option value="1"${it.c ? ' selected' : ''}>${esc(T('common.crystal'))}</option></select></label>
+    ${lastTxt ? `<small class="al-last${hit ? ' hit' : ''}">${esc(lastTxt)}</small>` : ''}</div>`;
+}
+function renderMe() {
+  $('#al-join').hidden = !!ME; $('#al-set').hidden = !ME;
+  if (!ME) return;
+  const items = [...(ME.items || [])];
+  while (items.length < MAX) items.push({ n: '', max: 0, c: 0 });
+  $('#al-items').innerHTML = items.slice(0, MAX).map(itemRow).join('');
+  $('#al-discord').value = ME.discord || ''; $('#al-email').value = ME.email || '';
+  $('#al-enabled').checked = !!ME.enabled;
+  $('#al-status').textContent = T('al.status', { t: ago(ME.checkedAt) }) + (ME.label ? `　${ME.label}` : '');
+}
+function readForm() {
+  const items = [...document.querySelectorAll('#al-items .al-item')].map(r => ({
+    n: r.querySelector('[data-k=n]').value.trim(), max: Math.round(Number(r.querySelector('[data-k=max]').value) || 0), c: Number(r.querySelector('[data-k=c]').value) ? 1 : 0,
+  })).filter(x => x.n && x.max > 0);
+  return { items, discord: $('#al-discord').value.trim(), email: $('#al-email').value.trim(), enabled: $('#al-enabled').checked };
+}
+async function loadMe() {
+  const token = store.get(TOKEN_KEY, '');
+  if (!token) { renderMe(); return; }
+  try { ME = (await call('me', { token })).me; }
+  catch (e) { if (/not activated/.test(e.message)) store.set(TOKEN_KEY, ''); ME = null; }
+  renderMe();
+}
+function bindMember() {
+  $('#al-act-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    say('#al-act-msg', T('al.working'));
+    try {
+      const d = await call('activate', { code: $('#al-code').value, device: deviceId() });
+      store.set(TOKEN_KEY, d.token); ME = d.me; say('#al-act-msg', ''); renderMe(); toast(T('al.activated'));
+    } catch (err) { say('#al-act-msg', errText(err)); }
+  });
+  $('#al-save').addEventListener('click', async () => {
+    const f = readForm();
+    if (f.enabled && !f.discord && !f.email) { say('#al-msg', T('al.err.no_channel')); return; }
+    say('#al-msg', T('al.working'));
+    try { ME = (await call('save', { token: store.get(TOKEN_KEY, ''), ...f })).me; renderMe(); say('#al-msg', T('al.saved'), true); }
+    catch (err) { say('#al-msg', errText(err)); }
+  });
+  $('#al-test').addEventListener('click', async () => {
+    say('#al-msg', T('al.working'));
+    try {
+      const d = await call('test', { token: store.get(TOKEN_KEY, '') });
+      say('#al-msg', d.sent?.length ? T('al.testOk', { w: d.sent.map(x => T('al.ch.' + x)).join('、') }) : T('al.testFail'), !!d.sent?.length);
+    } catch (err) { say('#al-msg', errText(err)); }
+  });
+}
+
+// ───── 站長管理 ─────
+function renderMembers(list) {
+  const day = s => (s ? new Date(s * 1000).toLocaleDateString(LANG === 'ko' ? 'ko-KR' : 'zh-TW') : '–');
+  $('#al-members').innerHTML = `<thead><tr><th>${esc(T('al.admin.label'))}</th><th>${esc(T('al.admin.created'))}</th><th>${esc(T('al.admin.device'))}</th><th class="num">${esc(T('al.admin.items'))}</th><th></th></tr></thead><tbody>` +
+    (list.length ? list.sort((a, b) => b.created - a.created).map(m => `<tr data-id="${esc(m.id)}"${m.revoked ? ' class="muted"' : ''}><td>${esc(m.label || '—')}${m.revoked ? ` <span class="badge">${esc(T('al.admin.revoked'))}</span>` : ''}</td><td>${day(m.created)}</td><td>${m.bound ? esc(T('al.admin.boundAt', { d: day(m.boundAt) })) : esc(T('al.admin.unbound'))}</td><td class="num">${m.items}</td>
+      <td class="num al-admin-btns">${m.bound ? `<button type="button" class="btn sm ghost" data-reset>${esc(T('al.admin.reset'))}</button>` : ''}<button type="button" class="btn sm ghost" data-revoke="${m.revoked ? 0 : 1}">${esc(T(m.revoked ? 'al.admin.restore' : 'al.admin.revoke'))}</button></td></tr>`).join('')
+      : `<tr><td colspan="5" class="muted small">${esc(T('al.admin.none'))}</td></tr>`) + '</tbody>';
+}
+function bindAdmin() {
+  if (location.hash !== '#admin') return;
+  $('#al-admin').hidden = false;
+  $('#al-admin-login').addEventListener('submit', async e => {
+    e.preventDefault();
+    ADMIN_KEY = $('#al-admin-key').value;
+    try { renderMembers((await call('admin_list', { key: ADMIN_KEY })).members); $('#al-admin-login').hidden = true; $('#al-admin-body').hidden = false; say('#al-admin-msg', ''); }
+    catch (err) { say('#al-admin-msg', errText(err)); }
+  });
+  $('#al-gen').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      const d = await call('admin_new', { key: ADMIN_KEY, n: Number($('#al-gen-n').value) || 1, label: $('#al-gen-label').value });
+      const box = $('#al-new-codes');
+      box.hidden = false;
+      box.innerHTML = `<div><b>${esc(T('al.admin.newCodes'))}</b><pre class="al-codes">${esc(d.codes.join('\n'))}</pre><button type="button" class="btn sm" data-copy>${esc(T('common.copy'))}</button></div>`;
+      box.querySelector('[data-copy]').onclick = async () => { await copy(d.codes.join('\n')); toast(T('common.copied')); };
+      renderMembers(d.members);
+    } catch (err) { say('#al-admin-msg', errText(err)); }
+  });
+  $('#al-members').addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const id = b.closest('tr').dataset.id;
+    try {
+      const d = b.hasAttribute('data-reset') ? await call('admin_reset', { key: ADMIN_KEY, id }) : await call('admin_revoke', { key: ADMIN_KEY, id, on: b.dataset.revoke === '1' });
+      renderMembers(d.members);
+    } catch (err) { say('#al-admin-msg', errText(err)); }
+  });
+}
+
+bindMember(); bindAdmin(); loadMe();
+window.addEventListener('hashchange', () => { if (location.hash === '#admin') location.reload(); });

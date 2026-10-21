@@ -1,0 +1,60 @@
+<header class="page-head ph-alerts">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-alerts"/></svg></span>
+  <div><h1>{{t:page.alerts.h1}}</h1><p>{{t:page.alerts.lead}}</p></div>
+</header>
+
+<section class="card al-intro" id="al-join">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:al.join.title}}<span class="badge b-coral">{{t:al.member}}</span></h2>
+  <ul class="al-feats">
+    <li>{{t:al.feat1}}</li><li>{{t:al.feat2}}</li><li>{{t:al.feat3}}</li><li>{{t:al.feat4}}</li>
+  </ul>
+  <form class="al-act" id="al-act-form" autocomplete="off">
+    <label class="field"><span>{{t:al.code}}</span><input class="input" id="al-code" placeholder="XXXX-XXXX-XXXX" maxlength="20" autocapitalize="characters" spellcheck="false" required></label>
+    <button class="btn primary" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg>{{t:al.activate}}</button>
+  </form>
+  <p class="small muted" style="margin:8px 0 0">{{t:al.codeNote}}</p>
+  <p class="al-msg" id="al-act-msg" role="status" aria-live="polite"></p>
+</section>
+
+<section class="card al-set" id="al-set" hidden>
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-alerts"/></svg>{{t:al.set.title}}<label class="switch al-on"><input type="checkbox" id="al-enabled"><span>{{t:al.enabled}}</span></label></h2>
+  <p class="small muted" style="margin:0 0 10px">{{t:al.set.lead}}</p>
+  <div class="al-items" id="al-items"></div>
+  <h3 class="al-sub">{{t:al.notify}}</h3>
+  <div class="grid g2">
+    <label class="field"><span>{{t:al.discord}}{{tip:al.discordHelp}}</span><input class="input" id="al-discord" type="url" inputmode="url" placeholder="https://discord.com/api/webhooks/…" spellcheck="false"></label>
+    <label class="field"><span>{{t:al.email}}</span><input class="input" id="al-email" type="email" inputmode="email" placeholder="you@example.com" spellcheck="false"></label>
+  </div>
+  <div class="al-btns">
+    <button type="button" class="btn primary" id="al-save"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>{{t:al.save}}</button>
+    <button type="button" class="btn ghost" id="al-test"><svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>{{t:al.test}}</button>
+  </div>
+  <p class="al-msg" id="al-msg" role="status" aria-live="polite"></p>
+  <p class="small muted" id="al-status"></p>
+</section>
+
+<section class="card al-admin" id="al-admin" hidden>
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>{{t:al.admin.title}}</h2>
+  <form class="al-act" id="al-admin-login" autocomplete="off">
+    <label class="field"><span>{{t:al.admin.key}}</span><input class="input" id="al-admin-key" type="password" autocomplete="current-password" required></label>
+    <button class="btn primary" type="submit">{{t:al.admin.login}}</button>
+  </form>
+  <div id="al-admin-body" hidden>
+    <form class="al-gen" id="al-gen">
+      <label class="field"><span>{{t:al.admin.n}}</span><input class="input" id="al-gen-n" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
+      <label class="field"><span>{{t:al.admin.label}}</span><input class="input" id="al-gen-label" maxlength="40" placeholder="{{t:al.admin.labelPh}}"></label>
+      <button class="btn primary" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>{{t:al.admin.gen}}</button>
+    </form>
+    <div class="notice" id="al-new-codes" hidden></div>
+    <div class="tbl-wrap"><table class="tbl" id="al-members"></table></div>
+  </div>
+  <p class="al-msg" id="al-admin-msg" role="status" aria-live="polite"></p>
+</section>
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details><summary>{{t:alerts.faq.q1}}</summary><p>{{t:alerts.faq.a1}}</p></details>
+  <details><summary>{{t:alerts.faq.q2}}</summary><p>{{t:alerts.faq.a2}}</p></details>
+  <details><summary>{{t:alerts.faq.q3}}</summary><p>{{t:alerts.faq.a3}}</p></details>
+  <details><summary>{{t:alerts.faq.q4}}</summary><p>{{t:alerts.faq.a4}}</p></details>
+</section>

@@ -6,6 +6,7 @@
 #   SG_KEY   SSH 私鑰全文（從 Site Tools → Devs → SSH Keys Manager 產生後「Private Key」的內容，含 BEGIN／END 兩行）
 #   SG_PASS  產生金鑰時填的密碼（SiteGround 一定要填；沒密碼就留空）
 #   SG_PATH  網站根目錄（例如 /home/customer/www/starcg.online/public_html）
+#   ALERT_ADMIN_KEY  （選填）價格提醒站長管理頁的金鑰，12 字以上，自己想一組只有你知道的
 name: Deploy to SiteGround
 on:
   push:
@@ -54,6 +55,13 @@ jobs:
             --exclude 'data/pets.json' --exclude 'data/pets.json.prev' \
             -e "ssh -p ${{ secrets.SG_PORT }} -o BatchMode=yes" \
             dist/ "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}:${{ secrets.SG_PATH }}/"
+      - name: 價格提醒站長金鑰
+        env:
+          K: ${{ secrets.ALERT_ADMIN_KEY }}
+        run: |
+          [ -n "$K" ] || { echo "沒有設定 Secret ALERT_ADMIN_KEY，略過（價格提醒的站長管理頁會無法登入）"; exit 0; }
+          printf '%s' "$K" | ssh -p "${{ secrets.SG_PORT }}" -o BatchMode=yes "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}" \
+            "umask 077; mkdir -p '${{ secrets.SG_PATH }}/cache/alerts' && cat > '${{ secrets.SG_PATH }}/cache/alerts/admin.key'" && echo "已更新站長金鑰"
       - name: 同步寵物圖鑑
         run: |
           OUT=$(ssh -p "${{ secrets.SG_PORT }}" -o BatchMode=yes "${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}" \

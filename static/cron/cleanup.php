@@ -22,6 +22,10 @@ foreach ($rules as [$dir, $keep]) {
 foreach (glob("$base/stats/ip-*.json") ?: [] as $f) {
     if ($now - (int)@filemtime($f) > 3600) { @unlink($f) && $removed++; }
 }
+// 價格提醒的嘗試次數計數（alerts/rl-*.json）只需要最近 10 分鐘
+foreach (glob("$base/alerts/rl-*.json") ?: [] as $f) {
+    if ($now - (int)@filemtime($f) > 3600) { @unlink($f) && $removed++; }
+}
 // 中斷留下的暫存檔
 foreach (glob("$base/*/*.tmp") ?: [] as $f) {
     if ($now - (int)@filemtime($f) > 600) { @unlink($f) && $removed++; }
