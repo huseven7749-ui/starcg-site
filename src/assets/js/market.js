@@ -106,7 +106,7 @@ function fillPetSelects() {
   if (!c) return;
   seg($('#pet-list'), S.petList);
   const list = petCandidates();
-  $('#pet-name').innerHTML = `<option value="">${esc(T('mk.pet.nameAll', { n: list.length }))}</option>` + list.slice(0, 600).map(p => `<option value="${esc(p.name)}">${esc(LANG === 'ko' && p.kn ? p.kn : p.name)}</option>`).join('');
+  $('#pet-name').innerHTML = `<option value="">${esc(T('mk.pet.nameAll', { n: list.length }))}</option>` + list.slice(0, 600).map(p => `<option value="${esc(p.name)}">${esc(LANG === 'ko' ? (p.kn || kn(p.name)) : p.name)}</option>`).join('');
   if (S.petName && !list.some(p => p.name === S.petName)) S.petName = '';
   $('#pet-name').value = S.petName;
 }
@@ -784,7 +784,7 @@ el.q.addEventListener('focus', async () => {
   suggested = true;
   const c = S.cat || await loadCatalog();
   const names = new Set([...(store.get(RECENT_KEY, []) || []), ...getWatch().map(w => w.n), ...getFavs().map(f => f.q)]);
-  c.pets.forEach(p => names.add(LANG === 'ko' && p.kn ? p.kn : p.name));
+  c.pets.forEach(p => names.add(LANG === 'ko' ? (p.kn || kn(p.name)) : p.name));
   c.equip.forEach(e => names.add(kn(e.n)));
   $('#mk-suggest').innerHTML = [...names].slice(0, 1200).map(n => `<option value="${esc(n)}">`).join('');
 }, { once: true });

@@ -70,6 +70,7 @@ if ($due) {
             $lock = @fopen(alerts_dir() . '/run.lock', 'c');
             if ($lock && flock($lock, LOCK_EX | LOCK_NB)) alerts_run();
         } catch (Throwable $e) { error_log('tick alerts: ' . $e->getMessage()); }
+        try { require_once __DIR__ . '/_learn.php'; learn_ko(4); } catch (Throwable $e) { error_log('tick learn: ' . $e->getMessage()); }
     });
 }
 json_out($out);

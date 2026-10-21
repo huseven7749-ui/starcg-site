@@ -1,6 +1,6 @@
 // 魔物分布：依地區（島 → 地點 → 樓層）或依等級（每 10 等一個區間）查魔物出沒
 // 資料：data/monster-map.json（tools/scrape-monster-map.py 從御劍軒 cgsword.com/bm 整理，經典服資料）
-import { $, $$, T, esc, fmt, store, debounce, loadPets, petImgSrc, normName, emptyState, BASE, LANG, loadKo, kt, cardText } from './core.js';
+import { $, $$, T, esc, fmt, store, debounce, loadPets, petImgSrc, normName, emptyState, BASE, LANG, loadKo, kt, kn, cardText } from './core.js';
 import { raceName } from './catalog.js';
 const cnt = c => (LANG === 'ko' ? String(c).replace(/隻$/, '마리') : c);
 import { elementMult } from './dmgcalc.js';
@@ -28,7 +28,7 @@ function flatten() {
       // 只有整段樓層合併成 30 級以上的大範圍（像黃金通道「1-49F Lv1–50」）不放進等級分類
       const banded = hasLv && lvMax - lvMin < 30;
       ROWS.push({ ...m, island, area: a, label: g.label, count: g.count, pet, key: normName(m.name), best: bestElem(m.elem),
-        nameShow: LANG === 'ko' && pet?.kn ? pet.kn : m.name, hasLv, banded, lvMin, lvMax });
+        nameShow: LANG === 'ko' ? (pet?.kn || kn(m.name)) : m.name, hasLv, banded, lvMin, lvMax });
     }
   }
 }
