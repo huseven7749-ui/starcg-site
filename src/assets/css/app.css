@@ -116,7 +116,7 @@ html[data-theme="dark"] .night-sky {
 .mainnav { display: flex; gap: 4px; margin-left: auto; }
 .mainnav a, .mainnav .mainnav-more {
   display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; color: var(--ink-2);
-  font-weight: 600; font-size: .93rem; text-decoration: none; transition: background .15s, color .15s;
+  font-weight: 600; font-size: .93rem; text-decoration: none; transition: background .15s, color .15s; white-space: nowrap;
 }
 .mainnav a:hover, .mainnav .mainnav-more:hover { background: var(--card-3); color: var(--ink); }
 .mainnav a[aria-current="page"], .mainnav .mainnav-more[aria-current="page"] { background: var(--pink-l); color: var(--pink-d); --ic2: var(--card); }
@@ -734,12 +734,12 @@ html[data-frame="1"] .topbar { position: sticky; }
 /* 韓文選單字較長：間距縮小一點，較窄的螢幕先收成圖示 */
 html[lang^="ko"][data-view="desktop"] .mainnav { gap: 1px; }
 html[lang^="ko"][data-view="desktop"] .mainnav a, html[lang^="ko"][data-view="desktop"] .mainnav .mainnav-more { padding-inline: 9px; }
-@media (max-width: 1360px) {
+@media (max-width: 1560px) {
   html[lang^="ko"][data-view="desktop"] .mainnav a span { display: none; }
   html[lang^="ko"][data-view="desktop"] .mainnav a { padding: 9px; }
   html[lang^="ko"][data-view="desktop"] .mainnav a[aria-current="page"] span { display: inline; }
 }
-@media (max-width: 1260px) {
+@media (max-width: 1400px) {
   html[data-view="desktop"] .mainnav a span { display: none; }
   html[data-view="desktop"] .mainnav a { padding: 9px; }
   html[data-view="desktop"] .mainnav a[aria-current="page"] span { display: inline; }
@@ -1675,8 +1675,12 @@ html[data-view="mobile"] .dummy-pick { grid-template-columns: repeat(2, minmax(0
 .prose img { display: block; margin-inline: auto; }
 .prose p > img + em { display: block; text-align: center; font-size: .85rem; color: var(--ink-3); }
 
-.foot-stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
-.foot-stats[hidden] { display: none; }
+.site-stats { display: flex; width: fit-content; max-width: 100%; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 14px; margin: 0 auto 12px; padding: 6px 14px; border-radius: 999px; background: var(--card, #fffaf0); border: 1.5px solid var(--line); font-size: .85rem; color: var(--ink-2); }
+.site-stats[hidden] { display: none; }
+.site-stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.site-stats .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb36b; box-shadow: 0 0 0 3px rgba(63,179,107,.2); animation: livepulse 1.8s ease-in-out infinite; margin-right: -6px; }
+@keyframes livepulse { 50% { box-shadow: 0 0 0 6px rgba(63,179,107,0); } }
+@media (prefers-reduced-motion: reduce) { .site-stats .live-dot { animation: none; } }
 
 /* 星野導覽：聚光框＋星野與對話框；右下角「問星野」 */
 .tour { position: fixed; inset: 0; z-index: 120; opacity: 0; transition: opacity .25s; }
@@ -1853,3 +1857,16 @@ html[data-view="mobile"] .pc-grid { grid-template-columns: repeat(2, minmax(0, 1
 .ec-tbl .ec-down b { color: #c0392b; }
 html[data-view="mobile"] .ec-sides { grid-template-columns: 1fr; }
 @media (max-width: 640px) { .ec-sides { grid-template-columns: 1fr; } }
+@media (max-width: 1120px) {
+  html[data-view="desktop"] .brand-txt small { display: none; }
+  html[data-view="desktop"] .mainnav { gap: 0; }
+  html[data-view="desktop"] .mainnav a, html[data-view="desktop"] .mainnav .mainnav-more { padding: 8px 7px; }
+  html[data-view="desktop"] .top-actions { gap: 4px; margin-left: 4px; }
+}
+@media (max-width: 1120px) {
+  html[data-view="desktop"] .top-actions .cta-full { display: none; }
+  html[data-view="desktop"] .top-actions .cta-short { display: inline; }
+  html[lang^="ko"][data-view="desktop"] .mainnav a span { display: none; }
+  html[lang^="ko"][data-view="desktop"] .mainnav a[aria-current="page"] span { display: none; }
+}
+@media (max-width: 1000px) { html[data-view="desktop"] .top-actions [data-act="theme"] { display: none; } }

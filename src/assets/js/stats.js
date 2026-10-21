@@ -1,4 +1,4 @@
-// 頁尾的瀏覽人數／在線人數。代碼只是瀏覽器隨機產生的字串，不含任何個資；API 失敗就整列隱藏。
+// 首頁上方的瀏覽人數／在線人數（每一頁都會回報一次瀏覽，只有首頁顯示）。代碼只是瀏覽器隨機產生的字串，不含任何個資；API 失敗就整列隱藏。
 import { $, T, BASE, store } from './core.js';
 
 const fmtN = n => Number(n).toLocaleString();
@@ -11,13 +11,12 @@ function cid() {
   return c;
 }
 async function beat(view) {
-  const el = $('#foot-stats');
-  if (!el) return;
+  const el = $('#site-stats');
   try {
     const r = await fetch(`${BASE}api/stats.php?c=${cid()}${view ? '&v=1' : ''}`, { cache: 'no-store' });
     if (!r.ok) throw 0;
     const d = await r.json();
-    if (!d.ok) throw 0;
+    if (!d.ok || !el) return;
     $('#st-online').textContent = fmtN(d.online);
     $('#st-today').textContent = fmtN(d.today);
     $('#st-total').textContent = fmtN(d.total);
