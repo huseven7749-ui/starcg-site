@@ -1,0 +1,40 @@
+<header class="page-head ph-craft">
+  <span class="ph-ic"><svg class="ic" aria-hidden="true"><use href="#i-craft"/></svg></span>
+  <div><h1>{{t:page.craft.h1}}</h1><p>{{t:page.craft.lead}}</p></div>
+</header>
+
+<div class="notice info"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>{{t:cr.source_html}}</span></div>
+
+<div class="cr-layout">
+  <section class="card cr-pick" aria-label="{{t:cr.pick}}">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-craft"/></svg>{{t:cr.pick}}</h2>
+    <div class="input-wrap">
+      <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+      <input class="input" id="cr-q" type="search" placeholder="{{t:cr.qPh}}" aria-label="{{t:cr.qPh}}" autocomplete="off" maxlength="20">
+    </div>
+    <div class="cr-cats" id="cr-cats" role="group" aria-label="{{t:cr.cat}}"></div>
+    <p class="small muted" id="cr-count" aria-live="polite"></p>
+    <div class="cr-list" id="cr-list"><div class="skel" style="height:240px"></div></div>
+  </section>
+
+  <section class="card cr-plan" aria-label="{{t:cr.plan}}">
+    <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:cr.plan}}<button type="button" class="btn sm ghost" id="cr-clear" hidden>{{t:cr.clear}}</button></h2>
+    <ul class="cr-sel" id="cr-sel"></ul>
+    <h3 class="cr-sub">{{t:cr.mats}}</h3>
+    <div class="tbl-wrap"><table class="tbl cr-mats" id="cr-mats"></table></div>
+    <div class="cr-actions">
+      <button type="button" class="btn primary wide" id="cr-bulk" disabled><svg class="ic" aria-hidden="true"><use href="#i-market"/></svg>{{t:cr.toBulk}}</button>
+      <button type="button" class="btn ghost wide" id="cr-copy" disabled><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>{{t:cr.copy}}</button>
+    </div>
+  </section>
+</div>
+
+{{relatedGuides}}
+
+<section class="card faq help">
+  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>{{t:common.help}}</h2>
+  <details><summary>{{t:craft.faq.q1}}</summary><p>{{t:craft.faq.a1}}</p></details>
+  <details><summary>{{t:craft.faq.q2}}</summary><p>{{t:craft.faq.a2}}</p></details>
+  <details><summary>{{t:craft.faq.q3}}</summary><p>{{t:craft.faq.a3}}</p></details>
+  <details><summary>{{t:craft.faq.q4}}</summary><p>{{t:craft.faq.a4}}</p></details>
+</section>
