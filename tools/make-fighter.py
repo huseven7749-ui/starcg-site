@@ -1,18 +1,19 @@
 r"""戰鬥測試（痛打 01）的角色圖集：從資料包的動作包（zip）做成「一張圖＋每個動作的位移資料」。
-用法：python tools/make-fighter.py 105209 blade
+用法：python tools/make-fighter.py 105211 lancer --attack=5 --magic=3 --reach=130
   - 讀 StarCG_資料包\03_玩家角色\動作包\<編號>-全部動作.zip 的 動作xx_方向4（面向右下）單張 PNG
   - 讀 解析資料 anime_frames.csv／graphicinfo.csv 算出每個動作畫格左上角相對腳底原點的位移
   - 輸出 src/assets/img/dummy/<名稱>.webp、portraits.webp（頭像），並更新 src/assets/js/dummysprites.js
-動作對應（遊戲動作編號）：站立 0、跑 1、攻擊 3、法術 5、受傷 8、防禦 9、倒地 10；開心＝跑、生氣＝攻擊。
+動作對應（遊戲動作編號，可用 --attack=5 --magic=3 改）：站立 0、跑 1、受傷 8、防禦 9、倒地 10；攻擊、法術預設 5、3；開心＝跑、生氣＝攻擊。
 """
 import os, re, io, sys, csv, json, glob, zipfile, collections
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACK = os.path.join(os.path.dirname(ROOT), 'StarCG_資料包')
-aid, key = sys.argv[1], sys.argv[2]
-REACH = {'attack': 100, 'magic': 120}
-ACT = {'idle': 0, 'run': 1, 'attack': 3, 'magic': 5, 'hurt': 8, 'guard': 9, 'down': 10}
+aid, key = sys.argv[1], sys.argv[2]   # 之後的 --attack= 等選項在下面讀
+opt = lambda k, d: int(next((a.split('=')[1] for a in sys.argv if a.startswith(f'--{k}=')), d))
+ACT = {'idle': 0, 'run': 1, 'attack': opt('attack', 5), 'magic': opt('magic', 3), 'hurt': 8, 'guard': 9, 'down': 10}
+REACH = {'attack': opt('reach', 130), 'magic': 115}
 ALIAS = {'happy': 'run', 'angry': 'attack'}
 PAD = 4                                     # 匯出的 GIF／PNG 每邊多留 4px
 

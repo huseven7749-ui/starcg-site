@@ -778,7 +778,7 @@ export default {
   'dmg.dmKo': 'GM01 쓰러짐!',
   'dmg.dmScene': '고른 캐릭터가 GM01을 마구 때리는 중',
   'dmg.fighter': '캐릭터 선택',
-  'dmg.f.blade': '흑발 엘프 검사',
+  'dmg.f.lancer': '흑발 엘프 창병',
   'dmg.dmCounterRate': '반격률',
   'dmg.dmCounter': '반격!',
   'dmg.dmGuard': '막기',

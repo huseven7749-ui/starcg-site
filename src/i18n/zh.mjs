@@ -777,7 +777,7 @@ export default {
   'dmg.dmKo': 'GM01 倒下了！',
   'dmg.dmScene': '選好的角色正在痛打 GM01',
   'dmg.fighter': '選角色',
-  'dmg.f.blade': '黑髮精靈劍士',
+  'dmg.f.lancer': '黑髮精靈槍兵',
   'dmg.dmCounterRate': '反擊率',
   'dmg.dmCounter': '反擊！',
   'dmg.dmGuard': '格擋',
