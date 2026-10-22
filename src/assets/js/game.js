@@ -72,6 +72,8 @@ function merge(a, b) {
     since: [a.since, b.since].filter(Boolean).sort()[0] || today(),
     daily: {
       ...newer.daily,
+      // 每日各事件次數：同一天的兩份取各項較大值（以前直接用「較舊那份」，存檔後次數被洗掉，任務永遠完不成）
+      ev: Object.fromEntries([...new Set([...Object.keys(a.daily.ev || {}), ...Object.keys(b.daily.ev || {})])].map(k => [k, Math.max(a.daily.date === newer.daily.date ? a.daily.ev[k] || 0 : 0, b.daily.date === newer.daily.date ? b.daily.ev[k] || 0 : 0)])),
       done: { ...(a.daily.date === newer.daily.date ? a.daily.done : {}), ...(b.daily.date === newer.daily.date ? b.daily.done : {}) },
       streak: streakSrc.daily.streak || 0, last: streakSrc.daily.last || '',
       best: Math.max(a.daily.best || 0, b.daily.best || 0), fullDays: Math.max(a.daily.fullDays || 0, b.daily.fullDays || 0),
