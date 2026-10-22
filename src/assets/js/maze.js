@@ -139,19 +139,26 @@ function dirSource(root, info) {
     },
   };
 }
-// 示範：模擬一路探索三層迷宮
+// 示範：模擬一路探索 50 層迷宮（前 3 層慢慢探索，之後每層幾秒就走完，方便看層數很多時的樓層列與切換）
+const DEMO_FLOORS = 50;
 function demoSource() {
-  const floors = [{ seed: 11, layout: 0, cells: 9 }, { seed: 29, layout: 1, cells: 11 }, { seed: 5, layout: 0, cells: 12 }];
-  const t0 = Date.now(), STEP = window.__mzDemoStep || 600, STEPS = 18, GAP = 4;
+  const base = [{ seed: 11, layout: 0, cells: 9 }, { seed: 29, layout: 1, cells: 11 }, { seed: 5, layout: 0, cells: 12 }];
+  const floors = Array.from({ length: DEMO_FLOORS }, (_, i) => base[i] || { seed: 7 + i * 13, layout: i % 2, cells: 9 + (i * 5) % 5 });
+  const len = i => (i < 3 ? 18 : 3);                                // 每層探索幾步
+  const GAP = 4;
+  const start = []; floors.reduce((a, _, i) => (start[i] = a, a + len(i) + (i < 3 ? GAP : 1)), 0);
+  const t0 = Date.now(), STEP = window.__mzDemoStep || 600;
+  const done = new Map();                                            // 已走完的樓層不用重做
   return {
     kind: 'demo', label: T('mz.demoLabel'),
     async scan() {
       const k = Math.floor((Date.now() - t0) / STEP);
-      const fi = Math.min(floors.length - 1, Math.floor(k / (STEPS + GAP)));
+      let fi = 0; while (fi + 1 < floors.length && k >= start[fi + 1]) fi++;
       return floors.slice(0, fi + 1).map((f, i) => {
-        const prog = i < fi ? STEPS : Math.min(STEPS, k - i * (STEPS + GAP));
-        const bytes = demoMaze({ ...f, explored: 0.1 + 0.9 * prog / STEPS });
-        return { key: `1/${30101 + i}.dat`, name: String(30101 + i), shard: 'S1', lm: t0 + (i * (STEPS + GAP) + prog) * STEP, bytes, fp: fingerprint(bytes), read: async () => bytes };
+        const prog = i < fi ? len(i) : Math.min(len(i), k - start[i]);
+        let bytes = done.get(i);
+        if (!bytes) { bytes = demoMaze({ ...f, explored: 0.1 + 0.9 * prog / len(i) }); if (prog >= len(i)) done.set(i, bytes); }
+        return { key: `1/${30101 + i}.dat`, name: String(30101 + i), shard: 'S1', lm: t0 + (start[i] + prog) * STEP, bytes, fp: fingerprint(bytes), read: async () => bytes };
       });
     },
   };
