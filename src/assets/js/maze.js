@@ -544,6 +544,19 @@ function miniMap(x, m, pts, ox, oy, size, KC, dot = 4.5) {
     x.beginPath(); x.arc(px + (p.e + 0.5) * k, py + (p.s + 0.5) * k, dot, 0, Math.PI * 2); x.fill(); x.stroke();
   }
 }
+// 另存新檔：桌面瀏覽器跳出「另存新檔」視窗（預設在桌面）；手機走分享；都不行就直接下載
+async function saveImage(blob, name, title) {
+  if (window.showSaveFilePicker) {
+    try {
+      const h = await showSaveFilePicker({ suggestedName: name, startIn: 'desktop', types: [{ description: 'PNG', accept: { 'image/png': ['.png'] } }] });
+      const w = await h.createWritable(); await w.write(blob); await w.close(); return;
+    } catch (e) { if (e?.name === 'AbortError') return; /* 其他錯誤 → 改下載 */ }
+  }
+  const file = new File([blob], name, { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title }); return; } catch { /* 取消 → 改下載 */ } }
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
 // 存成圖片：用 canvas 畫一張結算卡
 async function resultImage() {
   const r = lastResult; if (!r) return;
@@ -619,10 +632,7 @@ async function resultImage() {
   x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = `700 22px system-ui, sans-serif`;
   x.fillStyle = '#D9654A'; x.beginPath(); x.roundRect(W / 2 - 120, H - 84, 240, 44, 22); x.fill(); x.fillStyle = '#fff'; x.fillText('starcg.online', W / 2, H - 54);
   const blob = await new Promise(res => c.toBlob(res, 'image/png'));
-  const file = new File([blob], 'maze-result.png', { type: 'image/png' });
-  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: T('mz.r.title') }); return; } catch { /* 使用者取消 → 改下載 */ } }
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'maze-result.png' });
-  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  await saveImage(blob, 'maze-result.png', T('mz.r.title'));
 }
 
 // ───── 打包分享：探索結束後，把每層的樓梯座標與自己標的點整理成一段文字，一鍵複製給別人 ─────
@@ -763,10 +773,7 @@ async function packImage() {
   x.textAlign = 'center'; x.font = `700 22px system-ui, sans-serif`;
   x.fillStyle = '#D9654A'; x.beginPath(); x.roundRect(W / 2 - 120, c.height - 84, 240, 44, 22); x.fill(); x.fillStyle = '#fff'; x.fillText('starcg.online', W / 2, c.height - 54);
   const blob = await new Promise(res => c.toBlob(res, 'image/png'));
-  const file = new File([blob], 'maze-pack.png', { type: 'image/png' });
-  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: form.name }); return; } catch { /* 取消 → 改下載 */ } }
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'maze-pack.png' });
-  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  await saveImage(blob, 'maze-pack.png', form.name);
 }
 
 // ───── 畫面切換 ─────
