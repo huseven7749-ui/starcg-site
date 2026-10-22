@@ -67,27 +67,32 @@ export function raceRelation(a, d) {
  */
 export function physical(o) {
   // 諸刃／迅速果斷提高的是攻擊力本身（在 240 軟上限之前）；陽炎、諸刃讓防禦方的防禦力下降
-  const atk = Math.max(0, o.atk || 0) * (1 + (o.atkUp || 0));
   const def = Math.max(0, o.def || 0) * Math.max(0, 1 - (o.defDown || 0));
-  const atkE = effective(atk);
   const defE = effective(def, o.defSoft || SOFT_RATE);
-  const base = atkE > 0 ? (atkE * atkE * 3) / (atkE + defE * 3) : 0;
   const crit = (def * Math.max(1, o.atkLv || 1)) / (Math.max(1, o.defLv || 1) * 2);
+  // 諸刃、迅速果斷提高的是「用技能那一下」的攻擊力（240 軟上限之前）；普通攻擊不受影響
+  const core = up => {
+    const atkE = effective(Math.max(0, o.atk || 0) * (1 + up));
+    return { atkE, base: atkE > 0 ? (atkE * atkE * 3) / (atkE + defE * 3) : 0 };
+  };
+  const plain = core(0), sk = core(o.atkUp || 0);
+  const atkE = sk.atkE, base = sk.base;
   const p = o.pet;
   const full = p?.full ? PET_FULL[p.tier] || 0 : 0;
   const beast = p?.beast ? PET_BEAST[p.tier] || 0 : 0;
   const remodel = p ? PET_REMODEL[p.remodel || 0]?.[p.tier] || 0 : 0;
   // 武器、水晶屬性、種族先乘；必殺追加在這之後才加（不受種族、屬性影響）；技能倍率與寵物加成最後乘
-  const pre = base * (1 + (o.weapon || 0)) * (1 + (o.crystal || 0)) * (1 + (o.race || 0));
-  const calc = (withCrit, boss, skill) => {
+  const preOf = b => b * (1 + (o.weapon || 0)) * (1 + (o.crystal || 0)) * (1 + (o.race || 0));
+  const calc = (withCrit, boss, skill, b = base) => {
+    const pre = preOf(b);
     const mult = skill * (1 + full) * (1 + beast) * (boss ? 1 + remodel : 1);
     const one = r => Math.max(0, Math.floor((pre * r + (withCrit ? crit : 0)) * mult));
     return { min: one(RAND.min), avg: one(RAND.avg), max: one(RAND.max) };
   };
   const skill = o.skill ?? 1;
   return {
-    atkE, defE, base, crit, hits: Math.max(1, o.hits || 1), mods: { full, beast, remodel },
-    attack: { normal: calc(false, false, 1), crit: calc(true, false, 1), boss: calc(false, true, 1), bossCrit: calc(true, true, 1) },
+    atkE, defE, base, crit, plain: { atkE: plain.atkE, base: plain.base }, hits: Math.max(1, o.hits || 1), mods: { full, beast, remodel },
+    attack: { normal: calc(false, false, 1, plain.base), crit: calc(true, false, 1, plain.base), boss: calc(false, true, 1, plain.base), bossCrit: calc(true, true, 1, plain.base) },
     skill: { normal: calc(false, false, skill), crit: calc(true, false, skill), boss: calc(false, true, skill), bossCrit: calc(true, true, skill) },
   };
 }
@@ -115,6 +120,22 @@ export const SKILLS = {
   huixuan: { stages: SKILL_HUIXUAN },
   zhuiyue: { mult: Object.values(SKILL_ZHUIYUE), shape: lv => (lv <= 4 ? 'I' : lv <= 8 ? 'T' : 'III') },   // 5、9 級換範圍，所以倍率會先降
   petQiankun: { tiers: [110, 130, 150, 170, 190] },
+  // 星詠攻略網 /skills/物理攻擊技能（氣功彈、亂射、飛刃亂舞）、/skills/職業專屬技能（逆轉乾坤、咒刃飛花）
+  qigong: { shots: [[125], [125, 100], [125, 113], [125, 113, 100], [125, 125, 108], [125, 125, 108, 100], [125, 125, 117, 106, 100], [125, 125, 117, 106, 100],
+    [125, 125, 125, 113, 105, 100], [125, 125, 125, 119, 110, 104, 100], [125, 125, 125, 119, 110, 104, 100]],
+    count: ['1', '1～2', '2', '2～3', '3', '3～4', '3～5', '4～5', '4～6', '5～7', '6～7'] },
+  luanshe: { arrows: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], rep: [50, 35, 20, 5] },
+  feiren: { mult: [100, 80, 75, 80, 75, 80, 75, 80, 75, 80, 75], targets: ['1', '2', '2～3', '3', '3～4', '4', '4～5', '5', '5～6', '6', '7'],
+    acc: [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -10], crit: [3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 15] },
+  nizhuan: { chance: [25, 27, 29, 32, 35, 38, 41, 45, 50, 60, 70], sec: [70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140] },
+  zhouren: { mult: [88, 88, 88, 88, 88, 74, 78, 82, 86, 90], note: 'knifeOnly' },   // 咒刃飛花 Lv1～5（前後排 2 個）、血雨飛花 Lv6～10（隨機 4～5 個）
+  // 寵物技能（/pets/skills，I～V 階）：tiers＝傷害倍率（％），tierHits＝最多回數，tierUp＝攻擊力提升（％）
+  petLianji: { tiers: [55, 55, 50, 50, 45], tierHits: [2, 2, 3, 3, 4] },
+  petZhuren: { tiers: [100, 100, 100, 100, 100], tierUp: [5, 15, 25, 35, 45] },
+  petBengji: { tiers: [120, 140, 160, 180, 200], note: 'guardOnly' },
+  petFanji: { tiers: [80, 100, 120, 140, 160] },
+  petSecretQiankun: { tiers: [200, 210, 220] },       // 寵物祕技 乾坤一擊（犧牲 27 命中）
+  petBarbaric: { tiers: [40, 50, 60] },               // 寵物祕技 野蠻沖擊（對一排，單次傷害）
 };
 /** 防禦方技能：陽炎 每級防禦 −7%、諸刃 每級防禦 −5%（Lv11 −55%） */
 export const DEF_DOWN = { yangyan: lv => 7 * lv, zhuren: lv => 5 * lv };

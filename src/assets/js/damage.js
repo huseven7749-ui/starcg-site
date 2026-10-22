@@ -38,13 +38,13 @@ function renderPhys() {
   });
   lastPhys = r;
   const rel = val('p-race');
-  $('#p-kv').innerHTML = tile(T('dmg.atkE'), fmt(r.atkE, 1)) + tile(T('dmg.defE'), fmt(r.defE, 1)) + tile(T('dmg.base'), fmt(r.base, 1)) + tile(T('dmg.critAdd'), '+' + fmt(r.crit, 1)) +
+  $('#p-kv').innerHTML = tile(T('dmg.atkE'), fmt(r.atkE, 1)) + (num('p-atkup') > 0 ? tile(T('dmg.atkEPlain'), fmt(r.plain.atkE, 1)) : '') + tile(T('dmg.defE'), fmt(r.defE, 1)) + tile(T('dmg.base'), fmt(r.base, 1)) + tile(T('dmg.critAdd'), '+' + fmt(r.crit, 1)) +
     tile(T('dmg.elemMul'), '×' + fmt(em, 3)) + tile(T('dmg.raceRel'), esc(T('dmg.r.' + rel)));
   const cols = ['normal', 'crit', 'boss', 'bossCrit'];
   const row = (label, data) => `<tr><th scope="row">${esc(label)}</th>${cols.map(c => `<td class="num" data-label="${esc(T('dmg.col.' + c))}">${range(data[c])}</td>`).join('')}</tr>`;
   const times = d => Object.fromEntries(Object.entries(d).map(([k, v]) => [k, { min: v.min * hits, avg: v.avg * hits, max: v.max * hits }]));
   $('#p-table').innerHTML = `<thead><tr><th></th>${cols.map(c => `<th class="num">${esc(T('dmg.col.' + c))}</th>`).join('')}</tr></thead>
-    <tbody>${row(T('dmg.row.attack'), r.attack)}${row(T('dmg.row.skill', { p: fmt(num('p-skill')) }), r.skill)}${hits > 1 ? row(T('dmg.row.skillHits', { p: fmt(num('p-skill')), n: hits }), times(r.skill)) : ''}</tbody>`;
+    <tbody>${row(T('dmg.row.attack'), r.attack)}${row(T(num('p-atkup') > 0 ? 'dmg.row.skillUp' : 'dmg.row.skill', { p: fmt(num('p-skill')), u: fmt(num('p-atkup')) }), r.skill)}${hits > 1 ? row(T('dmg.row.skillHits', { p: fmt(num('p-skill')), n: hits }), times(r.skill)) : ''}</tbody>`;
 }
 
 // 種族：兩邊都選了就自動判斷剋制關係
@@ -66,27 +66,35 @@ function fillSkillLv() {
   const lv = $('#sk-lv'), hit = $('#sk-hit');
   lv.hidden = type === 'attack';
   const tiers = !!sk?.tiers;
-  const cur = Number(lv.value) || (tiers ? 5 : 11);
+  const maxLv = tiers ? sk.tiers.length : sk?.mult && sk.mult.length < 11 ? sk.mult.length : 11;
+  const cur = Number(lv.value) || (tiers ? 5 : maxLv);
   lv.innerHTML = tiers ? sk.tiers.map((_, i) => `<option value="${i + 1}">${esc(T('dmg.sk.tier', { n: i + 1 }))}</option>`).join('')
-    : Array.from({ length: 11 }, (_, i) => `<option value="${i + 1}">Lv${i + 1}</option>`).join('');
-  lv.value = String(Math.min(tiers ? sk.tiers.length : 11, cur));
+    : Array.from({ length: maxLv }, (_, i) => `<option value="${i + 1}">Lv${i + 1}</option>`).join('');
+  lv.value = String(Math.min(maxLv, cur));
   // 第二個選單：迴旋＝第幾刀、穿刺＝前排／後排
-  const opts = sk?.stages ? [1, 2, 3].map(n => [n, T('dmg.sk.hit', { n })]) : sk?.rows ? [['front', T('dmg.sk.front')], ['back', T('dmg.sk.back')]] : null;
+  const curLv = Number(lv.value) || 11;
+  const opts = sk?.stages ? [1, 2, 3].map(n => [n, T('dmg.sk.hit', { n })]) : sk?.rows ? [['front', T('dmg.sk.front')], ['back', T('dmg.sk.back')]]
+    : sk?.shots ? sk.shots[curLv - 1].map((_, i) => [i + 1, T('dmg.sk.shot', { n: i + 1 })])                         // 氣功彈：第幾發
+    : sk?.rep ? sk.rep.map((_, i) => [i + 1, T('dmg.sk.arrow', { n: i + 1 === sk.rep.length ? `${i + 1}+` : i + 1 })]) : null;   // 亂射：同對象第幾箭
   hit.hidden = !opts;
-  if (opts) { const h = hit.value; hit.innerHTML = opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join(''); if ([...hit.options].some(o => o.value === h)) hit.value = h; }
+  if (opts) { const h = hit.value; hit.innerHTML = opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join(''); hit.value = [...hit.options].some(o => o.value === h) ? h : opts[0][0]; }
 }
 function applySkill() {
   const type = val('sk-type'), sk = SKILLS[type], lv = Number(val('sk-lv')) || 1;
   let p = 100, up = 0, hits = 1;
   const notes = [];
   if (sk?.mult) p = sk.mult[lv - 1];
-  else if (sk?.tiers) p = sk.tiers[lv - 1];
+  else if (sk?.tiers) { p = sk.tiers[lv - 1]; if (sk.tierUp) { up = sk.tierUp[lv - 1]; notes.push(T('dmg.note.atkUp')); } if (sk.tierHits) notes.push(T('dmg.note.petHits', { p, n: sk.tierHits[lv - 1] })); }
+  else if (sk?.shots) { const n = Math.min(Number(val('sk-hit')) || 1, sk.shots[lv - 1].length); p = sk.shots[lv - 1][n - 1]; notes.push(T('dmg.note.shots', { n: sk.count[lv - 1] })); }
+  else if (sk?.rep) { p = sk.rep[Math.min(Number(val('sk-hit')) || 1, sk.rep.length) - 1]; notes.push(T('dmg.note.arrows', { n: sk.arrows[lv - 1] })); }
+  else if (sk?.chance) { p = Math.round(SKILLS.qiankun.mult[lv - 1] * sk.sec[lv - 1] / 100); notes.push(T('dmg.note.chain', { c: sk.chance[lv - 1], s: sk.sec[lv - 1], m: SKILLS.qiankun.mult[lv - 1] })); }
   else if (sk?.stages) p = sk.stages[lv][(Number(val('sk-hit')) || 1) - 1];
   else if (sk?.rows) p = sk.rows[val('sk-hit') === 'back' ? 'back' : 'front'][lv - 1];
   else if (sk?.per) { p = sk.per[lv - 1]; hits = sk.hits[lv - 1]; notes.push(T('dmg.note.hits', { p, n: sk.hitsMin && sk.hitsMin[lv - 1] !== hits ? `${sk.hitsMin[lv - 1]}～${hits}` : hits })); }
   if (sk?.atkUp) { up = sk.atkUp[lv - 1]; notes.push(T('dmg.note.atkUp')); }
   if (p == null) { p = 100; notes.push(T('dmg.note.noData')); }
   if (sk?.acc) notes.push(T('dmg.note.acc', { n: sk.acc[lv - 1] }));
+  if (sk?.targets) notes.push(T('dmg.note.targets', { n: sk.targets[lv - 1], c: sk.crit[lv - 1] }));
   if (sk?.shape) notes.push(T('dmg.note.shape' + sk.shape(lv)));
   if (sk?.note) notes.push(T('dmg.note.' + sk.note));
   if (type !== 'attack') notes.push(T('dmg.note.src'));

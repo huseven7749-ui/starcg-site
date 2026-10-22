@@ -225,6 +225,14 @@ t('屬性相剋與種族關係（cgsword 公式）', () => {
   near(up.atkE, 240 + (340 - 240) * 0.3, 1e-9);                         // 諸刃 Lv10：攻擊 200 → 340，超過 240 只算 30%
 });
 
+t('技能攻擊力加成只算在技能那一列，普通攻擊不受影響', () => {
+  const o = { atk: 400, def: 200, atkLv: 100, defLv: 100, weapon: 0, crystal: 0, race: 0, skill: 1, pet: null };
+  const a = physical(o), b = physical({ ...o, atkUp: 0.7 });
+  assert.deepEqual(a.attack.normal, b.attack.normal);                 // 普通攻擊兩邊一樣
+  assert.ok(b.skill.normal.avg > a.skill.normal.avg);                 // 技能那列有加成
+  near(b.plain.atkE, a.atkE, 1e-9);
+});
+
 t('魔法傷害：需求精神、精神差、法杖魔攻', () => {
   assert.equal(requiredSpirit(10), 303);
   near(staffRate(102, 4), 1.0625, 1e-9);  // gamerch 範例
