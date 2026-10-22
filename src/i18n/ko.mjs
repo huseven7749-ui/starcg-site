@@ -1730,6 +1730,8 @@ export default {
   'mz.i.time': '마지막 갱신',
   'mz.cells': '{n}칸',
   'mz.floorN': '{n}층',
+  'mz.fl.prev': '이전 층 (단축키 [ )',
+  'mz.fl.next': '다음 층 (단축키 ] )',
   'mz.mapN': '지도 {n}',
   'mz.now': '현재',
   'mz.legendOld': '흐린 곳＝탐험 시작 전 기록',

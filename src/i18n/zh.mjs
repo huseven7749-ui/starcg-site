@@ -1729,6 +1729,8 @@ export default {
   'mz.i.time': '最後更新',
   'mz.cells': '{n} 格',
   'mz.floorN': '第 {n} 層',
+  'mz.fl.prev': '上一層（快捷鍵 [ ）',
+  'mz.fl.next': '下一層（快捷鍵 ] ）',
   'mz.mapN': '地圖 {n}',
   'mz.now': '目前',
   'mz.legendOld': '較淡＝開始探索前就有的舊記錄',

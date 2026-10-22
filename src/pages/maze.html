@@ -91,6 +91,10 @@
       <div class="mz-floorbar">
         <span class="mz-floorbar-label"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:mz.floors}}</span>
         <div class="mz-floors" id="mz-floors" role="group" aria-label="{{t:mz.floors}}"></div>
+        <div class="mz-floornav" id="mz-floornav" role="group" aria-label="{{t:mz.floors}}" hidden>
+          <button type="button" class="btn sm icon" id="mz-fl-prev" title="{{t:mz.fl.prev}}" aria-label="{{t:mz.fl.prev}}"><svg class="ic mz-fl-up" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+          <button type="button" class="btn sm icon" id="mz-fl-next" title="{{t:mz.fl.next}}" aria-label="{{t:mz.fl.next}}"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+        </div>
       </div>
       <div class="mz-stage" id="mz-stage">
         <canvas id="mz-canvas" role="img" aria-label="{{t:page.maze.h1}}"></canvas>

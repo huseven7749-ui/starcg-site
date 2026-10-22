@@ -713,8 +713,13 @@ function renderFloors() {
     if (!html) html = `<span class="muted small">${esc(T('mz.noFloorYet'))}</span>`;
   }
   html += [...S.manual.values()].map(f => `<button type="button" class="chip mz-chip" data-key="${esc(f.key)}" aria-pressed="${f.key === S.cur}">${esc(f.name)}</button>`).join('');
-  $('#mz-floors').innerHTML = html;
+  const box = $('#mz-floors');
+  box.innerHTML = html;
   $('.mz-floorbar').hidden = !html;
+  const n = box.querySelectorAll('[data-key]').length;
+  box.classList.toggle('dense', n > 8);                      // 層數多：晶片縮小、自動換行
+  $('#mz-floornav').hidden = n < 2;
+  box.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });   // 目前樓層一定看得到
 }
 function renderStatus() {
   const src = S.source;
@@ -1093,6 +1098,19 @@ const pickFloor = key => {
   setCur(key); renderAll(); poll();
 };
 $('#mz-floors').addEventListener('click', e => { const b = e.target.closest('[data-key]'); if (b) pickFloor(b.dataset.key); });
+// 上一層／下一層（在樓層晶片的順序裡移動；到頭就停住）
+function stepFloor(d) {
+  const keys = [...$$('#mz-floors [data-key]')].map(b => b.dataset.key);
+  const i = keys.indexOf(S.cur);
+  const next = keys[i < 0 ? (d > 0 ? 0 : keys.length - 1) : Math.max(0, Math.min(keys.length - 1, i + d))];
+  if (next) pickFloor(next);
+}
+$('#mz-fl-prev').addEventListener('click', () => stepFloor(-1));
+$('#mz-fl-next').addEventListener('click', () => stepFloor(1));
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  if (e.key === '[') { e.preventDefault(); stepFloor(-1); } else if (e.key === ']') { e.preventDefault(); stepFloor(1); }
+});
 $('#mz-view').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   R.iso = b.value === 'iso';
