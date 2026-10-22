@@ -525,7 +525,7 @@ function confetti(host = $('#mz-stage'), n = 24) {
   }
 }
 // 結算圖上的每層小地圖：看過的地板淺色、牆深色、沒探索透明，樓梯與標記畫成圓點
-function miniMap(x, m, pts, ox, oy, size, KC) {
+function miniMap(x, m, pts, ox, oy, size, KC, dot = 4.5) {
   if (!m?.tile?.length || !m.width || !m.height) return;
   const c = document.createElement('canvas'); c.width = m.width; c.height = m.height;
   const g = c.getContext('2d'), img = g.createImageData(m.width, m.height), d = img.data;
@@ -541,7 +541,7 @@ function miniMap(x, m, pts, ox, oy, size, KC) {
   x.imageSmoothingEnabled = false; x.drawImage(c, px, py, w, h);
   for (const p of pts) {
     x.fillStyle = KC[KIND_NAME(p.kind)] || '#fff'; x.strokeStyle = '#fff'; x.lineWidth = 1.5;
-    x.beginPath(); x.arc(px + (p.e + 0.5) * k, py + (p.s + 0.5) * k, 4.5, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.beginPath(); x.arc(px + (p.e + 0.5) * k, py + (p.s + 0.5) * k, dot, 0, Math.PI * 2); x.fill(); x.stroke();
   }
 }
 // 存成圖片：用 canvas 畫一張結算卡
@@ -630,7 +630,9 @@ function buildPack(run) {
   const floors = runFloors().map(({ n, f }) => {
     const m = f.map;
     const pts = m ? allPoints(f).filter(x => !(!x.mark && f.mask && !f.mask[x.i])) : [];
-    return { n, name: f.name, shard: f.shard, w: m?.width || 0, h: m?.height || 0,
+    let map = null;                                             // 0＝沒看過、1＝地板、2＝牆（給打包圖片畫小地圖）
+    if (m?.tile?.length && m.width && m.height) { let t = ''; for (let i = 0; i < m.tile.length; i++) t += m.tile[i] === 0 ? '0' : m.tile[i] === 100 ? '2' : '1'; map = { width: m.width, height: m.height, t }; }
+    return { n, name: f.name, shard: f.shard, w: m?.width || 0, h: m?.height || 0, map,
       pts: pts.map(x => ({ kind: x.kind, e: x.e, s: x.s, note: x.mark?.note || '' })).sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.s - b.s || a.e - b.e) };
   });
   return { at: run.at, end: Date.now(), start: run.start, floors, shard: floors.find(x => x.shard)?.shard || '' };
@@ -693,6 +695,78 @@ function doPack() {
   $('#mz-pack-text').value = packText(S.pack, f);
   $('#mz-pack-out').hidden = false;
   $('#mz-pack-text').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// 打包成圖片：標題＋總圖（所有樓層小地圖並排）＋每層放大小地圖與完整座標清單
+const KC_ALL = { up: '#3FA06A', down: '#E0603F', crystal: '#8B6CE0', warp: '#E2A93B', other: '#4E95D0', poi: '#D9A400', chest: '#B5742A', mob: '#C8364A', note: '#3B8FB5', npc: '#2B9C8C' };
+const packMap = fl => fl.map ? { width: fl.map.width, height: fl.map.height, tile: Uint8Array.from(fl.map.t, ch => +ch === 2 ? 100 : +ch) } : null;
+async function packImage() {
+  if (!S.pack || !packReady()) return;
+  track('maze.packimg');
+  const p = S.pack, form = packForm();
+  const n = p.floors.length;
+  const cols = n > 30 ? 3 : 2, W = cols === 3 ? 1440 : 1080, PAD = 40, GAP = 16;
+  const c = document.createElement('canvas'), x = c.getContext('2d');
+  const font = getComputedStyle(document.body).fontFamily || 'sans-serif';
+  const oc = n <= 4 ? Math.max(n, 1) : n <= 12 ? 4 : n <= 30 ? 6 : 8, ow = Math.floor((W - PAD * 2 - GAP * (oc - 1)) / oc), orows = Math.ceil(n / oc);
+  const OLAB = 40, ocell = ow + OLAB;
+  const pw = Math.floor((W - PAD * 2 - GAP * (cols - 1)) / cols), M = Math.round(pw * (cols === 3 ? 0.4 : 0.36)), LX = M + 28, LW = pw - LX - 14, RH = 34;
+  const lay = p.floors.map(fl => ({ fl, h: fl.map || fl.pts.length ? Math.max(M + 66, 58 + Math.max(1, fl.pts.length) * RH + 12) : 88 }));
+  const colY = Array(cols).fill(0);
+  for (const L of lay) { let ci = 0; for (let i = 1; i < cols; i++) if (colY[i] < colY[ci]) ci = i; L.ci = ci; L.y = colY[ci]; colY[ci] += L.h + GAP; }
+  const detailH = Math.max(...colY);
+  const HEAD = 170, LEG = 56, OVY = HEAD + LEG, ovH = 56 + orows * (ocell + GAP), DY = OVY + ovH + 20, H = DY + 60 + detailH + 110;
+  c.width = W; c.height = Math.min(H, 16000);
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#CFE4F4'); g.addColorStop(0.35, '#F7EBD2'); g.addColorStop(1, '#EFD9AE');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#D9654A'; x.lineWidth = 8; x.beginPath(); x.roundRect(14, 14, W - 28, c.height - 28, 28); x.stroke();
+  x.textAlign = 'center'; x.fillStyle = '#4A3422'; x.font = `700 38px ${font}`; x.fillText(`${form.name} · ${form.shard}`, W / 2, 80);
+  x.font = `500 22px ${font}`; x.fillStyle = '#7B5F43';
+  x.fillText(`${T('mz.p.reset')}：${fmtReset(form.reset)}`, W / 2, 118);
+  x.fillText(`${T('mz.p.explored')}：${MD.format(p.at)} ${HM.format(p.at)}–${HM.format(p.end)} · ${T('mz.p.floorsN', { n })}`, W / 2, 150);
+  const kinds = [...new Set(p.floors.flatMap(f => f.pts.map(q => KIND_NAME(q.kind))))];
+  x.font = `600 20px ${font}`; x.textAlign = 'left';
+  const lw = kinds.map(k => x.measureText(T('mz.k.' + k)).width + 34), tot = lw.reduce((a, b) => a + b, 0);
+  let lx = (W - tot) / 2;
+  kinds.forEach((k, i) => { x.fillStyle = KC_ALL[k] || '#7B5F43'; x.beginPath(); x.arc(lx + 9, HEAD + 22, 9, 0, Math.PI * 2); x.fill(); x.fillStyle = '#4A3422'; x.fillText(T('mz.k.' + k), lx + 26, HEAD + 29); lx += lw[i]; });
+  x.fillStyle = '#4A3422'; x.font = `800 28px ${font}`; x.fillText(T('mz.p.overview'), PAD, OVY + 30);
+  p.floors.forEach((fl, i) => {
+    const cx = PAD + (i % oc) * (ow + GAP), cy = OVY + 56 + Math.floor(i / oc) * (ocell + GAP);
+    x.fillStyle = 'rgba(255,250,238,.9)'; x.beginPath(); x.roundRect(cx, cy, ow, ocell, 14); x.fill();
+    x.fillStyle = '#4A3422'; x.font = `800 ${oc >= 6 ? 18 : 22}px ${font}`; x.textAlign = 'center'; x.fillText(T('mz.floorN', { n: fl.n }), cx + ow / 2, cy + 22);
+    const m = packMap(fl), sz = ow - 16;
+    if (m) miniMap(x, m, fl.pts, cx + 8, cy + OLAB, sz, KC_ALL, oc >= 6 ? 3 : 4);
+    else { x.fillStyle = '#A78C6C'; x.font = `500 16px ${font}`; x.fillText('—', cx + ow / 2, cy + OLAB + sz / 2); }
+  });
+  x.textAlign = 'left'; x.fillStyle = '#4A3422'; x.font = `800 28px ${font}`; x.fillText(T('mz.p.detail'), PAD, DY + 30);
+  for (const L of lay) {
+    const { fl } = L, px = PAD + L.ci * (pw + GAP), py = DY + 56 + L.y;
+    x.fillStyle = 'rgba(255,250,238,.92)'; x.beginPath(); x.roundRect(px, py, pw, L.h, 16); x.fill();
+    x.textAlign = 'left'; x.fillStyle = '#4A3422'; x.font = `800 24px ${font}`; x.fillText(T('mz.floorN', { n: fl.n }), px + 16, py + 36);
+    x.fillStyle = '#7B5F43'; x.font = `600 18px ${font}`; x.textAlign = 'right'; x.fillText(T('mz.p.pts', { k: fl.pts.length }), px + pw - 14, py + 34);
+    const m = packMap(fl);
+    if (m) miniMap(x, m, fl.pts, px + 16, py + 54, M - 8, KC_ALL, 5);
+    x.textAlign = 'left';
+    if (!fl.pts.length) { x.fillStyle = '#A78C6C'; x.font = `500 19px ${font}`; x.fillText(T('mz.p.none'), px + LX, py + 82); }
+    fl.pts.forEach((q, i) => {
+      const k = KIND_NAME(q.kind), ry = py + 58 + i * RH;
+      x.fillStyle = KC_ALL[k] || '#7B5F43'; x.beginPath(); x.arc(px + LX + 8, ry + 14, 8, 0, Math.PI * 2); x.fill();
+      const xy = xyShort(q.e, q.s);
+      x.font = `800 19px ${font}`; x.textAlign = 'right'; x.fillStyle = '#4A3422'; x.fillText(xy, px + pw - 14, ry + 21);
+      const room = LW - x.measureText(xy).width - 30;
+      x.font = `600 19px ${font}`; x.textAlign = 'left';
+      const full = q.note ? `${T('mz.k.' + k)}「${q.note}」` : T('mz.k.' + k);
+      let t = full; while (x.measureText(t).width > room && t.length > 2) t = t.slice(0, -1);
+      x.fillText(t === full ? t : t.slice(0, -1) + '…', px + LX + 24, ry + 21);
+    });
+  }
+  x.textAlign = 'center'; x.font = `700 22px system-ui, sans-serif`;
+  x.fillStyle = '#D9654A'; x.beginPath(); x.roundRect(W / 2 - 120, c.height - 84, 240, 44, 22); x.fill(); x.fillStyle = '#fff'; x.fillText('starcg.online', W / 2, c.height - 54);
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  const file = new File([blob], 'maze-pack.png', { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: form.name }); return; } catch { /* 取消 → 改下載 */ } }
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'maze-pack.png' });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 // ───── 畫面切換 ─────
@@ -1091,6 +1165,7 @@ $('#mz-runend').addEventListener('click', endRun);
 ['#mz-pack-name', '#mz-pack-shard', '#mz-pack-reset'].forEach(q => $(q).addEventListener('input', packReady));
 $('#mz-pack-go').addEventListener('click', doPack);
 $('#mz-pack-copy').addEventListener('click', () => copy($('#mz-pack-text').value));
+$('#mz-pack-img').addEventListener('click', packImage);
 $('#mz-pack-close').addEventListener('click', () => { S.pack = null; idb.del('pack'); renderPack(); });
 $('#mr-save')?.addEventListener('click', resultImage);
 $('#mr-pack')?.addEventListener('click', () => { $('#sheet-mzresult').close(); $('#mz-pack')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
