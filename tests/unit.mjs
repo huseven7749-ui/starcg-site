@@ -8,6 +8,8 @@ import { physical, magic, staffRate, spiritGapRate, requiredSpirit, effective, e
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, parseImport, mergeRecords, inPeriod } from '../src/assets/js/mkstats.js';
 import { plan, orderRoute, dist, parseLoc, START_POINTS, START_GROUPS } from '../src/assets/js/route.js';
 import { isWalk, inMain, snap, bfs, makeDist, pathBetween, GW, GH } from '../src/assets/js/frangrid.js';
+import { costOf, kindOf, specialsOf } from '../src/assets/js/craftcost.js';
+import { readFileSync } from 'node:fs';
 import { parseDat, encodeDat, exitKind, classify, freshMask, shardOf, demoMaze, KIND, MARK_EXIT } from '../src/assets/js/mazedat.js';
 
 const near = (a, b, eps = 0.011) => assert.ok(Math.abs(a - b) <= eps, `${a} ≠ ${b}`);
@@ -385,6 +387,23 @@ t('迷宮：這趟新探索的格子、分流、示範迷宮', () => {
   assert.ok(changed > 0 && changed < full.width * full.height);
   assert.equal(freshMask(null, full).every(x => x === 1), true);
   assert.equal(shardOf('1'), 'S1'); assert.equal(shardOf('3'), 'S3'); assert.equal(shardOf('map'), ''); assert.equal(shardOf('0'), '');
+});
+
+t('生產成本：曲刀（站長試算表算法）', () => {
+  const D = JSON.parse(readFileSync(new URL('../static/data/crafting-cost.json', import.meta.url), 'utf8'));
+  const C = JSON.parse(readFileSync(new URL('../static/data/crafting.json', import.meta.url), 'utf8'));
+  const items = Object.entries(C.cats).flatMap(([cat, l]) => l.map(x => ({ ...x, cat })));
+  const recipes = new Map(items.map(it => [it.n, it]));
+  const r = costOf(recipes.get('曲刀'), D, { recipes, prices: { 鋼騎之礦: 2500, 魔族的水晶: 25000 } });
+  assert.equal(r.mat, 57663);            // 試算表：材料成本 57663
+  assert.equal(r.fee, 2400);
+  // 工時：試算表奧利哈鋼條的採滿時間誤填 675（10 級應為 1350），所以總工時比試算表多；另外兩項一致
+  assert.ok(Math.abs(r.rows[0].work - 1622.3958) < 0.01 && Math.abs(r.rows[2].work - 246.09375) < 0.01);
+  assert.equal(kindOf('十級奧利哈鋼條', D).kind, 'bar');
+  assert.equal(kindOf('魔族的水晶', D).kind, 'special');
+  assert.equal(specialsOf(items, D).get('魔族的水晶'), 60000);
+  const box = costOf(recipes.get('炒面面包'), D, { recipes });
+  assert.ok(box.rows.every(x => x.kind === 'craft') && box.box > box.total * 60);
 });
 
 console.log(`\n全部 ${n} 項通過`);
