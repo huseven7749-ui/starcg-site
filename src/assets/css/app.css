@@ -106,7 +106,7 @@ html[data-theme="dark"] .night-sky {
   background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
   border-bottom: 1.5px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
-.topbar-in { max-width: 1240px; height: 100%; margin: 0 auto; padding: 0 18px; display: flex; align-items: center; gap: 14px; }
+.topbar-in { max-width: 1480px; height: 100%; margin: 0 auto; padding: 0 18px; display: flex; align-items: center; gap: 14px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none !important; flex: none; }
 .brand img { width: 44px; height: 47px; transition: transform .3s; image-rendering: auto; }
 .brand:hover img { transform: rotate(-8deg) scale(1.06); }
@@ -152,7 +152,7 @@ html[data-theme="light"] .ic-moon, html[data-theme="dark"] .ic-sun { display: no
 @keyframes twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.18) rotate(12deg); } }
 
 /* ───── 主要內容 ───── */
-main { max-width: 1240px; margin: 0 auto; padding: 18px 18px 48px; outline: none; }
+main { max-width: 1480px; margin: 0 auto; padding: 18px 18px 48px; outline: none; }
 .crumbs { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--ink-3); margin: 2px 0 12px; }
 .crumbs a { color: var(--ink-2); }
 .page-head { display: flex; align-items: center; gap: 16px; margin: 6px 0 18px; }
@@ -417,7 +417,7 @@ html[data-theme="dark"] .ev-badge { color: #102a20; }
 
 /* ───── 頁尾 ───── */
 .foot { border-top: 1.5px solid var(--line); background: color-mix(in srgb, var(--card) 70%, transparent); margin-top: 30px; }
-.foot-in { max-width: 1240px; margin: 0 auto; padding: 28px 18px 36px; display: grid; grid-template-columns: 1.2fr .8fr .9fr 1.5fr; gap: 24px; font-size: .9rem; }
+.foot-in { max-width: 1480px; margin: 0 auto; padding: 28px 18px 36px; display: grid; grid-template-columns: 1.2fr .8fr .9fr 1.5fr; gap: 24px; font-size: .9rem; }
 .foot h2 { font-size: .95rem; margin-bottom: 10px; }
 .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .foot a { color: var(--ink-2); }
@@ -2068,3 +2068,6 @@ html[data-view="mobile"] .al-item .al-c { grid-column: 3; }
 .cr-self.need { color: var(--warn, #c77a12); }
 .cr-buy { width: 7.5em; line-height: 1.25; }
 .cr-buy a { white-space: normal; display: inline-block; }
+.cr-free { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--mint-l, #d9f2e6) 30%, transparent); }
+.cr-free p { margin: 2px 0; }
+.cr-free .cr-grand { margin-left: 4px; }

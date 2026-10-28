@@ -13,8 +13,8 @@ const S = { cat: CATS.includes(saved.cat) ? saved.cat : 'weapon-sword', q: '', l
 let ITEMS = [], BY_ID = new Map(), BY_NAME = new Map(), COST = null;
 // 成本設定：工時價格、特殊材料價格（使用者填的，存在這台裝置）
 const CKEY = 'sc.craft.cost';
-const CS = (() => { const v = store.get(CKEY) || {}; return { labor: Number(v.labor) > 0 ? Number(v.labor) : null, prices: v.prices && typeof v.prices === 'object' ? v.prices : {}, all: false }; })();
-const saveCost = () => store.set(CKEY, { labor: CS.labor, prices: CS.prices });
+const CS = (() => { const v = store.get(CKEY) || {}; return { labor: Number(v.labor) > 0 ? Number(v.labor) : null, free: Number(v.free) > 0 ? Number(v.free) : 0, prices: v.prices && typeof v.prices === 'object' ? v.prices : {}, all: false }; })();
+const saveCost = () => store.set(CKEY, { labor: CS.labor, free: CS.free, prices: CS.prices });
 const costOpt = () => ({ labor: CS.labor ?? COST.labor, prices: CS.prices, recipes: BY_NAME });
 const costIt = it => COST ? costOf(it, COST, costOpt()) : null;
 const G = v => fmt(Math.round(v));
@@ -92,7 +92,15 @@ function renderCost() {
   box.innerHTML = `<div class="tbl-wrap"><table class="tbl cr-costs"><thead><tr><th>${esc(T('cr.costItem'))}</th><th class="num">${esc(T('cr.costUnit'))}</th><th class="num">${esc(T('cr.costSum'))}</th></tr></thead><tbody>${rows}</tbody>` +
     `<tfoot><tr><th scope="row">${esc(T('cr.costTotal'))}</th><td></td><td class="num"><b class="cr-grand">${G(sum)}</b></td></tr></tfoot></table></div>` +
     `<p class="small muted cr-split">${esc(T('cr.costSplit', { m: G(mat), w: G(work), f: G(fee) }))}</p>` +
+    freeLine(work, sum) +
     (need ? `<p class="small cr-needtip">＊${esc(T('cr.costNeed'))}</p>` : '');
+}
+// 免費卡時：工時成本＝需要的小時數 × 工時價格；有免費卡時就用它折抵（最多折到這單的工時）
+function freeLine(work, sum) {
+  const price = CS.labor ?? COST.labor, hours = work / price;
+  const use = Math.min(CS.free || 0, hours), off = use * price;
+  return `<div class="cr-free"><p class="small">${esc(T('cr.freeNeed', { h: hours.toFixed(2), w: G(work), p: fmt(price) }))}</p>` +
+    (use > 0 ? `<p class="small">${esc(T('cr.freeUse', { h: +use.toFixed(2), d: G(off) }))}<b class="cr-grand">${G(sum - off)}</b></p>` : `<p class="small muted">${esc(T('cr.freeHint'))}</p>`) + '</div>';
 }
 // 成本設定：工時價格＋特殊材料價格（預設：官方公定價；沒有公定價的是 0，請自己填）
 function specialList() {
@@ -107,6 +115,8 @@ function renderSet() {
   if (box.contains(document.activeElement) && !renderSet.force) return;   // 正在填價格：不要重畫，免得游標跳掉
   $('#cr-labor').placeholder = String(COST.labor);
   if (document.activeElement !== $('#cr-labor')) $('#cr-labor').value = CS.labor ?? '';
+  if (document.activeElement !== $('#cr-free')) $('#cr-free').value = CS.free || '';
+  $('#cr-free-per').textContent = T('cr.freePer', { p: fmt(CS.labor ?? COST.labor) });
   $('#cr-set-all').setAttribute('aria-pressed', String(CS.all));
   const list = specialList();
   box.innerHTML = list.length ? list.map(n => {
@@ -136,7 +146,8 @@ async function init() {
   renderList(); renderPlan();
   // 成本設定
   const rerender = debounce(() => { renderList(); renderPlan(); }, 200);
-  $('#cr-labor').addEventListener('input', e => { const v = Math.round(Number(e.target.value)); CS.labor = v > 0 ? v : null; saveCost(); rerender(); });
+  $('#cr-labor').addEventListener('input', e => { const v = Math.round(Number(e.target.value)); CS.labor = v > 0 ? v : null; saveCost(); $('#cr-free-per').textContent = T('cr.freePer', { p: fmt(CS.labor ?? COST.labor) }); rerender(); });
+  $('#cr-free').addEventListener('input', e => { const v = Number(e.target.value); CS.free = v > 0 ? Math.round(v * 100) / 100 : 0; saveCost(); rerender(); });
   $('#cr-set-list').addEventListener('input', e => {
     const inp = e.target.closest('[data-sp]'); if (!inp) return;
     const n = inp.dataset.sp, v = inp.value === '' ? null : Math.max(0, Math.round(Number(inp.value) || 0));
@@ -145,7 +156,7 @@ async function init() {
     saveCost(); rerender();
   });
   $('#cr-set-all').addEventListener('click', () => { CS.all = !CS.all; renderSet(); });
-  $('#cr-set-reset').addEventListener('click', () => { CS.labor = null; CS.prices = {}; saveCost(); renderSet.force = true; renderList(); renderPlan(); renderSet.force = false; toast(T('cr.setResetDone')); });
+  $('#cr-set-reset').addEventListener('click', () => { CS.labor = null; CS.prices = {}; CS.free = 0; saveCost(); renderSet.force = true; renderList(); renderPlan(); renderSet.force = false; toast(T('cr.setResetDone')); });
 
   $('#cr-q').addEventListener('input', debounce(e => { S.q = e.target.value; S.all = false; renderList(); }, 150));
   $('#cr-cats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.cat = b.value; S.q = ''; $('#cr-q').value = ''; S.all = false; renderList(); save(); });
