@@ -29,6 +29,17 @@ const NAVER_VERIFY = args.naver || 'd576b4c44e8480d1da926bb2a85446fafdcdd298';  
 const VIDEO = { zh: args.video || 'https://youtu.be/2dk9OO-lSmw?si=jf8WyNkAkoCsPtGg', ko: args['video-ko'] || 'https://youtu.be/vv5wRaEuV-Y?si=rjLWOqEwNbzLjZGu' };
 // 贊助站長：BobaBoba 贊助頁（彈窗先請大家到影片下留言，想贊助再點）
 const SPONSOR = { zh: args.sponsor || 'https://portaly.cc/hoshino/support', ko: args['sponsor-ko'] || 'https://ko-fi.com/hoshino7749' };
+// 贊助者跑馬燈：src/data/sponsors.json 的名單，開頭和結尾都放感謝的話；內容重複一份讓它無縫循環
+function sponsorBar(lang, t) {
+  let list = [];
+  try { list = JSON.parse(fs.readFileSync(path.join(SRC, 'data', 'sponsors.json'), 'utf8')).list || []; } catch { list = []; }
+  if (!list.length) return '';
+  const thanks = `<span class="spb-thanks">${esc(t('sp.thanks'))}</span>`;
+  const items = list.map(s => `<span class="spb-item"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><b>${esc(s.n)}</b>${s.a ? `<span class="spb-amt">${esc(s.a)}</span>` : ''}</span>`).join('');
+  const run = `${thanks}${items}${thanks}`;
+  return `<a class="sponsor-bar" href="${esc(SPONSOR[lang] || '#')}" target="_blank" rel="noopener" data-act="sponsor" aria-label="${esc(t('sp.label') + '：' + list.map(s => s.n + (s.a ? ' ' + s.a : '')).join('、'))}">` +
+    `<span class="spb-track"><span class="spb-run">${run}</span><span class="spb-run" aria-hidden="true">${run}</span></span></a>`;
+}
 
 const LANGS = {
   zh: { prefix: '', dict: (await import('./src/i18n/zh.mjs')).default },
@@ -481,6 +492,7 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
         preview: PREVIEW ? '1' : '',
         registerUrl: REGISTER_URL,
         sponsorUrl: SPONSOR[lang] || '#',
+        sponsorBar: sponsorBar(lang, t),
         videoUrl: VIDEO[lang],
         welcomeVideo: esc(VIDEO[lang]),
         buildDate: BUILD_DATE,

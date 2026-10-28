@@ -1518,6 +1518,8 @@ export default {
   'wel.done': '알겠어요, 시작하기',
   'wel.again': '처음 안내 다시 보기',
   'nav.sponsor': '운영자 후원',
+  'sp.thanks': '후원해 주신 분들께 감사드립니다! 여러분 덕분에 사이트를 계속 운영할 수 있어요😍',
+  'sp.label': '후원자 명단',
   'home.tool.sponsor': '커피 한 잔으로 사이트를 응원해 주세요',
   // 冒險手冊（遊戲化）
   'game.title': '모험 수첩',

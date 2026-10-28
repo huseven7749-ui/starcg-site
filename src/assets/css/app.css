@@ -2085,3 +2085,23 @@ html.pc-touch .pc-touch-tip { display: flex; }
 html.pc-touch .pc-card [data-act="fight"] { animation: pc-go-pulse 1.6s ease-in-out 3; }
 @keyframes pc-go-pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--pink) 35%, transparent); } }
 @media (prefers-reduced-motion: reduce) { html.pc-touch .pc-card [data-act="fight"] { animation: none; } }
+
+/* 贊助者跑馬燈（頂端選單下方，全站） */
+.sponsor-bar { display: block; overflow: hidden; white-space: nowrap; text-decoration: none; color: var(--ink);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pink) 16%, var(--card)), color-mix(in srgb, var(--lemon, #ffe08a) 18%, var(--card)), color-mix(in srgb, var(--pink) 16%, var(--card)));
+  border-bottom: 1px solid var(--line); font-size: .88rem; line-height: 1; }
+.sponsor-bar:hover { color: var(--ink); }
+.spb-track { display: inline-flex; animation: spb-scroll 38s linear infinite; padding: 8px 0; }
+.sponsor-bar:hover .spb-track, .sponsor-bar:focus-visible .spb-track { animation-play-state: paused; }
+.spb-run { display: inline-flex; align-items: center; gap: 22px; padding-right: 22px; }
+.spb-thanks { font-weight: 800; color: var(--pink-d); }
+.spb-item { display: inline-flex; align-items: center; gap: 6px; }
+.spb-item .ic { width: 15px; height: 15px; color: var(--pink); }
+.spb-amt { font-weight: 800; color: var(--warn, #c77a12); }
+@keyframes spb-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .sponsor-bar { white-space: normal; }
+  .spb-track { animation: none; display: block; padding: 8px 14px; text-align: center; }
+  .spb-run { flex-wrap: wrap; justify-content: center; gap: 6px 18px; padding: 0; }
+  .spb-run[aria-hidden] { display: none; }
+}

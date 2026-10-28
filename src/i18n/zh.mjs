@@ -1517,6 +1517,8 @@ export default {
   'wel.done': '知道了，開始使用',
   'wel.again': '再看一次新手教學',
   'nav.sponsor': '贊助站長',
+  'sp.thanks': '感謝乾爹乾媽的贊助 有你們才得以讓網站運營下去😍',
+  'sp.label': '贊助者名單',
   'home.tool.sponsor': '請站長喝杯咖啡，支持網站持續更新',
   // 冒險手冊（遊戲化）
   'game.title': '冒險手冊',
