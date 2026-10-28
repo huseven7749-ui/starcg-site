@@ -33,34 +33,40 @@ export function kindOf(name, D, recipes) {
  * @param opt { labor, prices: {特殊材料: 價格}, recipes: Map(名稱→配方) }
  */
 export function costOf(it, D, opt = {}, depth = 0) {
-  const labor = opt.labor ?? D.labor, prices = opt.prices || {};
   const rows = [];
   let mat = 0, work = 0;
   for (const [name, qty] of it.m) {
-    const k = kindOf(name, D, opt.recipes);
-    let m = 0, w = 0, unit = null, need = false;
-    if (k.kind === 'bar' || k.kind === 'gather') {
-      const L = D.levels[k.lv - 1], mult = k.kind === 'bar' ? D.barMult : 1;
-      m = L.take * mult / 4000 * qty;
-      w = qty / 4000 * L.min / 60 * labor * mult;
-    } else if (k.kind === 'cloth') { unit = D.cloth[k.base]; m = unit * qty; }
-    else if (k.kind === 'sugar') { unit = D.sugar; m = unit * qty; }
-    else if (k.kind === 'craft' && depth < 3) {
-      const sub = costOf(opt.recipes.get(k.base), D, opt, depth + 1);
-      unit = sub.total; m = unit * qty; need = sub.need;
-    } else {
-      unit = prices[k.base] ?? D.special[k.base] ?? 0;
-      need = unit === 0;               // 採集屋沒有、也沒有公定價 → 等使用者填
-      m = unit * qty;
-    }
-    mat += m; work += w;
-    rows.push({ name, qty, kind: k.kind, base: k.base, unit, mat: m, work: w, need });
+    const r = matCost(name, qty, D, opt, depth);
+    mat += r.mat; work += r.work;
+    rows.push(r);
   }
   const fee = feeOf(it, D);
   const total = mat + work + fee;
   const out = { rows, mat, work, fee, total, need: rows.some(r => r.need) };
   if (it.cat === 'food' || it.cat === 'potion') out.box = total * D.box.n + D.box.fee;
   return out;
+}
+
+/** 一種材料 × 數量 的自產成本（材料＋工時）；中間成品依它的配方往下算 */
+export function matCost(name, qty, D, opt = {}, depth = 0) {
+  const labor = opt.labor ?? D.labor, prices = opt.prices || {};
+  const k = kindOf(name, D, opt.recipes);
+  let m = 0, w = 0, unit = null, need = false;
+  if (k.kind === 'bar' || k.kind === 'gather') {
+    const L = D.levels[k.lv - 1], mult = k.kind === 'bar' ? D.barMult : 1;
+    m = L.take * mult / 4000 * qty;
+    w = qty / 4000 * L.min / 60 * labor * mult;
+  } else if (k.kind === 'cloth') { unit = D.cloth[k.base]; m = unit * qty; }
+  else if (k.kind === 'sugar') { unit = D.sugar; m = unit * qty; }
+  else if (k.kind === 'craft' && depth < 3) {
+    const sub = costOf(opt.recipes.get(k.base), D, opt, depth + 1);
+    unit = sub.total; m = unit * qty; need = sub.need;
+  } else {
+    unit = prices[k.base] ?? D.special[k.base] ?? 0;
+    need = unit === 0;               // 採集屋沒有、也沒有公定價 → 等使用者填
+    m = unit * qty;
+  }
+  return { name, qty, kind: k.kind, base: k.base, unit, mat: m, work: w, need, total: m + w };
 }
 
 /** 製作費：試算表有列就用；沒有就依等級（裝備 40～2400、料理／藥水 20～200）；11 級以上用攻略網的生產費 */

@@ -1,7 +1,7 @@
 // 生產材料計算：選要做的裝備／補品與數量，算出全部材料，可一鍵丟進批次採購
 // 資料：data/crafting.json（整理自星詠魔力攻略網「生產圖鑑」guide.starcg.net/crafting/，只收星詠魔力有的配方）
 import { $, $$, T, esc, fmt, store, debounce, toast, copy, normName, emptyState, BASE, LANG, loadKo, kn, kt } from './core.js';
-import { costOf, kindOf } from './craftcost.js';
+import { costOf, kindOf, matCost } from './craftcost.js';
 // 韓文版：有對照就顯示韓文，原本的中文名放在 title
 const nm = n => { const k = kn(n); return k !== n ? `<span title="${esc(n)}">${esc(k)}</span>` : `<span lang="zh-Hant">${esc(n)}</span>`; };
 
@@ -63,8 +63,14 @@ function renderPlan() {
   }).join('') : `<li class="empty small">${emptyState('adv-sit', T('cr.empty'))}</li>`;
   const tot = totals();
   const href = n => `${BASE}${LANG === 'ko' ? 'ko/' : ''}market/?q=${encodeURIComponent(marketName(n))}`;
-  $('#cr-mats').innerHTML = tot.length ? `<thead><tr><th>${esc(T('cr.mat'))}</th><th class="num">${esc(T('cr.need'))}</th><th></th></tr></thead><tbody>` +
-    tot.map(([n, q]) => `<tr><th scope="row">${nm(n)}</th><td class="num"><b>${fmt(q)}</b></td><td class="num"><a class="small" href="${href(n)}">${esc(T('cr.price2'))}</a></td></tr>`).join('') + '</tbody>'
+  // 自產成本：自己採（採集屋取出費＋工時）或特殊材料價格算出來的這些數量要花多少魔幣
+  const selfCost = (n, q) => {
+    if (!COST) return '';
+    const c = matCost(n, q, COST, costOpt());
+    return `<td class="num cr-self${c.need ? ' need' : ''}" title="${esc(c.need ? T('cr.costNeed') : '')}">${G(c.total)}${c.need ? ' *' : ''}</td>`;
+  };
+  $('#cr-mats').innerHTML = tot.length ? `<thead><tr><th>${esc(T('cr.mat'))}</th><th class="num">${esc(T('cr.need'))}</th>${COST ? `<th class="num">${esc(T('cr.selfCost'))}</th>` : ''}<th></th></tr></thead><tbody>` +
+    tot.map(([n, q]) => `<tr><th scope="row">${nm(n)}</th><td class="num"><b>${fmt(q)}</b></td>${selfCost(n, q)}<td class="cr-buy"><a class="small" href="${href(n)}" title="${esc(marketName(n))}">${esc(T('cr.price2'))}</a></td></tr>`).join('') + '</tbody>'
     : `<tbody><tr><td class="muted small">${esc(T('cr.matsEmpty'))}</td></tr></tbody>`;
   renderCost();
   renderSet();
@@ -98,6 +104,7 @@ function specialList() {
 }
 function renderSet() {
   const box = $('#cr-set-list'); if (!box || !COST) return;
+  if (box.contains(document.activeElement) && !renderSet.force) return;   // 正在填價格：不要重畫，免得游標跳掉
   $('#cr-labor').placeholder = String(COST.labor);
   if (document.activeElement !== $('#cr-labor')) $('#cr-labor').value = CS.labor ?? '';
   $('#cr-set-all').setAttribute('aria-pressed', String(CS.all));
@@ -128,7 +135,7 @@ async function init() {
   $('#cr-setbox').hidden = !COST;
   renderList(); renderPlan();
   // 成本設定
-  const rerender = debounce(() => { renderList(); renderCost(); }, 200);
+  const rerender = debounce(() => { renderList(); renderPlan(); }, 200);
   $('#cr-labor').addEventListener('input', e => { const v = Math.round(Number(e.target.value)); CS.labor = v > 0 ? v : null; saveCost(); rerender(); });
   $('#cr-set-list').addEventListener('input', e => {
     const inp = e.target.closest('[data-sp]'); if (!inp) return;
@@ -138,7 +145,7 @@ async function init() {
     saveCost(); rerender();
   });
   $('#cr-set-all').addEventListener('click', () => { CS.all = !CS.all; renderSet(); });
-  $('#cr-set-reset').addEventListener('click', () => { CS.labor = null; CS.prices = {}; saveCost(); renderSet(); renderList(); renderCost(); toast(T('cr.setResetDone')); });
+  $('#cr-set-reset').addEventListener('click', () => { CS.labor = null; CS.prices = {}; saveCost(); renderSet.force = true; renderList(); renderPlan(); renderSet.force = false; toast(T('cr.setResetDone')); });
 
   $('#cr-q').addEventListener('input', debounce(e => { S.q = e.target.value; S.all = false; renderList(); }, 150));
   $('#cr-cats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.cat = b.value; S.q = ''; $('#cr-q').value = ''; S.all = false; renderList(); save(); });

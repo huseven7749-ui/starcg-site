@@ -35,8 +35,10 @@ for r in list(range(21, 37)) + list(range(50, 62)):
     v = home[f'C{r}'].value
     price[conv(n)] = float(v) if isinstance(v, (int, float)) else None
 
+# 試算表沒列、但站長確認可以自己採的（礦條的礦名）：鋁條、達馬斯礦條
+EXTRA_GATHER = {'鋁', '達馬斯礦'}
 # 採集屋採得到的材料（「材料等級」分頁有數字等級的）；其他材料都算「特殊材料」，價格讓使用者自己填
-gather = sorted({conv(r[0]) for r in wb['材料等級'].iter_rows(values_only=True) if r and r[0] and isinstance(r[1], (int, float))})
+gather = sorted(EXTRA_GATHER | {conv(r[0]) for r in wb['材料等級'].iter_rows(values_only=True) if r and r[0] and isinstance(r[1], (int, float))})
 # 布（試算表給的每件價格）
 cloth = {n: v for n, v in price.items() if v is not None and n not in ('砂糖', '鋼騎之礦', '魔族的水晶', '妖草的血', '神眼')}
 # 特殊材料官方公定價（遊戲內商店，站長 2026-10-27 提供截圖）；沒列到的預設 0

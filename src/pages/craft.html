@@ -17,7 +17,17 @@
     <div class="cr-list" id="cr-list"><div class="skel" style="height:240px"></div></div>
   </section>
 
-  <section class="card cr-plan" aria-label="{{t:cr.plan}}">
+  <div class="cr-side">
+    <section class="card cr-setbox" id="cr-setbox" aria-label="{{t:cr.set}}" hidden>
+      <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-coin"/></svg>{{t:cr.set}}<button type="button" class="btn sm ghost" id="cr-set-reset">{{t:cr.setReset}}</button></h2>
+      <p class="small muted">{{t:cr.setLead}}</p>
+      <label class="cr-labor"><span>{{t:cr.setLabor}}</span><input class="input sm" id="cr-labor" type="number" min="1" step="1" inputmode="numeric"><small class="muted">{{t:cr.setLaborHint}}</small></label>
+      <div class="cr-sphead"><h3 class="cr-sub">{{t:cr.setSpecial}}</h3><button type="button" class="chip" id="cr-set-all" aria-pressed="false">{{t:cr.setAll}}</button></div>
+      <p class="small muted">{{t:cr.setSpecialHint}}</p>
+      <div class="cr-splist" id="cr-set-list"></div>
+      <details class="cr-how"><summary>{{t:cr.howQ}}</summary><p class="small">{{t:cr.howA}}</p></details>
+    </section>
+    <section class="card cr-plan" aria-label="{{t:cr.plan}}">
     <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>{{t:cr.plan}}<button type="button" class="btn sm ghost" id="cr-clear" hidden>{{t:cr.clear}}</button></h2>
     <ul class="cr-sel" id="cr-sel"></ul>
     <h3 class="cr-sub">{{t:cr.mats}}</h3>
@@ -29,17 +39,8 @@
       <button type="button" class="btn ghost wide" id="cr-copy" disabled><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg>{{t:cr.copy}}</button>
     </div>
   </section>
+  </div>
 </div>
-
-<section class="card cr-setbox" id="cr-setbox" aria-label="{{t:cr.set}}" hidden>
-  <h2 class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-coin"/></svg>{{t:cr.set}}<button type="button" class="btn sm ghost" id="cr-set-reset">{{t:cr.setReset}}</button></h2>
-  <p class="small muted">{{t:cr.setLead}}</p>
-  <label class="cr-labor"><span>{{t:cr.setLabor}}</span><input class="input sm" id="cr-labor" type="number" min="1" step="1" inputmode="numeric"><small class="muted">{{t:cr.setLaborHint}}</small></label>
-  <div class="cr-sphead"><h3 class="cr-sub">{{t:cr.setSpecial}}</h3><button type="button" class="chip" id="cr-set-all" aria-pressed="false">{{t:cr.setAll}}</button></div>
-  <p class="small muted">{{t:cr.setSpecialHint}}</p>
-  <div class="cr-splist" id="cr-set-list"></div>
-  <details class="cr-how"><summary>{{t:cr.howQ}}</summary><p class="small">{{t:cr.howA}}</p></details>
-</section>
 
 {{relatedGuides}}
 
