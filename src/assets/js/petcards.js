@@ -7,6 +7,9 @@ const KEY = 'sc.petcards', MAX = 40;
 const TIER_KEY = { '金': 'gold', '銀': 'silver', '普': 'normal' };
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let PETS = [], byName = new Map(), arena = [null, null], busy = false, showTab = () => {};
+// 觸控裝置（手機、平板）：拖曳不好用，改提示按卡片的「上場」
+const TOUCH = matchMedia('(hover: none), (pointer: coarse)').matches || document.documentElement.dataset.view === 'mobile';
+if (TOUCH) { document.documentElement.classList.add('pc-touch'); $$('#arena .arena-ph').forEach(e => { e.textContent = T('pc.tapHere'); }); }
 const dn = p => (LANG === 'ko' && p.kn) ? p.kn : p.name;
 const getAlbum = () => (store.get(KEY, []) || []).filter(n => byName.has(normName(n)));
 const setAlbum = list => { store.set(KEY, list.slice(0, MAX)); renderAlbum(); };
@@ -75,7 +78,7 @@ function renderArena() {
   $$('#arena .arena-slot').forEach((el, i) => {
     const p = arena[i];
     el.classList.toggle('filled', !!p);
-    el.innerHTML = p ? slotHtml(p) : `<span class="arena-ph">${esc(T('pc.dropHere'))}</span>`;
+    el.innerHTML = p ? slotHtml(p) : `<span class="arena-ph">${esc(T(TOUCH ? 'pc.tapHere' : 'pc.dropHere'))}</span>`;
   });
   $('#pc-fight').disabled = busy || !(arena[0] && arena[1]);
 }

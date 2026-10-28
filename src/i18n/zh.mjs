@@ -332,6 +332,8 @@ export default {
   'pc.slotA': '左邊擂台位置',
   'pc.slotB': '右邊擂台位置',
   'pc.dropHere': '拖一張卡到這裡',
+  'pc.touchTip': '手機不用拖曳：直接按卡片下面的「上場」，第一張放左邊、第二張放右邊，兩張都上場就能按「開打！」。',
+  'pc.tapHere': '按卡片的「上場」放進來',
   'pc.fight': '開打！',
   'pc.swap': '左右交換',
   'pc.clearArena': '清空擂台',
