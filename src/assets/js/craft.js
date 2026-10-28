@@ -1,6 +1,7 @@
 // 生產材料計算：選要做的裝備／補品與數量，算出全部材料，可一鍵丟進批次採購
 // 資料：data/crafting.json（整理自星詠魔力攻略網「生產圖鑑」guide.starcg.net/crafting/，只收星詠魔力有的配方）
 import { $, $$, T, esc, fmt, store, debounce, toast, copy, normName, emptyState, BASE, LANG, loadKo, kn, kt } from './core.js';
+import { costOf, kindOf } from './craftcost.js';
 // 韓文版：有對照就顯示韓文，原本的中文名放在 title
 const nm = n => { const k = kn(n); return k !== n ? `<span title="${esc(n)}">${esc(k)}</span>` : `<span lang="zh-Hant">${esc(n)}</span>`; };
 
@@ -9,7 +10,14 @@ const CATS = ['weapon-sword', 'weapon-axe', 'weapon-spear', 'weapon-bow', 'weapo
   'armor-helmet', 'armor-hat', 'armor-plate', 'armor-clothes', 'armor-robe', 'armor-boots', 'armor-shoes', 'armor-shield', 'potion', 'food'];
 const saved = store.get(KEY) || {};
 const S = { cat: CATS.includes(saved.cat) ? saved.cat : 'weapon-sword', q: '', list: Array.isArray(saved.list) ? saved.list : [], all: false };
-let ITEMS = [], BY_ID = new Map();
+let ITEMS = [], BY_ID = new Map(), BY_NAME = new Map(), COST = null;
+// 成本設定：工時價格、特殊材料價格（使用者填的，存在這台裝置）
+const CKEY = 'sc.craft.cost';
+const CS = (() => { const v = store.get(CKEY) || {}; return { labor: Number(v.labor) > 0 ? Number(v.labor) : null, prices: v.prices && typeof v.prices === 'object' ? v.prices : {}, all: false }; })();
+const saveCost = () => store.set(CKEY, { labor: CS.labor, prices: CS.prices });
+const costOpt = () => ({ labor: CS.labor ?? COST.labor, prices: CS.prices, recipes: BY_NAME });
+const costIt = it => COST ? costOf(it, COST, costOpt()) : null;
+const G = v => fmt(Math.round(v));
 const save = () => store.set(KEY, { cat: S.cat, list: S.list });
 const catName = c => T('cr.cat.' + c);
 // 市場上的商品名稱沒有「一級」「八級」這種前綴（例如「一級銅條」在市場叫「銅條」）
@@ -20,8 +28,10 @@ function itemRow(it) {
   const on = S.list.some(x => x.id === it.id);
   const mats = it.m.map(([n, q]) => `<span class="cr-m">${nm(n)}<b>×${q}</b></span>`).join('');
   const meta = [kt(it.t), it.p != null ? T('cr.price', { p: fmt(it.p) }) : '', kt(it.note)].filter(Boolean).map(esc).join('・');
+  const c = costIt(it);
+  const cost = c ? `<span class="cr-cost${c.need ? ' need' : ''}" title="${esc(c.need ? T('cr.costNeed') : '')}">${esc(T('cr.costEach', { p: G(c.total) }))}${c.need ? ' *' : ''}</span>` : '';
   return `<li class="cr-item${on ? ' on' : ''}"><span class="cr-lv">${esc(lvLabel(it))}</span>` +
-    `<div class="cr-body"><b>${nm(it.n)}</b>${S.q && it.cat !== S.cat ? `<span class="badge b-sky">${esc(catName(it.cat))}</span>` : ''}${meta ? `<small>${meta}</small>` : ''}<div class="cr-ms">${mats}</div></div>` +
+    `<div class="cr-body"><b>${nm(it.n)}</b>${S.q && it.cat !== S.cat ? `<span class="badge b-sky">${esc(catName(it.cat))}</span>` : ''}${meta || cost ? `<small>${meta}${meta && cost ? '・' : ''}${cost}</small>` : ''}<div class="cr-ms">${mats}</div></div>` +
     `<button type="button" class="btn sm ${on ? 'ghost' : 'primary'}" data-add="${it.id}">${esc(T(on ? 'cr.added' : 'cr.add'))}</button></li>`;
 }
 function renderList() {
@@ -56,9 +66,48 @@ function renderPlan() {
   $('#cr-mats').innerHTML = tot.length ? `<thead><tr><th>${esc(T('cr.mat'))}</th><th class="num">${esc(T('cr.need'))}</th><th></th></tr></thead><tbody>` +
     tot.map(([n, q]) => `<tr><th scope="row">${nm(n)}</th><td class="num"><b>${fmt(q)}</b></td><td class="num"><a class="small" href="${href(n)}">${esc(T('cr.price2'))}</a></td></tr>`).join('') + '</tbody>'
     : `<tbody><tr><td class="muted small">${esc(T('cr.matsEmpty'))}</td></tr></tbody>`;
+  renderCost();
+  renderSet();
   $('#cr-bulk').disabled = $('#cr-copy').disabled = !tot.length;
   $('#cr-clear').hidden = !S.list.length;
   save();
+}
+// 生產成本：清單裡每一項的每件成本與小計
+function renderCost() {
+  const box = $('#cr-cost'); if (!box) return;
+  if (!COST || !S.list.length) { box.innerHTML = `<p class="muted small">${esc(T('cr.matsEmpty'))}</p>`; return; }
+  let sum = 0, mat = 0, work = 0, fee = 0, need = false;
+  const rows = S.list.map(x => {
+    const it = BY_ID.get(x.id), c = costIt(it);
+    sum += c.total * x.qty; mat += c.mat * x.qty; work += c.work * x.qty; fee += c.fee * x.qty; need = need || c.need;
+    const box2 = c.box != null ? `<small class="muted">${esc(T('cr.costBox', { p: G(c.box) }))}</small>` : '';
+    return `<tr><th scope="row">${nm(it.n)} <span class="muted">×${x.qty}</span>${c.need ? ' <span class="cr-need" title="' + esc(T('cr.costNeed')) + '">*</span>' : ''}${box2}</th><td class="num">${G(c.total)}</td><td class="num"><b>${G(c.total * x.qty)}</b></td></tr>`;
+  }).join('');
+  box.innerHTML = `<div class="tbl-wrap"><table class="tbl cr-costs"><thead><tr><th>${esc(T('cr.costItem'))}</th><th class="num">${esc(T('cr.costUnit'))}</th><th class="num">${esc(T('cr.costSum'))}</th></tr></thead><tbody>${rows}</tbody>` +
+    `<tfoot><tr><th scope="row">${esc(T('cr.costTotal'))}</th><td></td><td class="num"><b class="cr-grand">${G(sum)}</b></td></tr></tfoot></table></div>` +
+    `<p class="small muted cr-split">${esc(T('cr.costSplit', { m: G(mat), w: G(work), f: G(fee) }))}</p>` +
+    (need ? `<p class="small cr-needtip">＊${esc(T('cr.costNeed'))}</p>` : '');
+}
+// 成本設定：工時價格＋特殊材料價格（預設：官方公定價；沒有公定價的是 0，請自己填）
+function specialList() {
+  const used = new Map();
+  const src = CS.all ? ITEMS : S.list.map(x => BY_ID.get(x.id)).filter(Boolean);
+  const walk = (it, d = 0) => { for (const [n] of it.m) { const k = kindOf(n, COST, BY_NAME); if (k.kind === 'special') used.set(k.base, true); else if (k.kind === 'craft' && d < 3) walk(BY_NAME.get(k.base), d + 1); } };
+  src.forEach(it => walk(it));
+  return [...used.keys()].sort((a, b) => (COST.special[b] != null) - (COST.special[a] != null) || a.localeCompare(b, 'zh-Hant'));
+}
+function renderSet() {
+  const box = $('#cr-set-list'); if (!box || !COST) return;
+  $('#cr-labor').placeholder = String(COST.labor);
+  if (document.activeElement !== $('#cr-labor')) $('#cr-labor').value = CS.labor ?? '';
+  $('#cr-set-all').setAttribute('aria-pressed', String(CS.all));
+  const list = specialList();
+  box.innerHTML = list.length ? list.map(n => {
+    const def = COST.special[n] ?? 0, v = CS.prices[n];
+    const val = v ?? def;
+    return `<label class="cr-sp${val === 0 ? ' zero' : ''}"><span>${nm(n)}${COST.special[n] != null ? `<small>${esc(T('cr.setOfficial', { p: fmt(def) }))}</small>` : ''}</span>` +
+      `<input class="input sm" type="number" min="0" step="1" inputmode="numeric" data-sp="${esc(n)}" value="${val}" aria-label="${esc(n)}"></label>`;
+  }).join('') : `<p class="muted small">${esc(T(CS.all ? 'cr.setNone' : 'cr.setEmpty'))}</p>`;
 }
 function add(id) {
   const i = S.list.findIndex(x => x.id === id);
@@ -74,7 +123,22 @@ async function init() {
   ITEMS = [];
   for (const c of CATS) (data.cats[c] || []).forEach((it, k) => ITEMS.push({ ...it, cat: c, id: `${c}:${it.g || it.lv}:${it.n}:${k}` }));
   BY_ID = new Map(ITEMS.map(it => [it.id, it]));
+  BY_NAME = new Map(ITEMS.map(it => [it.n, it]));
+  try { COST = await fetch(BASE + 'data/crafting-cost.json').then(r => r.json()); } catch { COST = null; }
+  $('#cr-setbox').hidden = !COST;
   renderList(); renderPlan();
+  // 成本設定
+  const rerender = debounce(() => { renderList(); renderCost(); }, 200);
+  $('#cr-labor').addEventListener('input', e => { const v = Math.round(Number(e.target.value)); CS.labor = v > 0 ? v : null; saveCost(); rerender(); });
+  $('#cr-set-list').addEventListener('input', e => {
+    const inp = e.target.closest('[data-sp]'); if (!inp) return;
+    const n = inp.dataset.sp, v = inp.value === '' ? null : Math.max(0, Math.round(Number(inp.value) || 0));
+    if (v == null || v === (COST.special[n] ?? 0)) delete CS.prices[n]; else CS.prices[n] = v;
+    inp.closest('.cr-sp').classList.toggle('zero', (v ?? COST.special[n] ?? 0) === 0);
+    saveCost(); rerender();
+  });
+  $('#cr-set-all').addEventListener('click', () => { CS.all = !CS.all; renderSet(); });
+  $('#cr-set-reset').addEventListener('click', () => { CS.labor = null; CS.prices = {}; saveCost(); renderSet(); renderList(); renderCost(); toast(T('cr.setResetDone')); });
 
   $('#cr-q').addEventListener('input', debounce(e => { S.q = e.target.value; S.all = false; renderList(); }, 150));
   $('#cr-cats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.cat = b.value; S.q = ''; $('#cr-q').value = ''; S.all = false; renderList(); save(); });
@@ -96,7 +160,9 @@ async function init() {
   });
   $('#cr-clear').addEventListener('click', () => { S.list = []; renderPlan(); renderList(); });
   $('#cr-copy').addEventListener('click', async () => {
-    const lines = S.list.map(x => `${BY_ID.get(x.id).n} ×${x.qty}`).concat(['', T('cr.mats') + '：'], totals().map(([n, q]) => `${n} ×${q}`));
+    const lines = S.list.map(x => { const it = BY_ID.get(x.id), c = costIt(it); return `${it.n} ×${x.qty}` + (c ? `（${T('cr.costEach', { p: G(c.total) })}）` : ''); })
+      .concat(['', T('cr.mats') + '：'], totals().map(([n, q]) => `${n} ×${q}`));
+    if (COST && S.list.length) lines.push('', `${T('cr.costTotal')}：${G(S.list.reduce((a, x) => a + costIt(BY_ID.get(x.id)).total * x.qty, 0))}`);
     await copy(lines.join('\n')); toast(T('common.copied'));
   });
   // 材料丟進批次採購（同名的數量取較大值，不重複加總），然後打開批次採購分頁
