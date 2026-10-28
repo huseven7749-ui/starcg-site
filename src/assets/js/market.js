@@ -684,7 +684,7 @@ async function loadDaily() {
     const r = await api('daily', { day: d });
     track('market.daily');
     const t = r.totals || {};
-    const item = (x, extra) => `<li><button type="button" class="dl-name" data-goto="${esc(x.n)}" data-exact="1">${esc(dn(x))}</button>${extra}</li>`;
+    const item = (x, extra) => `<li><button type="button" class="dl-name" data-goto="${esc(x.n)}" data-exact="1"${LANG === 'ko' && dn(x) === x.n ? ' lang="zh-Hant"' : ''}>${esc(dn(x))}</button>${extra}</li>`;
     const medTxt = m => [0, 1].filter(c => m?.[c] != null).map(c => `<span class="price ${c ? 'crystal' : 'coin'}"><svg class="ic"><use href="#i-${c ? 'crystal' : 'coin'}"/></svg>${fmt(m[c])}</span>`).join(' ');
     const move = m => item(m, `<span class="dl-move ${m.chg > 0 ? 'up' : 'down'}">${esc(pct(m.chg, 0))}</span><span class="dl-sub">${esc(curName(m.c))} ${fmt(m.before)} → <b>${fmt(m.now)}</b></span>`);
     const cov = r.coverage?.from ? T('mk.daily.cov', { a: twTime(r.coverage.from).slice(11), b: twTime(r.coverage.to).slice(11), n: fmt(t.trades) }) : '';
@@ -723,7 +723,7 @@ function renderWatch() {
   cnt.hidden = !w.length; cnt.textContent = w.length;
   if (!w.length) { el.watch.innerHTML = emptyState('adv-sit', T('watchEmpty')); return; }
   el.watch.innerHTML = `<div class="row end" style="margin-bottom:10px"><button class="btn sm sky" type="button" data-watch-all><svg class="ic"><use href="#i-refresh"/></svg>${esc(T('watchRefresh'))}</button></div>
-  <ul class="watch-list">${w.map(x => `<li class="watch-item"><a href="?q=${encodeURIComponent(x.n)}&exact=1" data-goto="${esc(x.n)}" data-exact="1">${esc(dn(x))}</a>
+  <ul class="watch-list">${w.map(x => `<li class="watch-item"><a href="?q=${encodeURIComponent(x.n)}&exact=1" data-goto="${esc(x.n)}" data-exact="1"${LANG === 'ko' && dn(x) === x.n ? ' lang="zh-Hant"' : ''}>${esc(dn(x))}</a>
     <span class="watch-prices">${x.coin != null ? priceHtml(x.coin, 0, false) : ''}${x.crystal != null ? priceHtml(x.crystal, 1, false) : ''}${x.coin == null && x.crystal == null ? '<span class="muted">–</span>' : ''}</span>
     <span class="muted small">${esc(twTime(Math.floor(x.t / 1000)).slice(5))}</span>
     <button class="btn sm icon ghost" type="button" data-unwatch="${esc(x.n)}" aria-label="${esc(T('watchRemove'))}"><svg class="ic"><use href="#i-trash"/></svg></button></li>`).join('')}</ul>`;

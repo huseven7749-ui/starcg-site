@@ -61,7 +61,7 @@ let dexList = [], dexShown = 0, dexObserver = null;
 function cardHtml(p) {
   const max = 60;
   return `<button type="button" class="pet-card" data-name="${esc(p.name)}">
-      <span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.name)}" width="84" height="84" loading="lazy" decoding="async">` : ''}</span>
+      <span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.kn || p.name)}" width="84" height="84" loading="lazy" decoding="async">` : ''}</span>
       ${nameHtml(p)}
       <span class="row" style="gap:4px;justify-content:center">${tierBadge(tierOf(p.cardTier))}<span class="badge b-gray">${esc(raceLabel(p.race))}</span></span>
       <span class="bars">${p.bp.map((v, i) => `<span class="bar"><span>${esc(T('bp.' + i))}</span><i style="--w:${Math.min(100, (v / max) * 100).toFixed(1)}%"></i><span>${fmt(v, 2)}</span></span>`).join('')}</span>
@@ -139,7 +139,7 @@ function renderHead() {
   if (!p) { $('#sim-head').innerHTML = `<p class="muted small" style="grid-column:1/-1;margin:0">${esc(T('pet.custom'))}</p>`; return; }
   const skins = (p.skins || []).map(s => `<span class="badge b-lav" title="${esc(obtainList(s.obtainInfo).map(x => x.text).join(' / '))}"${koText(s.name) === s.name ? ' lang="zh-Hant"' : ''}>${esc(koText(s.name))}</span>`).join(' ');
   const obtain = obtainList(p.obtainInfo);
-  $('#sim-head').innerHTML = `<span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.name)}" width="96" height="96">` : ''}</span>
+  $('#sim-head').innerHTML = `<span class="spr">${p.imageId ? `<img src="${petImgSrc(p.imageId)}" data-pet="${p.imageId}" alt="${esc(p.kn || p.name)}" width="96" height="96">` : ''}</span>
     <div>${nameHtml(p, 'h2')}
       <div class="row" style="gap:6px">${tierBadge(tierOf(p.cardTier))}<span class="badge b-gray">${esc(raceLabel(p.race))}</span><span class="badge b-sky">${esc(T('pet.slot', { n: p.skillSlots }))}</span>${els(p)}</div>
       ${obtain.length ? `<p class="small muted" style="margin:6px 0 0"${LANG === 'ko' ? '' : ' lang="zh-Hant"'}>${obtain.map(x => x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.text)}</a>` : esc(x.text)).join(LANG === 'ko' ? ' · ' : '、')}</p>` : ''}

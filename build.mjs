@@ -35,9 +35,9 @@ function sponsorBar(lang, t) {
   try { list = JSON.parse(fs.readFileSync(path.join(SRC, 'data', 'sponsors.json'), 'utf8')).list || []; } catch { list = []; }
   if (!list.length) return '';
   const thanks = `<span class="spb-thanks">${esc(t('sp.thanks'))}</span>`;
-  const items = list.map(s => `<span class="spb-item"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><b>${esc(s.n)}</b>${s.a ? `<span class="spb-amt">${esc(s.a)}</span>` : ''}</span>`).join('');
+  const items = list.map(s => `<span class="spb-item"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><b${/[\u4e00-\u9fff]/.test(s.n) ? ' lang="zh-Hant"' : ''}>${esc(s.n)}</b>${s.a ? `<span class="spb-amt">${esc(s.a)}</span>` : ''}</span>`).join('');
   const run = `${thanks}${items}${thanks}`;
-  return `<a class="sponsor-bar" href="${esc(SPONSOR[lang] || '#')}" target="_blank" rel="noopener" data-act="sponsor" aria-label="${esc(t('sp.label') + '：' + list.map(s => s.n + (s.a ? ' ' + s.a : '')).join('、'))}">` +
+  return `<a class="sponsor-bar" href="${esc(SPONSOR[lang] || '#')}" target="_blank" rel="noopener" data-act="sponsor" aria-label="${esc(t('sp.label') + (lang === 'ko' ? ': ' : '：') + list.map(s => s.n + (s.a ? ' ' + s.a : '')).join(lang === 'ko' ? ', ' : '、'))}">` +
     `<span class="spb-track"><span class="spb-run">${run}</span><span class="spb-run" aria-hidden="true">${run}</span></span></a>`;
 }
 
@@ -434,7 +434,7 @@ function postVars(page, lang, fromPath, t) {
     postTags: p.tags.length ? `<p class="post-tags">${p.tags.map(x => `<span class="badge b-lav">${esc(x)}</span>`).join('')}</p>` : '',
     postHtml: markdown(p.body, { imgUrl: postImg(fromPath, p.lang), imgTag: postPicture(fromPath, p.lang), linkUrl: h => (PREVIEW && h.startsWith('/') && !h.startsWith('//') ? relPath(fromPath, h.endsWith('/') ? h + 'index.html' : h) : h) }).replace(/\{\{/g, '&#123;&#123;'),
     postNav: nav(list[i + 1], t('posts.prev'), 'prev') + nav(list[i - 1], t('posts.next'), 'next'),
-    postOtherLang: other ? `<p class="post-other"><a href="${pageHref(other, postPath(p), fromPath)}" hreflang="${LANGS[other].dict['lang.hreflang']}">${esc(LANGS[other].dict['posts.otherLang'])}</a></p>` : '',
+    postOtherLang: other ? `<p class="post-other"><a href="${pageHref(other, postPath(p), fromPath)}" hreflang="${LANGS[other].dict['lang.hreflang']}" lang="${LANGS[other].dict['lang.code']}">${esc(LANGS[other].dict['posts.otherLang'])}</a></p>` : '',
     postsHref: pageHref(lang, '/posts/', fromPath),
     postRelated: relatedHtml(relatedPosts(p, lang), lang, fromPath, t, t('posts.related')),
   };

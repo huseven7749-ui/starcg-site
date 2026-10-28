@@ -75,7 +75,9 @@ const lvText = r => (!r.hasLv ? T('mon.noLv') : r.lvMin === r.lvMax ? `Lv${r.lvM
 function card(r, where = '') {
   const name = esc(r.nameShow);
   const link = r.pet ? `<a href="${BASE}pets/?q=${encodeURIComponent(r.pet.name)}">${name}</a>` : name;
-  return `<li class="mon-card">${img(r)}<div class="mon-body"><b class="mon-name">${link}</b>
+  // 韓文站翻不到的魔物名維持中文，標上語言讓螢幕閱讀器用中文念
+  const zhName = LANG === 'ko' && /[\u4e00-\u9fff]/.test(r.nameShow) ? ' lang="zh-Hant"' : '';
+  return `<li class="mon-card">${img(r)}<div class="mon-body"><b class="mon-name"${zhName}>${link}</b>
     <span class="mon-meta"><span class="badge b-sky">${esc(lvText(r))}</span>${r.race ? `<span class="badge b-gray">${esc(raceName(r.race))}</span>` : ''}${r.card ? `<span class="badge b-lav">${esc(cardText(r.card))}</span>` : ''}${r.catch ? `<span class="badge b-ok">${esc(T('mon.catch'))}</span>` : ''}</span>
     ${elemBar(r.elem)}${r.best ? `<small class="mon-best">${esc(T('mon.best', { e: bestText(r.best), m: fmt(r.best.m, 2) }))}</small>` : ''}${r.lv1 ? `<small class="muted">${esc(T('mon.lv1', { p: r.lv1 }))}</small>` : ''}${where}</div></li>`;
 }
