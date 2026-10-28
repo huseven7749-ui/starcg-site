@@ -6,7 +6,7 @@
 //   每件總成本 ＝ 材料 ＋ 工時 ＋ 製作費；料理／藥水另算一箱 60 件＋入箱 800
 const LV = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
 // 網站名錄與試算表寫法不同的字
-const SAME = { 樸: '朴', 竹莢魚: '竹夾魚', 棉布: '棉', 木棉布: '木綿布' };
+const SAME = { 樸: '朴', 竹莢魚: '竹夾魚', 棉布: '棉', 木棉布: '木綿布', 濕地毒蛇: '溼地毒蛇' };
 export function splitLv(name) {
   const m = /^([一二三四五六七八九十]+)級(.+)$/.exec(name);
   if (!m) return { lv: 0, base: name };
@@ -15,14 +15,14 @@ export function splitLv(name) {
 }
 const norm = n => SAME[n] || n;
 
-/** 一種材料的種類：bar／gather／cloth／sugar／craft／special */
+/** 一種材料的種類：bar／gather／cloth／craft／special */
 export function kindOf(name, D, recipes) {
   const { lv, base } = splitLv(name);
   const b = norm(base);
-  if (lv && /條$/.test(b) && D.gather.includes(b.slice(0, -1))) return { kind: 'bar', lv, base: b };
-  if (lv && D.gather.includes(b)) return { kind: 'gather', lv, base: b };
-  if (D.cloth[b] != null) return { kind: 'cloth', lv, base: b };
-  if (b === '砂糖' && D.sugar != null) return { kind: 'sugar', lv, base: b };
+  const known = n => D.mats?.[n] || D.mats?.[norm(n)] || D.gather.includes(n) || D.gather.includes(norm(n));
+  if (D.cloth[b] != null) return { kind: 'cloth', lv, base: b };                       // 布：商店買
+  if (lv && /條$/.test(base) && known(base.slice(0, -1))) return { kind: 'bar', lv, base: base.slice(0, -1) };
+  if (lv && known(base)) return { kind: 'gather', lv, base };
   if (recipes?.has(base)) return { kind: 'craft', lv, base };
   return { kind: 'special', lv, base };
 }
@@ -53,11 +53,12 @@ export function matCost(name, qty, D, opt = {}, depth = 0) {
   const k = kindOf(name, D, opt.recipes);
   let m = 0, w = 0, unit = null, need = false;
   if (k.kind === 'bar' || k.kind === 'gather') {
-    const L = D.levels[k.lv - 1], mult = k.kind === 'bar' ? D.barMult : 1;
-    m = L.take * mult / 4000 * qty;
-    w = qty / 4000 * L.min / 60 * labor * mult;
+    // 攻略網素材屋表：這種材料自己的取出費與採滿時間；沒列到（或素材屋沒有）就用同等級的預設
+    const g = D.mats?.[k.base] || D.mats?.[norm(k.base)] || {}, L = D.levels[k.lv - 1];
+    const take = g.fee ?? L.take, min = g.min ?? L.min, mult = k.kind === 'bar' ? D.barMult : 1;
+    m = take * mult / 4000 * qty;
+    w = qty / 4000 * min / 60 * labor * mult;
   } else if (k.kind === 'cloth') { unit = D.cloth[k.base]; m = unit * qty; }
-  else if (k.kind === 'sugar') { unit = D.sugar; m = unit * qty; }
   else if (k.kind === 'craft' && depth < 3) {
     const sub = costOf(opt.recipes.get(k.base), D, opt, depth + 1);
     unit = sub.total; m = unit * qty; need = sub.need;
@@ -73,7 +74,7 @@ export function matCost(name, qty, D, opt = {}, depth = 0) {
 export function feeOf(it, D) {
   if (D.fee[it.n] != null) return D.fee[it.n];
   const t = it.cat === 'food' ? 'food' : it.cat === 'potion' ? 'potion' : 'equip';
-  if (it.lv >= 1 && it.lv <= 10) return D.feeByLv[t][it.lv - 1];
+  if (it.lv >= 1 && D.feeByLv[t][it.lv - 1] != null) return D.feeByLv[t][it.lv - 1];
   return Number(it.p) || 0;
 }
 

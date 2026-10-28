@@ -1,12 +1,14 @@
 r"""生產成本資料：把站長提供的 Google 試算表（生產成本計算）轉成 static/data/crafting-cost.json
 用法：python tools/import-craft-cost.py <試算表匯出的 xlsx>
+  另外會抓攻略網「最佳採集點、特殊材料掉落點」https://guide.starcg.net/production/best-spots 的素材屋表：
+  每種採集材料自己的取出費（4000 個）、等級、素材屋採滿時間（「-」＝素材屋沒有，用同等級的預設時間）
   （匯出：https://docs.google.com/spreadsheets/d/1Lp6ewdWI9EKelNypD6JoyvbBkU18eDfk_VXLiMux9Kc/export?format=xlsx）
 試算表的算法（Home 分頁）：
   材料成本 ＝ 取出費用（採集屋一次取 4000 個）÷ 4000 × 數量；礦條 1 條＝20 個礦，取出費用 ×20
   工時成本 ＝ 數量 ÷ 4000 × 採滿時間(分) ÷ 60 × 工時價格(魔幣/小時) × 倍率（一般 1、礦條 20）
   特殊材料、布：直接用每件魔幣；每件總成本 ＝ 材料 ＋ 工時 ＋ 製作費；料理／藥水一箱 60 件另加入箱 800
 """
-import io, json, os, re, sys
+import io, json, os, re, sys, html, urllib.request
 import openpyxl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,6 +48,21 @@ OFFICIAL = {'寶石裝飾膠': 350, '鋼騎之礦': 24000, '魔族的水晶': 60
             '德特家的布': 40000, '曼陀羅草的皮': 12000, '風龍蜥的甲殼': 12000, '妖草的血': 6000}
 LABOR_CLOCK = 4375   # 工時小鬧鐘(1H) 公定價
 
+# 攻略網素材屋表（比試算表的「每級一個時間」準）
+def guide_gather():
+    req = urllib.request.Request('https://guide.starcg.net/production/best-spots', headers={'User-Agent': 'Mozilla/5.0'})
+    t = urllib.request.urlopen(req, timeout=30).read().decode('utf-8')
+    t = re.sub(r'<script.*?</script>|<style.*?</style>', '', t, flags=re.S)
+    t = html.unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '|', t)))
+    t = re.sub(r'(\|\s*)+', '|', t)
+    out = {}
+    for n, fee, lv, mins in re.findall(r'\|([^|]{1,12})\|([\d,]+)G\|(\d+)\|素材屋\|(?:用時 (\d+) 分鐘|-)\|', t):
+        out[n.strip()] = {'fee': int(fee.replace(',', '')), 'lv': int(lv), 'min': int(mins) if mins else None}
+    return out
+mats = guide_gather()
+assert len(mats) > 50, '攻略網素材屋表抓不到，版面可能改了'
+gather = sorted(set(gather) | set(mats))
+
 # 製作費：「材料」分頁每個配方的第 2 欄
 fee, cat = {}, None
 for row in wb['材料'].iter_rows(values_only=True):
@@ -57,9 +74,10 @@ for row in wb['材料'].iter_rows(values_only=True):
 data = {
     'src': 'https://docs.google.com/spreadsheets/d/1Lp6ewdWI9EKelNypD6JoyvbBkU18eDfk_VXLiMux9Kc',
     'labor': LABOR_CLOCK, 'levels': levels, 'barMult': 20, 'box': {'n': 60, 'fee': 800},
-    'gather': gather, 'cloth': cloth, 'special': OFFICIAL, 'sugar': price.get('砂糖'), 'fee': fee,
+    'gather': gather, 'mats': mats, 'cloth': cloth, 'special': OFFICIAL, 'fee': fee,
     # 試算表沒列到的配方：依等級套用（試算表裡同等級的製作費都一樣：裝備 40～2400、料理／藥水 20～200）
-    'feeByLv': {'equip': [40, 80, 150, 250, 400, 600, 880, 1260, 1760, 2400], 'food': [20 * i for i in range(1, 11)], 'potion': [20 * i for i in range(1, 11)]},
+    # 攻略網「製作價格表」：裝備 1～11 級、補品 1～11 級
+    'feeByLv': {'equip': [40, 80, 150, 250, 400, 600, 880, 1260, 1760, 2400, 3400], 'food': [20 * i for i in range(1, 12)], 'potion': [20 * i for i in range(1, 12)]},
 }
 json.dump(data, io.open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
-print('levels', len(levels), 'price', len(price), 'fee', len(fee), '→', OUT)
+print('levels', len(levels), 'mats', len(mats), 'cloth', len(cloth), 'fee', len(fee), '→', OUT)

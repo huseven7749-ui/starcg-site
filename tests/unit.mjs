@@ -397,8 +397,11 @@ t('生產成本：曲刀（站長試算表算法）', () => {
   const r = costOf(recipes.get('曲刀'), D, { recipes, prices: { 鋼騎之礦: 2500, 魔族的水晶: 25000 } });
   assert.equal(r.mat, 57663);            // 試算表：材料成本 57663
   assert.equal(r.fee, 2400);
-  // 工時：試算表奧利哈鋼條的採滿時間誤填 675（10 級應為 1350），所以總工時比試算表多；另外兩項一致
-  assert.ok(Math.abs(r.rows[0].work - 1622.3958) < 0.01 && Math.abs(r.rows[2].work - 246.09375) < 0.01);
+  // 工時：每種材料用攻略網素材屋的採滿時間（幻之銀 444 分、絲柏 675 分）
+  assert.ok(Math.abs(r.rows[0].work - 1618.75) < 0.01 && Math.abs(r.rows[2].work - 246.09375) < 0.01);
+  assert.equal(kindOf('一級鹿皮', D).kind, 'gather');                // 鹿皮是 1 級狩獵材料，不是特殊材料
+  assert.equal(r.fee, 2400);
+  assert.equal(costOf(recipes.get('彎勾劍'), D, { recipes }).fee, 3400);   // 11 級裝備製作費（攻略網製作價格表）
   assert.equal(kindOf('十級奧利哈鋼條', D).kind, 'bar');
   assert.equal(kindOf('魔族的水晶', D).kind, 'special');
   assert.equal(specialsOf(items, D).get('魔族的水晶'), 60000);
