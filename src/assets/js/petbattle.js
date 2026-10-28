@@ -1,7 +1,7 @@
 // 寵物卡對戰（純函式，瀏覽器與 Node 測試共用）
 // 能力值用 petcalc 的成長公式；傷害用 dmgcalc 的物理／寵物魔法公式。
 // 簡化：圖鑑滿檔、隨機檔各 2、不改造、不算技能；有算種族剋制；力量比魔法高的走物理，否則走寵物單體魔法。
-import { simulate, tierOf, TIERS } from './petcalc.js';
+import { simulate, tierOf, TIERS, maxStarAdd } from './petcalc.js';
 import { physical, magic, requiredSpirit } from './dmgcalc.js';
 
 export const CRIT_RATE = 0.1;      // 物理必殺率（寵物圖鑑沒有必殺值，取 10%）
@@ -27,7 +27,8 @@ const bpOf = p => p.bp || [p.hp, p.power, p.defense, p.speed, p.magic].map(Numbe
 export function battleStats(pet, level = 100) {
   const base = bpOf(pet), tier = tierOf(pet.cardTier), lv = Math.max(1, Math.min(200, Math.floor(level) || 1));
   const main = base[4] > base[1] ? 4 : 1;
-  const sim = manual => simulate({ base, rand: [2, 2, 2, 2, 2], level: lv, tier, remodel: 0, manual });
+  const starAdd = maxStarAdd(pet);                       // 對戰的寵物一律滿星
+  const sim = manual => simulate({ base, starAdd, rand: [2, 2, 2, 2, 2], level: lv, tier, remodel: 0, manual });
   const limit = sim([0, 0, 0, 0, 0]).limit;
   const m = [0, 0, 0, 0, 0];
   for (let k = 0; k < limit; k++) {
@@ -88,9 +89,8 @@ export function runBattle(a, b, rng = Math.random, maxTurns = MAX_TURNS) {
 }
 
 /** 卡片星級：圖鑑總檔比卡等基礎多出的星數（0～25），換成 0～5 顆星 */
+/** 卡片上的星數：對戰一律以滿星計算，所以都是 5 顆 */
 export function cardStars(pet) {
-  const t = TIERS[tierOf(pet.cardTier)];
-  if (!t) return 0;
-  const born = Math.max(0, Math.min(25, Math.round(bpOf(pet).reduce((x, y) => x + y, 0) - t.base)));
-  return Math.round(born / 5);
+  return TIERS[tierOf(pet.cardTier)] ? 5 : 0;
 }
+
