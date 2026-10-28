@@ -135,13 +135,13 @@ function add(id) {
 async function init() {
   $('#cr-cats').innerHTML = CATS.map(c => `<button type="button" class="chip" value="${c}" aria-pressed="${c === S.cat}">${esc(catName(c))}</button>`).join('');
   let data;
-  try { [data] = await Promise.all([fetch(BASE + 'data/crafting.json').then(r => r.json()), loadKo()]); }
+  try { [data] = await Promise.all([fetch(BASE + 'data/crafting.json', { cache: 'no-cache' }).then(r => r.json()), loadKo()]); }
   catch { $('#cr-list').innerHTML = emptyState('adv-sit', T('cr.loadFail')); return; }
   ITEMS = [];
   for (const c of CATS) (data.cats[c] || []).forEach((it, k) => ITEMS.push({ ...it, cat: c, id: `${c}:${it.g || it.lv}:${it.n}:${k}` }));
   BY_ID = new Map(ITEMS.map(it => [it.id, it]));
   BY_NAME = new Map(ITEMS.map(it => [it.n, it]));
-  try { COST = await fetch(BASE + 'data/crafting-cost.json').then(r => r.json()); } catch { COST = null; }
+  try { COST = await fetch(BASE + 'data/crafting-cost.json', { cache: 'no-cache' }).then(r => r.json()); } catch { COST = null; }
   $('#cr-setbox').hidden = !COST;
   renderList(); renderPlan();
   // 成本設定
