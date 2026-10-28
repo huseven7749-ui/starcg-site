@@ -2072,3 +2072,9 @@ html[data-view="mobile"] .al-item .al-c { grid-column: 3; }
 .cr-free { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--mint-l, #d9f2e6) 30%, transparent); }
 .cr-free p { margin: 2px 0; }
 .cr-free .cr-grand { margin-left: 4px; }
+
+/* 市場搜尋建議（取代 datalist：手機也能用部分字找） */
+.mk-suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40; margin: 0; padding: 4px; list-style: none; max-height: min(320px, 50vh); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+.mk-suggest li { padding: 9px 12px; border-radius: 10px; cursor: pointer; font-size: .95rem; line-height: 1.3; }
+.mk-suggest li:hover, .mk-suggest li[aria-selected="true"] { background: color-mix(in srgb, var(--pink) 18%, var(--card)); }

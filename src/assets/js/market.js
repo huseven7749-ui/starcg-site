@@ -1,5 +1,5 @@
 // 市場查價器：市價比較、批次採購、資料管理
-import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, itemImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG, kn } from './core.js';
+import { $, $$, T, api, esc, fmt, fmtWan, rates, loadFx, store, copy, toast, normName, petImgSrc, itemImgSrc, downloadCsv, debounce, PREVIEW, spriteImg, emptyState, runningState, tipHtml, dn, LANG, kn, BASE } from './core.js';
 import { decodeAlloc, gradeMeta, tierOf } from './petcalc.js';
 import { lineChart } from './chart.js';
 import { tradeStats, dailyWeighted, pricingRef, trialPrice, inPeriod, stripBr, twTime, FEE } from './mkstats.js';
@@ -778,16 +778,56 @@ function renderChips() {
   $('#mk-recent').hidden = !r.length;
   $('#mk-recent .chips').innerHTML = r.map(x => `<button type="button" class="chip" data-goto="${esc(x)}">${esc(x)}</button>`).join('');
 }
-let suggested = false;
-el.q.addEventListener('focus', async () => {
-  if (suggested) return;
-  suggested = true;
+// 搜尋建議：自己做下拉清單（手機瀏覽器的 datalist 只比對開頭、或根本不顯示），輸入任何部分字都列出包含它的名稱
+let SUGG = null, suggIdx = -1;
+const suggBox = $('#mk-suggest');
+async function suggNames() {
+  if (SUGG) return SUGG;
   const c = S.cat || await loadCatalog();
   const names = new Set([...(store.get(RECENT_KEY, []) || []), ...getWatch().map(w => w.n), ...getFavs().map(f => f.q)]);
   c.pets.forEach(p => names.add(LANG === 'ko' ? (p.kn || kn(p.name)) : p.name));
   c.equip.forEach(e => names.add(kn(e.n)));
-  $('#mk-suggest').innerHTML = [...names].slice(0, 1200).map(n => `<option value="${esc(n)}">`).join('');
-}, { once: true });
+  // 生產配方的成品與材料（市場名稱沒有「一級」這種前綴）
+  try {
+    const cr = await fetch(BASE + 'data/crafting.json').then(r => r.json());
+    for (const list of Object.values(cr.cats || {})) for (const it of list) { names.add(kn(it.n)); for (const [m] of it.m || []) names.add(kn(String(m).replace(/^[一二三四五六七八九十]+級/, ''))); }
+  } catch { /* 略 */ }
+  SUGG = [...names].filter(Boolean).map(n => [n, normName(n)]);
+  return SUGG;
+}
+function closeSugg() { suggBox.hidden = true; suggIdx = -1; el.q.setAttribute('aria-expanded', 'false'); el.q.removeAttribute('aria-activedescendant'); }
+async function showSugg() {
+  const raw = el.q.value.trim(), q = normName(raw);
+  if (!q) { closeSugg(); return; }
+  const all = await suggNames();
+  if (normName(el.q.value.trim()) !== q) return;                 // 等資料時又打了字
+  // 開頭相符的排前面，其次是包含；完全一樣的就不用再建議
+  const hit = all.filter(([n, k]) => k.includes(q) && n !== raw).sort((a, b) => (b[1].startsWith(q) - a[1].startsWith(q)) || a[0].length - b[0].length).slice(0, 40);
+  if (!hit.length) { closeSugg(); return; }
+  suggIdx = -1;
+  suggBox.innerHTML = hit.map(([n], i) => `<li role="option" id="mk-sg-${i}" data-v="${esc(n)}">${esc(n)}</li>`).join('');
+  suggBox.hidden = false; el.q.setAttribute('aria-expanded', 'true');
+}
+function moveSugg(d) {
+  const items = [...suggBox.children]; if (suggBox.hidden || !items.length) return false;
+  suggIdx = (suggIdx + d + items.length) % items.length;
+  items.forEach((li, i) => li.setAttribute('aria-selected', String(i === suggIdx)));
+  items[suggIdx].scrollIntoView({ block: 'nearest' });
+  el.q.setAttribute('aria-activedescendant', items[suggIdx].id);
+  return true;
+}
+function pickSugg(v) { el.q.value = v; closeSugg(); el.form.requestSubmit ? el.form.requestSubmit() : el.form.dispatchEvent(new Event('submit', { cancelable: true })); }
+el.q.addEventListener('input', debounce(showSugg, 120));
+el.q.addEventListener('focus', () => { suggNames(); if (el.q.value.trim()) showSugg(); });
+el.q.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { if (moveSugg(1)) e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { if (moveSugg(-1)) e.preventDefault(); }
+  else if (e.key === 'Escape') closeSugg();
+  else if (e.key === 'Enter' && !suggBox.hidden && suggIdx >= 0) { e.preventDefault(); pickSugg(suggBox.children[suggIdx].dataset.v); }
+});
+// 用 pointerdown：比 blur 早觸發，手機點選項時清單不會先被關掉
+suggBox.addEventListener('pointerdown', e => { const li = e.target.closest('li[data-v]'); if (li) { e.preventDefault(); pickSugg(li.dataset.v); } });
+el.q.addEventListener('blur', () => setTimeout(closeSugg, 150));
 
 // ───────────────── 清空 ─────────────────
 function clearAll() {
@@ -824,7 +864,7 @@ function setMain(t) {
 }
 
 // ───────────────── 事件 ─────────────────
-el.form.addEventListener('submit', e => { e.preventDefault(); el.q.blur(); search(); });
+el.form.addEventListener('submit', e => { e.preventDefault(); closeSugg(); el.q.blur(); search(); });
 el.q.addEventListener('input', debounce(syncFav, 150));
 el.fav.addEventListener('click', toggleFav);
 $('#mk-clear').addEventListener('click', clearAll);

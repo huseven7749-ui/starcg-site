@@ -17,8 +17,8 @@
       <label class="sr-only" for="mk-q">{{t:market.searchPh}}</label>
       <div class="input-wrap">
         <svg class="ic lead-ic" aria-hidden="true" style="color:var(--ink-3)"><use href="#i-search"/></svg>
-        <input class="input" id="mk-q" name="q" type="search" placeholder="{{t:market.searchPh}}" autocomplete="off" enterkeyhint="search" list="mk-suggest" maxlength="40">
-        <datalist id="mk-suggest"></datalist>
+        <input class="input" id="mk-q" name="q" type="search" placeholder="{{t:market.searchPh}}" autocomplete="off" enterkeyhint="search" maxlength="40" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mk-suggest">
+        <ul class="mk-suggest" id="mk-suggest" role="listbox" aria-label="{{t:market.searchPh}}" hidden></ul>
       </div>
       <button class="btn primary" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>{{t:mk.query}}</span></button>
       <button class="btn icon" type="button" id="mk-fav" aria-pressed="false" title="{{t:mk.favAdd}}" aria-label="{{t:mk.favAdd}}"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></button>
