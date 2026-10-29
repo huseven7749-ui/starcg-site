@@ -1,0 +1,55 @@
+# 每週更新市場搜尋建議的道具名稱：跑 tools/market-names.mjs 抓官方市場攤位＋最近成交紀錄（一次一頁、約 1 秒 1 頁，不平行）
+# 名稱清單有變才 commit static/data/market-names.json，接著觸發 Deploy 讓網站馬上用到新清單
+# 手動執行：GitHub 倉庫 → Actions → 「更新市場名稱」→ Run workflow（可填成交紀錄頁數，預設 200）
+name: 更新市場名稱
+on:
+  schedule:
+    - cron: '0 19 * * 0'      # 每週一台灣 03:00
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 成交紀錄頁數
+        default: '200'
+permissions:
+  contents: write
+  actions: write
+concurrency: { group: market-names, cancel-in-progress: false }
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: 抓官方市場名稱
+        env:
+          PAGES: ${{ inputs.pages || '200' }}
+        run: node tools/market-names.mjs "$PAGES"
+      - name: 有變才 commit
+        id: commit
+        run: |
+          # 只比 items（v 是日期，每次都會變）
+          git show HEAD:static/data/market-names.json > /tmp/old.json
+          if node -e 'const f=p=>JSON.stringify(JSON.parse(require("fs").readFileSync(p,"utf8")).items);process.exit(f("/tmp/old.json")===f("static/data/market-names.json")?0:1)'; then
+            echo "名稱清單沒變，不 commit"; exit 0
+          fi
+          N=$(node -e 'const f=p=>JSON.parse(require("fs").readFileSync(p,"utf8")).items;const o=new Set(f("/tmp/old.json"));const n=f("static/data/market-names.json");console.log(n.length+" 個，新增 "+n.filter(x=>!o.has(x)).length)')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/data/market-names.json
+          git commit -m "市場搜尋建議：每週自動更新官方市場道具名稱（$N）" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+          # 其他人也會推 main，先 rebase 再推，失敗重試
+          ok=
+          for t in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi
+            sleep 10
+          done
+          [ -n "$ok" ] || { echo "::error::推不上 main"; exit 1; }
+          echo "已更新：$N"
+          echo "pushed=1" >> "$GITHUB_OUTPUT"
+      - name: 觸發部署
+        if: steps.commit.outputs.pushed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main

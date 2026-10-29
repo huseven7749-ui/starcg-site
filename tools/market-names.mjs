@@ -15,6 +15,9 @@ async function get(u) {
   }
   return null;
 }
+// 連續抓不到好幾頁就當官方掛了，停下來不要一直重試
+let fails = 0;
+const miss = () => { if (++fails >= 5) { console.error('連續 5 頁抓不到，官方市場可能暫停，中止'); process.exit(1); } };
 const cnt = new Map();
 const add = (n, k = 1) => {
   n = String(n || '').trim().replace(/^\[(.*)\]$/, '$1').trim();
@@ -25,7 +28,8 @@ const add = (n, k = 1) => {
 let pages = 1;
 for (let p = 1; p <= pages; p++) {
   const d = await get(`https://member.starcg.net/market.php?ajax=1&type=all&server=all&exact=0&page=${p}&search=`);
-  if (!d) { console.log('攤位第', p, '頁抓不到，略過'); continue; }
+  if (!d) { console.log('攤位第', p, '頁抓不到，略過'); miss(); continue; }
+  fails = 0;
   pages = Math.ceil((d.totalFiltered || 0) / (d.perPage || 20));
   for (const list of Object.values(d.itemsByCd || {})) for (const it of list) add(it.ITEM_TRUENAME);
   if (p % 20 === 0) console.log('攤位', p, '/', pages, '名稱', cnt.size);
@@ -34,12 +38,14 @@ for (let p = 1; p <= pages; p++) {
 // 最近的成交紀錄（item_name 是「[名稱]」；寵物紀錄也是同一個欄位，之後再排除圖鑑寵物）
 for (let p = 1; p <= HIST_PAGES; p++) {
   const d = await get(`https://member.starcg.net/marketrecord.php?ajax=1&type=item&page=${p}&search=&range=30d`);
-  if (!d) { console.log('成交第', p, '頁抓不到，略過'); continue; }
+  if (!d) { console.log('成交第', p, '頁抓不到，略過'); miss(); continue; }
+  fails = 0;
   for (const l of d.logs || []) if (!String(l.buff || '').includes('寵物')) add(l.item_name);
   if (p % 25 === 0) console.log('成交', p, '/', HIST_PAGES, '名稱', cnt.size);
   if (!(d.logs || []).length) break;
   await sleep(900);
 }
+if (!cnt.size) { console.error('一個名稱都沒抓到，不更新'); process.exit(1); }
 // 排除寵物（圖鑑已有）
 let pets = new Set();
 try { pets = new Set(JSON.parse(fs.readFileSync('static/data/pets.json', 'utf8')).map(p => p.name)); } catch { /* 略 */ }
