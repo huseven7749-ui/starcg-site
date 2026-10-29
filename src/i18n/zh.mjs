@@ -63,6 +63,7 @@ export default {
   'footer.updated': '最後更新',
   'stats.online': '目前在線',
   'stats.today': '今日瀏覽',
+  'stats.yesterday': '昨日瀏覽',
   'stats.total': '累計瀏覽',
 
   'common.search': '搜尋',

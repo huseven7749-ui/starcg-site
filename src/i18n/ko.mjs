@@ -62,6 +62,7 @@ export default {
   'footer.updated': '최종 업데이트',
   'stats.online': '현재 접속',
   'stats.today': '오늘 조회',
+  'stats.yesterday': '어제 조회',
   'stats.total': '누적 조회',
 
   'common.search': '검색',

@@ -15,6 +15,7 @@ $dir = rtrim((string)cfg('cache_dir'), '/') . '/stats';
 $file = $dir . '/stats.json';
 $now = time();
 $today = date('Y-m-d');
+$yesterday = date('Y-m-d', $now - 86400);
 $id = $valid ? substr(sha1($c . '|' . cfg('stats_salt', 'sc')), 0, 12) : '';
 $write = !$bot && $valid;
 
@@ -29,7 +30,7 @@ if ($write && $view) {
     if (!$ok) $view = false;
 }
 
-$out = locked_json($file, function (array $d) use ($now, $today, $id, $write, $view) {
+$out = locked_json($file, function (array $d) use ($now, $today, $yesterday, $id, $write, $view) {
     $d += ['total' => 0, 'visitors' => 0, 'days' => [], 'online' => [], 'seen' => []];
     if ($write) {
         $d['online'][$id] = $now;
@@ -48,7 +49,7 @@ $out = locked_json($file, function (array $d) use ($now, $today, $id, $write, $v
     if (isset($d['uv'])) $d['uv'] = array_slice($d['uv'], -60, null, true);
     if (count($d['seen']) > 20000) $d['seen'] = array_slice($d['seen'], -10000, null, true);
     $online = count(array_filter($d['online'], fn($t) => $now - $t < 120));
-    return [$d, ['ok' => true, 'online' => max($online, 1), 'today' => $d['days'][$today] ?? 0, 'total' => $d['total'], 'visitors' => $d['visitors']]];
+    return [$d, ['ok' => true, 'online' => max($online, 1), 'today' => $d['days'][$today] ?? 0, 'yesterday' => $d['days'][$yesterday] ?? 0, 'total' => $d['total'], 'visitors' => $d['visitors']]];
 });
 if (!$out) fail('busy', 503);
 

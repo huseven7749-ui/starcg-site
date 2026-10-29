@@ -19,6 +19,7 @@ async function beat(view) {
     if (!d.ok || !el) return;
     $('#st-online').textContent = fmtN(d.online);
     $('#st-today').textContent = fmtN(d.today);
+    if ($('#st-yesterday')) $('#st-yesterday').textContent = fmtN(d.yesterday ?? 0);
     $('#st-total').textContent = fmtN(d.total);
     el.hidden = false;
   } catch { /* 沒有後端（本機預覽）就不顯示 */ }
