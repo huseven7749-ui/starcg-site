@@ -792,6 +792,11 @@ async function suggNames() {
     const cr = await fetch(BASE + 'data/crafting.json').then(r => r.json());
     for (const list of Object.values(cr.cats || {})) for (const it of list) { names.add(kn(it.n)); for (const [m] of it.m || []) names.add(kn(String(m).replace(/^[一二三四五六七八九十]+級/, ''))); }
   } catch { /* 略 */ }
+  // 市場上實際出現過的道具名稱（tools/market-names.mjs 抓官方攤位與成交紀錄），例如「一包生命藥(400)」「一箱壽喜鍋」
+  try {
+    const mk = await fetch(BASE + 'data/market-names.json', { cache: 'no-cache' }).then(r => r.json());
+    (mk.items || []).forEach(n => names.add(kn(n)));
+  } catch { /* 略 */ }
   SUGG = [...names].filter(Boolean).map(n => [n, normName(n)]);
   return SUGG;
 }
