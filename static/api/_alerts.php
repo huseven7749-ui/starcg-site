@@ -97,6 +97,9 @@ function alerts_sync(array $all): array
     return $all;
 }
 
+/** 一個提醒的鍵：名稱＋是否只比對完整名稱（完整名稱加「|=」），用在 last／sent 和每輪抓價 */
+function alerts_key(array $it): string { return norm_name((string)($it['n'] ?? '')) . (!empty($it['x']) ? '|=' : ''); }
+
 /** 找出一筆會員資料（用 token） */
 function alerts_find_by_token(array $all, string $token): ?string
 {
@@ -126,21 +129,23 @@ function alerts_run(): string
     foreach ($all as $k => $m) {
         if (!empty($m['revoked']) || empty($m['enabled']) || empty($m['token'])) continue;
         if (empty($m['discord']) && empty($m['email'])) continue;
-        foreach (($m['items'] ?? []) as $it) if (($it['n'] ?? '') !== '') $want[norm_name((string)$it['n'])] = true;
+        foreach (($m['items'] ?? []) as $it) if (($it['n'] ?? '') !== '') $want[alerts_key($it)] = [norm_name((string)$it['n']), !empty($it['x'])];
     }
     if (!$want) return '價格提醒：沒有啟用中的提醒';
     // 每個商品抓一次（沿用市場快取，2 分鐘內查過就不再打官方）
     $best = [];
-    foreach (array_keys($want) as $n) {
-        // 名稱不用打完整：用模糊搜尋，所有名稱含這個關鍵字的商品都算（例如「妖草」會比對妖草的血、妖草的根…）
-        [$d] = cached_get('market', "m|item|0|$n", (int)cfg('market_ttl', 120), false, fn() => market_fetch($n, 'item', false, 5), false);
+    foreach ($want as $key => [$n, $x]) {
+        // 預設模糊比對：所有名稱含這個關鍵字的商品都算（例如「妖草」會比對妖草的血、妖草的根…）
+        // 勾「只比對完整名稱」：名稱要一字不差（例如「再生藥劑」不會比對到「寵物再生藥劑」）
+        $xi = $x ? 1 : 0;
+        [$d] = cached_get('market', "m|item|$xi|$n", (int)cfg('market_ttl', 120), false, fn() => market_fetch($n, 'item', $x, 5), false);
         if (!$d) continue;
         foreach (($d['items'] ?? []) as $row) {
             $c = (int)($row['c'] ?? 0); $p = (int)($row['p'] ?? 0);
             if ($p <= 0) continue;
             $rn = (string)($row['n'] ?? '');
-            if ($rn !== '' && mb_strpos(norm_name($rn), $n) === false) continue;
-            if (!isset($best[$n][$c]) || $p < $best[$n][$c]['p']) $best[$n][$c] = ['p' => $p, 'q' => (int)($row['q'] ?? 1), 'nm' => $rn ?: $n, 'st' => $d['stalls'][$row['s']] ?? []];
+            if ($rn !== '' && ($x ? !name_match($rn, $n, true) : mb_strpos(norm_name($rn), $n) === false)) continue;
+            if (!isset($best[$key][$c]) || $p < $best[$key][$c]['p']) $best[$key][$c] = ['p' => $p, 'q' => (int)($row['q'] ?? 1), 'nm' => $rn ?: $n, 'st' => $d['stalls'][$row['s']] ?? []];
         }
         usleep(400000);
     }
@@ -153,10 +158,11 @@ function alerts_run(): string
             foreach (($m['items'] ?? []) as $it) {
                 $n = norm_name((string)($it['n'] ?? '')); $c = (int)($it['c'] ?? 0); $max = (int)($it['max'] ?? 0);
                 if ($n === '' || $max <= 0) continue;
-                $b = $best[$n][$c] ?? null;
-                $m['last'][$n] = $b ? ['p' => $b['p'], 'c' => $c, 'nm' => $b['nm'], 'at' => $now] : ['p' => null, 'c' => $c, 'at' => $now];
+                $key = alerts_key($it);
+                $b = $best[$key][$c] ?? null;
+                $m['last'][$key] = $b ? ['p' => $b['p'], 'c' => $c, 'nm' => $b['nm'], 'at' => $now] : ['p' => null, 'c' => $c, 'at' => $now];
                 if (!$b || $b['p'] > $max) continue;
-                $prev = $m['sent'][$n . '|' . $c] ?? null;
+                $prev = $m['sent'][$key . '|' . $c] ?? null;
                 if ($prev && $now - (int)$prev['at'] < ALERT_COOLDOWN && $b['p'] >= (int)$prev['p']) continue;
                 $cur = $c === 1 ? '魔晶' : '魔幣';
                 $st = $b['st'];
@@ -165,7 +171,7 @@ function alerts_run(): string
                 $title = "【價格提醒】{$nm} 只要 " . number_format($b['p']) . " {$cur}";
                 $text = "你設定的「{$n}」低於 " . number_format($max) . " {$cur} 了！\n商品：{$nm}\n目前最低：" . number_format($b['p']) . " {$cur}（數量 {$b['q']}）\n攤位：" . ((string)($st['n'] ?? '') ?: '—') . ($where ? "　$where" : '') . "\n攤位到期：" . ((string)($st['exp'] ?? '') ?: '—');
                 $ok = alerts_notify($m, $title, $text, $site . '/market/?q=' . rawurlencode($nm));
-                if ($ok) { $m['sent'][$n . '|' . $c] = ['p' => $b['p'], 'at' => $now]; $sent++; }
+                if ($ok) { $m['sent'][$key . '|' . $c] = ['p' => $b['p'], 'at' => $now]; $sent++; }
             }
         }
         unset($m);

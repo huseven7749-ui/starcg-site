@@ -106,7 +106,7 @@ if ($action === 'save') {
         $n = norm_name(mb_substr(trim((string)($it['n'] ?? '')), 0, 40));
         $max = (int)($it['max'] ?? 0); $c = (int)($it['c'] ?? 0) === 1 ? 1 : 0;
         if ($n === '' || $max <= 0) continue;
-        $items[] = ['n' => $n, 'max' => min($max, 2000000000), 'c' => $c];
+        $items[] = ['n' => $n, 'max' => min($max, 2000000000), 'c' => $c, 'x' => !empty($it['x']) ? 1 : 0];   // x：只比對完整名稱
     }
     $discord = trim((string)($in['discord'] ?? ''));
     $email = trim((string)($in['email'] ?? ''));
@@ -117,7 +117,7 @@ if ($action === 'save') {
         if (!isset($all[$id])) return [$all, false];
         $all[$id]['items'] = $items; $all[$id]['discord'] = $discord; $all[$id]['email'] = mb_substr($email, 0, 120); $all[$id]['enabled'] = $enabled;
         // 改了商品就清掉舊的「已通知」紀錄，讓新設定立刻生效
-        $keep = array_flip(array_map(fn($x) => $x['n'] . '|' . $x['c'], $items));
+        $keep = array_flip(array_map(fn($x) => alerts_key($x) . '|' . $x['c'], $items));
         $all[$id]['sent'] = array_intersect_key($all[$id]['sent'] ?? [], $keep);
         return [$all, true];
     });

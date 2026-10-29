@@ -1897,6 +1897,8 @@ html[data-view="mobile"] .cr-side { position: static; max-height: none; overflow
 .al-item { display: grid; grid-template-columns: 28px minmax(0, 2fr) minmax(0, 1fr) minmax(0, .8fr); gap: 8px; align-items: end; padding: 10px; border: 1.5px solid var(--line); border-radius: var(--r-md, 14px); }
 .al-no { font-weight: 800; color: var(--pink-d); align-self: center; text-align: center; }
 .al-last { grid-column: 2 / -1; color: var(--ink-2); }
+.al-x { grid-column: 2 / -1; display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 600; color: var(--ink-2); cursor: pointer; justify-self: start; }
+.al-x input { width: 16px; height: 16px; accent-color: var(--pink-d); }
 .al-last.hit { color: #2e8b57; font-weight: 700; }
 .al-sub { font-size: .95rem; margin: 16px 0 8px; }
 .al-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }

@@ -32,20 +32,21 @@ const ago = s => { if (!s) return '–'; const m = Math.max(0, Math.round((Date.
 
 // ───── 會員設定 ─────
 function itemRow(it, i) {
-  const last = ME?.last?.[it.n];
+  const last = ME?.last?.[it.n + (it.x ? '|=' : '')];
   const lastTxt = it.n && last ? (last.p != null ? T('al.lowNow', { p: fmt(last.p), c: curName(last.c) }) + (last.nm && last.nm !== it.n ? `（${last.nm}）` : '') : T('al.noneNow')) : '';
   const hit = it.n && last && last.p != null && it.max > 0 && last.p <= it.max && last.c === it.c;
   return `<div class="al-item" data-i="${i}"><span class="al-no">${i + 1}</span>
     <label class="field al-n"><span>${esc(T('al.item'))}</span><input class="input" data-k="n" value="${esc(it.n || '')}" maxlength="40" placeholder="${esc(T('al.itemPh'))}" lang="zh-Hant" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="al-sug-${i}"><ul class="al-sug" id="al-sug-${i}" role="listbox" hidden></ul></label>
     <label class="field al-max"><span>${esc(T('al.below'))}</span><input class="input" data-k="max" type="number" min="1" inputmode="numeric" value="${it.max || ''}" placeholder="0"></label>
     <label class="field al-c"><span>${esc(T('al.cur'))}</span><select class="input" data-k="c"><option value="0"${it.c ? '' : ' selected'}>${esc(T('common.coin'))}</option><option value="1"${it.c ? ' selected' : ''}>${esc(T('common.crystal'))}</option></select></label>
+    <label class="al-x"><input type="checkbox" data-k="x"${it.x ? ' checked' : ''}><span>${esc(T('al.exact'))}</span></label>
     ${lastTxt ? `<small class="al-last${hit ? ' hit' : ''}">${esc(lastTxt)}</small>` : ''}</div>`;
 }
 function renderMe() {
   $('#al-join').hidden = !!ME; $('#al-set').hidden = !ME;
   if (!ME) return;
   const items = [...(ME.items || [])];
-  while (items.length < MAX) items.push({ n: '', max: 0, c: 0 });
+  while (items.length < MAX) items.push({ n: '', max: 0, c: 0, x: 0 });
   $('#al-items').innerHTML = items.slice(0, MAX).map(itemRow).join('');
   $('#al-discord').value = ME.discord || ''; $('#al-email').value = ME.email || '';
   $('#al-enabled').checked = !!ME.enabled;
@@ -54,6 +55,7 @@ function renderMe() {
 function readForm() {
   const items = [...document.querySelectorAll('#al-items .al-item')].map(r => ({
     n: r.querySelector('[data-k=n]').value.trim(), max: Math.round(Number(r.querySelector('[data-k=max]').value) || 0), c: Number(r.querySelector('[data-k=c]').value) ? 1 : 0,
+    x: r.querySelector('[data-k=x]').checked ? 1 : 0,
   })).filter(x => x.n && x.max > 0);
   return { items, discord: $('#al-discord').value.trim(), email: $('#al-email').value.trim(), enabled: $('#al-enabled').checked };
 }
@@ -147,6 +149,8 @@ async function names() {
     const d = await fetch(BASE + 'data/crafting.json').then(r => r.json());
     for (const list of Object.values(d.cats || {})) for (const it of list) { set.add(it.n); for (const [m] of it.m || []) set.add(m.replace(/^[一二三四五六七八九十]+級/, '')); }
   } catch { /* 忽略 */ }
+  // 市場上實際出現過的名稱（例如「寵物再生藥劑」「一包生命藥(400)」）
+  try { (await fetch(BASE + 'data/market-names.json', { cache: 'no-cache' }).then(r => r.json())).items.forEach(n => set.add(n)); } catch { /* 忽略 */ }
   NAMES = [...set];
   return NAMES;
 }
@@ -164,12 +168,18 @@ async function showSug(input) {
   const q = normName(input.value.trim());
   if (!q) { hideSug(input); return; }
   const all = [...new Set([...(await names()), ...(REMOTE.get(q) || [])])];
-  const starts = [], has = [];
-  for (const n of all) { const k = normName(n), kk = normName(kn(n)); if (k === q) continue; if (k.startsWith(q) || kk.startsWith(q)) starts.push(n); else if (k.includes(q) || kk.includes(q)) has.push(n); }
-  const list = [...starts.sort((a, b) => a.length - b.length), ...has.sort((a, b) => a.length - b.length)].slice(0, 8);
+  const eq = [], starts = [], has = [];
+  for (const n of all) { const k = normName(n), kk = normName(kn(n)); if (k === q || kk === q) eq.push(n); else if (k.startsWith(q) || kk.startsWith(q)) starts.push(n); else if (k.includes(q) || kk.includes(q)) has.push(n); }
+  // 打完整的名稱也列出來（選它＝只比對這一個）
+  const list = [...eq, ...starts.sort((a, b) => a.length - b.length), ...has.sort((a, b) => a.length - b.length)].slice(0, 8);
   ul.innerHTML = `<li class="al-sug-any" role="option" data-v="${esc(input.value.trim())}">${esc(T('al.sugAny', { q: input.value.trim() }))}</li>` +
     list.map(n => { const k = kn(n); return `<li role="option" data-v="${esc(n)}">${esc(k)}${k !== n ? ` <small class="muted" lang="zh-Hant">${esc(n)}</small>` : ''}</li>`; }).join('');
   ul.hidden = false; input.setAttribute('aria-expanded', 'true');
+}
+/** 從建議清單選了一個：完整名稱 → 勾「只比對完整名稱」；「比對所有含這幾個字」→ 取消 */
+function pick(input, li) {
+  input.value = li.dataset.v; hideSug(input);
+  input.closest('.al-item').querySelector('[data-k=x]').checked = !li.classList.contains('al-sug-any');
 }
 function hideSug(input) { const ul = input.parentElement.querySelector('.al-sug'); if (ul) ul.hidden = true; input.setAttribute('aria-expanded', 'false'); }
 function bindSuggest() {
@@ -182,7 +192,7 @@ function bindSuggest() {
     const li = e.target.closest('.al-sug li'); if (!li) return;
     e.preventDefault();
     const i = li.closest('.field').querySelector('[data-k=n]');
-    i.value = li.dataset.v; hideSug(i);
+    pick(i, li);
     i.closest('.al-item').querySelector('[data-k=max]').focus();
   });
   box.addEventListener('keydown', e => {
@@ -193,7 +203,7 @@ function bindSuggest() {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault(); k = (k + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
       items.forEach((li, j) => li.setAttribute('aria-selected', String(j === k)));
-    } else if (e.key === 'Enter' && cur) { e.preventDefault(); i.value = cur.dataset.v; hideSug(i); }
+    } else if (e.key === 'Enter' && cur) { e.preventDefault(); pick(i, cur); }
     else if (e.key === 'Escape') hideSug(i);
   });
 }
