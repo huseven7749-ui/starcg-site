@@ -1234,7 +1234,7 @@ html[data-view="mobile"] .cp-main { flex-basis: 100%; }
 /* ───── 第一次來的歡迎彈窗 ───── */
 dialog.welcome { width: min(560px, calc(100vw - 24px)); }
 /* 贊助站長 */
-.sp-head { position: relative; display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+.sp-head { position: relative; display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
 /* 星野鞠躬：站著 → 彎腰停 3 秒（同時跳出大字幕）→ 起身開心跳一下，6 秒一輪；彈窗每次打開都從頭開始 */
 .sp-bow { position: relative; flex: none; width: 72px; height: 140px; }
 .sp-bow img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
@@ -1246,29 +1246,32 @@ dialog.welcome { width: min(560px, calc(100vw - 24px)); }
 @keyframes spStand { 0% { opacity: 1; } 12% { opacity: 0; } 62% { opacity: 1; } }
 @keyframes spBowing { 0% { opacity: 0; } 12% { opacity: 1; } 62% { opacity: 0; } }
 @keyframes spBob { 0%, 11% { transform: none; } 13%, 60% { transform: translateY(4px); } 64% { transform: none; } 68% { transform: translateY(-12px); } 72% { transform: none; } 75% { transform: translateY(-6px); } 78%, 100% { transform: none; } }
-.sp-cap { position: absolute; left: 78px; right: 4px; top: 50%; z-index: 2; display: grid; place-items: center; padding: 10px 8px; border-radius: 16px; pointer-events: none;
-  font-size: clamp(1.5rem, 7.2vw, 2.4rem); font-weight: 900; letter-spacing: .04em; line-height: 1.15; white-space: nowrap; color: #fff6c2;
-  background: linear-gradient(135deg, #ff5f8f, #ff9a3c); border: 3px solid #fff; box-shadow: 0 8px 0 rgba(0,0,0,.25), 0 0 0 6px rgba(255,95,143,.25);
-  text-shadow: 2px 2px 0 #7a1630, -2px 2px 0 #7a1630, 2px -2px 0 #7a1630, -2px -2px 0 #7a1630, 0 4px 0 #7a1630;
-  opacity: 0; transform: translateY(-50%) rotate(-4deg) scale(.6); }
+/* 日式漫畫的爆炸對話框：白底黑框鋸齒、尖角指向星野，粗黑字；從星野那邊「砰」地彈出來再震幾下 */
+.sp-cap { position: relative; flex: 0 1 310px; min-width: 0; height: 140px; display: grid; place-items: center; padding: 8px 6% 8px 15%; pointer-events: none;
+  opacity: 0; transform-origin: 0 30%; transform: scale(.3); }
+.sp-burst { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sp-burst-bg { fill: #fff; stroke: #111; stroke-width: 3.5; stroke-linejoin: miter; }
+.sp-burst-sh { fill: rgba(0, 0, 0, .35); }
+.sp-cap strong { position: relative; display: block; text-align: center; color: #111; font-weight: 900; line-height: 1.02; letter-spacing: .02em;
+  font-size: clamp(1.6rem, 7.8vw, 2.25rem); transform: rotate(-4deg) skewX(-6deg); white-space: nowrap;
+  text-shadow: 2px 2px 0 #ffd84a; }
+.sp-cap strong small { display: block; font-size: .62em; letter-spacing: .3em; margin-bottom: 2px; }
 @keyframes spCap {
-  0%, 12% { opacity: 0; transform: translateY(-50%) rotate(-4deg) scale(2.6); }
-  14% { opacity: 1; transform: translateY(-50%) rotate(-4deg) scale(.92); }
-  15.5% { transform: translateY(-50%) rotate(-4deg) scale(1.1); }
-  17% { transform: translateY(-50%) rotate(-4deg) scale(1); }
-  18% { transform: translate(-6px, -50%) rotate(-6deg); } 19% { transform: translate(6px, -50%) rotate(-2deg); }
-  20% { transform: translate(-4px, -50%) rotate(-5deg); } 21% { transform: translate(3px, -50%) rotate(-3deg); }
-  22%, 40% { opacity: 1; transform: translateY(-50%) rotate(-4deg) scale(1); }
-  31% { transform: translateY(-50%) rotate(-4deg) scale(1.05); }
-  49% { transform: translateY(-50%) rotate(-4deg) scale(1.05); }
-  58% { opacity: 1; transform: translateY(-50%) rotate(-4deg) scale(1); }
-  62%, 100% { opacity: 0; transform: translateY(-50%) rotate(-4deg) scale(1.3); }
+  0%, 12% { opacity: 0; transform: scale(.3) rotate(-8deg); }
+  14% { opacity: 1; transform: scale(1.14) rotate(3deg); }
+  15.5% { transform: scale(.94) rotate(-2deg); }
+  17% { transform: scale(1.04) rotate(0); }
+  18% { transform: translate(-4px, 2px) scale(1); } 19% { transform: translate(4px, -2px); }
+  20% { transform: translate(-3px, -1px); } 21% { transform: translate(2px, 1px); }
+  22%, 30%, 40%, 50% { opacity: 1; transform: none; }
+  35%, 45%, 55% { transform: scale(1.04); }
+  59% { opacity: 1; transform: none; }
+  62%, 100% { opacity: 0; transform: scale(.85); }
 }
 @media (prefers-reduced-motion: reduce) {
   .sheet.sponsor[open] .sp-bow, .sheet.sponsor[open] .sp-b0, .sheet.sponsor[open] .sp-b1, .sheet.sponsor[open] .sp-cap { animation: none; }
   .sp-b0 { opacity: 0; } .sp-b1 { opacity: 1; }
-  .sp-cap { position: static; opacity: 1; transform: none; font-size: 1.3rem; }
-  .sp-head { flex-wrap: wrap; }
+  .sp-cap { opacity: 1; transform: none; }
 }
 .sp-names { margin: 0 0 14px; padding: 12px 14px; background: var(--card-3); border-radius: 12px; }
 .sp-names h3 { margin: 0 0 8px; font-size: .9rem; color: var(--ink-2); }
@@ -1281,6 +1284,7 @@ dialog.welcome { width: min(560px, calc(100vw - 24px)); }
 .sp-head h2 .ic { width: 22px; height: 22px; }
 .sp-head p { margin: 0; color: var(--ink-2); font-size: .95rem; line-height: 1.55; font-weight: 700; }
 .sheet.sponsor .btn + .btn { margin-top: 8px; }
+.sheet.sponsor { overflow-x: hidden; }
 .wel-head { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
 .wel-head .wel-sp { flex: none; width: 58px; height: 70px; }
 .wel-head h2 { margin: 0 0 2px; }
