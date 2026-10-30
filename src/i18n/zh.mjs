@@ -1431,7 +1431,7 @@ export default {
   'al.intro.p2d': '全分流的攤位都會看，有人掛出低於目標價的就算數。',
   'al.intro.p3': 'Discord／Email 即時通知',
   'al.intro.p3d': '通知會附上攤位名稱、分流位置和到期時間，馬上就能去買。',
-  'al.intro.paid': '此為付費會員限制使用，有興趣請洽星野。',
+  'al.intro.paid': '此為付費會員限制使用，目前暫停開放。',
   'al.intro.have': '我已經有開通碼，前往開通',
   'al.err.bad_format': '開通碼的格式是 XXXX-XXXX-XXXX（12 個英文字母或數字）。站長金鑰請到網址後面加 #admin 的站長管理頁輸入。',
   'al.err.generic': '發生錯誤，請稍後再試。',
