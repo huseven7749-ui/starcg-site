@@ -30,9 +30,17 @@ const VIDEO = { zh: args.video || 'https://youtu.be/2dk9OO-lSmw?si=jf8WyNkAkoCsP
 // 贊助站長：BobaBoba 贊助頁（彈窗先請大家到影片下留言，想贊助再點）
 const SPONSOR = { zh: args.sponsor || 'https://portaly.cc/hoshino/support', ko: args['sponsor-ko'] || 'https://ko-fi.com/hoshino7749' };
 // 贊助者跑馬燈：src/data/sponsors.json 的名單，開頭和結尾都放感謝的話；內容重複一份讓它無縫循環
+function sponsorsOf() {
+  try { return JSON.parse(fs.readFileSync(path.join(SRC, 'data', 'sponsors.json'), 'utf8')).list || []; } catch { return []; }
+}
+// 贊助彈窗裡的名單（同一份 sponsors.json）
+function sponsorList(lang, t) {
+  const list = sponsorsOf();
+  if (!list.length) return '';
+  return `<div class="sp-names"><h3>${esc(t('sp.label'))}</h3><ul>` + list.map(s => `<li><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><b${/[\u4e00-\u9fff]/.test(s.n) ? ' lang="zh-Hant"' : ''}>${esc(s.n)}</b>${s.a ? `<span>${esc(s.a)}</span>` : ''}</li>`).join('') + '</ul></div>';
+}
 function sponsorBar(lang, t) {
-  let list = [];
-  try { list = JSON.parse(fs.readFileSync(path.join(SRC, 'data', 'sponsors.json'), 'utf8')).list || []; } catch { list = []; }
+  const list = sponsorsOf();
   if (!list.length) return '';
   const thanks = `<span class="spb-thanks">${esc(t('sp.thanks'))}</span>`;
   const items = list.map(s => `<span class="spb-item"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><b${/[\u4e00-\u9fff]/.test(s.n) ? ' lang="zh-Hant"' : ''}>${esc(s.n)}</b>${s.a ? `<span class="spb-amt">${esc(s.a)}</span>` : ''}</span>`).join('');
@@ -493,6 +501,7 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
         registerUrl: REGISTER_URL,
         sponsorUrl: SPONSOR[lang] || '#',
         sponsorBar: sponsorBar(lang, t),
+        sponsorList: sponsorList(lang, t),
         videoUrl: VIDEO[lang],
         welcomeVideo: esc(VIDEO[lang]),
         buildDate: BUILD_DATE,
