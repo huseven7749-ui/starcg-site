@@ -1947,6 +1947,8 @@ html[data-view="mobile"] .cr-side { position: static; max-height: none; overflow
 .al-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .al-codes { font-size: 1.05rem; letter-spacing: .06em; margin: 6px 0; white-space: pre-wrap; }
 .al-admin-btns { white-space: nowrap; }
+.al-admin-mail { font-size: .85rem; overflow-wrap: anywhere; }
+.al-admin-mail .btn { margin-top: 2px; }
 .al-admin-btns .btn { margin-left: 4px; }
 html[data-view="mobile"] .al-item { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); }
 html[data-view="mobile"] .al-item .al-n { grid-column: 2 / -1; }

@@ -1,7 +1,7 @@
 <?php
 // POST /api/alerts.php  JSON {action, ...}
 // 會員：activate（開通碼＋裝置代碼 → 綁定這台裝置，拿到 token）、me、save、test
-// 站長：admin_list、admin_new、admin_reset（解除裝置綁定）、admin_revoke（停用／恢復）——都要帶站長金鑰 key
+// 站長：admin_list、admin_new、admin_reset（解除裝置綁定）、admin_revoke（停用／恢復）、admin_clear_email（清掉會員填的 Email）——都要帶站長金鑰 key
 declare(strict_types=1);
 require __DIR__ . '/_alerts.php';
 
@@ -31,7 +31,7 @@ if (str_starts_with($action, 'admin_')) {
     $view = fn(array $all) => array_values(array_map(fn($k, $m) => [
         'id' => $k, 'label' => (string)($m['label'] ?? ''), 'created' => (int)($m['created'] ?? 0), 'bound' => !empty($m['device']),
         'boundAt' => (int)($m['boundAt'] ?? 0), 'revoked' => !empty($m['revoked']), 'enabled' => !empty($m['enabled']),
-        'items' => count($m['items'] ?? []), 'checkedAt' => (int)($m['checkedAt'] ?? 0),
+        'items' => count($m['items'] ?? []), 'checkedAt' => (int)($m['checkedAt'] ?? 0), 'email' => (string)($m['email'] ?? ''),
     ], array_keys($all), $all));
     if ($action === 'admin_list') json_out(['ok' => true, 'members' => $view(alerts_read())]);
     if ($action === 'admin_new') {
@@ -47,11 +47,12 @@ if (str_starts_with($action, 'admin_')) {
         });
         json_out(['ok' => true, 'codes' => $codes, 'members' => $view(alerts_read())]);
     }
-    if ($action === 'admin_reset' || $action === 'admin_revoke') {
+    if ($action === 'admin_reset' || $action === 'admin_revoke' || $action === 'admin_clear_email') {
         $id = (string)($in['id'] ?? '');
         $done = alerts_mutate(function (array $all) use ($id, $action, $in) {
             if (!isset($all[$id])) return [$all, false];
             if ($action === 'admin_reset') { unset($all[$id]['device'], $all[$id]['token'], $all[$id]['boundAt']); }
+            elseif ($action === 'admin_clear_email') $all[$id]['email'] = '';   // 之後不再寄信，Discord 照常
             else $all[$id]['revoked'] = !empty($in['on']);
             return [$all, true];
         });

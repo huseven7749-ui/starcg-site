@@ -1,5 +1,5 @@
 // 價格提醒（會員功能）：開通碼綁定這台裝置 → 設定最多 3 個商品的目標價 → 伺服器每 10 分鐘檢查，低於目標價就發 Discord／Email
-// 站長管理：網址加上 #admin，輸入站長金鑰後可以產生開通碼、解除裝置綁定、停用
+// 站長管理：網址加上 #admin，輸入站長金鑰後可以產生開通碼、解除裝置綁定、停用、清除會員填的 Email
 import { $, T, esc, fmt, store, toast, copy, BASE, LANG, PREVIEW, api, normName, debounce, kn } from './core.js';
 import { loadCatalog, CRYSTALS } from './catalog.js';
 
@@ -96,10 +96,10 @@ function bindMember() {
 // ───── 站長管理 ─────
 function renderMembers(list) {
   const day = s => (s ? new Date(s * 1000).toLocaleDateString(LANG === 'ko' ? 'ko-KR' : 'zh-TW') : '–');
-  $('#al-members').innerHTML = `<thead><tr><th>${esc(T('al.admin.label'))}</th><th>${esc(T('al.admin.created'))}</th><th>${esc(T('al.admin.device'))}</th><th class="num">${esc(T('al.admin.items'))}</th><th></th></tr></thead><tbody>` +
-    (list.length ? list.sort((a, b) => b.created - a.created).map(m => `<tr data-id="${esc(m.id)}"${m.revoked ? ' class="muted"' : ''}><td>${esc(m.label || '—')}${m.revoked ? ` <span class="badge">${esc(T('al.admin.revoked'))}</span>` : ''}</td><td>${day(m.created)}</td><td>${m.bound ? esc(T('al.admin.boundAt', { d: day(m.boundAt) })) : esc(T('al.admin.unbound'))}</td><td class="num">${m.items}</td>
+  $('#al-members').innerHTML = `<thead><tr><th>${esc(T('al.admin.label'))}</th><th>${esc(T('al.admin.created'))}</th><th>${esc(T('al.admin.device'))}</th><th>${esc(T('al.admin.email'))}</th><th class="num">${esc(T('al.admin.items'))}</th><th></th></tr></thead><tbody>` +
+    (list.length ? list.sort((a, b) => b.created - a.created).map(m => `<tr data-id="${esc(m.id)}"${m.revoked ? ' class="muted"' : ''}><td>${esc(m.label || '—')}${m.revoked ? ` <span class="badge">${esc(T('al.admin.revoked'))}</span>` : ''}</td><td>${day(m.created)}</td><td>${m.bound ? esc(T('al.admin.boundAt', { d: day(m.boundAt) })) : esc(T('al.admin.unbound'))}</td><td class="al-admin-mail">${m.email ? `<span>${esc(m.email)}</span> <button type="button" class="btn sm ghost" data-clear-email>${esc(T('al.admin.clearEmail'))}</button>` : '—'}</td><td class="num">${m.items}</td>
       <td class="num al-admin-btns">${m.bound ? `<button type="button" class="btn sm ghost" data-reset>${esc(T('al.admin.reset'))}</button>` : ''}<button type="button" class="btn sm ghost" data-revoke="${m.revoked ? 0 : 1}">${esc(T(m.revoked ? 'al.admin.restore' : 'al.admin.revoke'))}</button></td></tr>`).join('')
-      : `<tr><td colspan="5" class="muted small">${esc(T('al.admin.none'))}</td></tr>`) + '</tbody>';
+      : `<tr><td colspan="6" class="muted small">${esc(T('al.admin.none'))}</td></tr>`) + '</tbody>';
 }
 function bindAdmin() {
   if (location.hash !== '#admin') return;
@@ -128,8 +128,10 @@ function bindAdmin() {
   $('#al-members').addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b) return;
     const id = b.closest('tr').dataset.id;
+    if (b.hasAttribute('data-clear-email') && !confirm(T('al.admin.clearConfirm', { e: b.previousElementSibling?.textContent || '' }))) return;
     try {
-      const d = b.hasAttribute('data-reset') ? await call('admin_reset', { key: ADMIN_KEY, id }) : await call('admin_revoke', { key: ADMIN_KEY, id, on: b.dataset.revoke === '1' });
+      const d = b.hasAttribute('data-clear-email') ? await call('admin_clear_email', { key: ADMIN_KEY, id })
+        : b.hasAttribute('data-reset') ? await call('admin_reset', { key: ADMIN_KEY, id }) : await call('admin_revoke', { key: ADMIN_KEY, id, on: b.dataset.revoke === '1' });
       renderMembers(d.members);
     } catch (err) { say('#al-admin-msg', errText(err)); }
   });
