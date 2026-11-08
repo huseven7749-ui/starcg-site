@@ -142,7 +142,9 @@ function buildAssets() {
   // 3) JS：依相依順序處理，改寫 import 路徑
   const jsDir = path.join(aDir, 'js');
   const files = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'));
-  const src = Object.fromEntries(files.map(f => [f, read(path.join(jsDir, f))]));
+  // static/data/*.json 主機一律給 180 天快取（.htaccess 管不到），網址加上內容雜湊，名錄更新後瀏覽器才會重抓
+  const dataVer = name => { const p = path.join(ROOT, 'static', 'data', name + '.json'); return fs.existsSync(p) ? '?v=' + hash(fs.readFileSync(p)) : ''; };
+  const src = Object.fromEntries(files.map(f => [f, read(path.join(jsDir, f)).replace(/\bdata\/([\w-]+)\.json(?=['"`])/g, (m, n) => m + dataVer(n))]));
   const deps = f => [...src[f].matchAll(/from\s+['"]\.\/([\w-]+\.js)['"]/g)].map(m => m[1]);
   const done = {};
   const visit = f => {
