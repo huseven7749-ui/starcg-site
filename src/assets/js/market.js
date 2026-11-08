@@ -291,6 +291,7 @@ function flatten(d) {
   const stalls = d.stalls || [];
   const rows = [];
   const want = new Set(S.browseNames.map(n => normName(n)));
+  c?.learnTypes(d.items);
   for (const it of d.items || []) {
     if (S.mode === 'query' && !rowMatch(it, S.q, S.exact)) continue;
     if (S.mode === 'browse-equip' && !want.has(stripBr(normName(it.n)))) continue;
@@ -518,8 +519,8 @@ function rowHtml(r, bestVal) {
 function itemTags(r) {
   const out = [];
   if (r.q > 1) out.push(`<span class="stat-chip">${esc(T('qty'))} <b>×${fmt(r.q)}</b></span>`);
-  const eq = S.cat?.equipByName.get(normName(r.name));
-  if (eq) out.push(`<span class="stat-chip">${esc(eqCatName(eq.c))} <b>${esc(T('mk.eq.lvN', { n: eq.lv }))}</b></span>`);
+  const eq = S.cat?.equipOf(r.name);
+  if (eq?.lv) out.push(`<span class="stat-chip">${esc(eqCatName(eq.c))} <b>${esc(T('mk.eq.lvN', { n: eq.lv }))}</b></span>`);
   const grade = /改造圖/.test(r.n) ? GRADE_BY_LV[r.lv] : null;
   if (grade) out.push(`<span class="badge b-${grade}">${esc(T('card.' + grade))}</span>`);
   if (SOUL[r.id]) out.push(`<span class="badge b-lav">${esc(T('soul.' + SOUL[r.id]))}</span>`);

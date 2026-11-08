@@ -299,6 +299,7 @@ function market_fetch(string $q, string $type, bool $exact, ?int $maxPagesOverri
                     'q' => max(1, (int)($it['ITEM_REMAIN'] ?? 1)), 'lv' => (int)($it['ITEM_LEVEL'] ?? 0)];
                 $im = (int)($it['ITEM_BASEIMAGENUMBER'] ?? 0);
                 if ($im > 0) $row['im'] = $im;                      // 道具圖片編號（/img/items/{im}.gif）
+                if (isset($it['ITEM_TYPE'])) $row['ty'] = (int)$it['ITEM_TYPE'];   // 官方物品類型：前端用來判斷名錄沒收的裝備
                 if ($kn !== '') $row['kn'] = $kn;
                 $dmax = (int)($it['ITEM_MAXDURABILITY'] ?? 0);
                 if ($dmax > 0) $row['d'] = [(int)($it['ITEM_DURABILITY'] ?? 0), $dmax];
