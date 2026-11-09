@@ -59,6 +59,8 @@ const S = {
   timer: 0, timerWin: window, busy: false, scanMs: 0, error: '', errorText: '', seq: 0,
 };
 const R = { iso: pref.view !== 'grid', zoom: 10, cx: 0, cy: 0, w: 0, h: 0, dpr: 1, autoFit: true, hover: null, hoverExit: null, sel: null, pulseUntil: 0, paths: null, pathsFor: null, C: null, pip: null };
+// 地圖區開浮動小視窗時會整塊搬到小視窗的 document，裡面的元素要到那邊找
+const $st = sel => (R.pip?.document || document).querySelector(sel);
 
 // ───── 資料來源 ─────
 const sub = async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } };
@@ -515,7 +517,7 @@ function showResult(r) {
   if (r.stairs > 0) setTimeout(() => confetti(d, r.grade === 'S' ? 48 : 30), 400);   // 找到樓梯：結算卡放彩帶
   if (!REDUCED && (r.grade === 'S' || r.grade === 'A')) setTimeout(() => miceRun(r.grade === 'S' ? 5 : 3), 300);
 }
-function confetti(host = $('#mz-stage'), n = 24) {
+function confetti(host = $st('#mz-stage'), n = 24) {
   if (REDUCED || !host) return;
   const colors = ['#D9654A', '#E2AE47', '#7DAE5F', '#4E95D0', '#8B6CE0', '#FFF6D8'];
   for (let i = 0; i < n; i++) {
@@ -834,7 +836,7 @@ function renderStatus() {
   // 還沒開始探索：顯示開始面板
   const begin = beginState();
   $('#mz-begin').hidden = !begin;
-  $('#mz-stage').hidden = begin; $('#mz-legend').hidden = begin; $('#mz-view').hidden = begin;
+  $st('#mz-stage').hidden = begin; $('#mz-legend').hidden = begin; $('#mz-view').hidden = begin;
   $('#mz-mark').hidden = begin || !S.run;
   if (!S.run && R.place) setPlace(null);
   if (begin) { $('#mz-begin-n').max = 200; }
@@ -862,7 +864,7 @@ function renderPanel() {
     [T('mz.i.floor'), T('mz.cells', { n: fmt(m.floor) })], [T('mz.i.time'), f.changedAt ? TF.format(f.changedAt) : '–'],
   ].map(([a, b]) => `<div class="stat-tile"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('') : '';
   // 等待畫面
-  const wait = $('#mz-wait');
+  const wait = $st('#mz-wait');
   const msg = S.run && !S.cur ? [T('mz.waitEnter'), T('mz.waitEnterTip')] : !S.floors.size ? (S.source?.kind === 'dir' ? [T('mz.noDat'), T('mz.noDatTip')] : [T('mz.loading'), '']) : !m ? [T('mz.loading'), ''] : null;
   wait.hidden = !msg;
   if (msg) { wait.querySelector('b').textContent = msg[0]; wait.querySelector('span').textContent = msg[1]; }
@@ -1046,7 +1048,7 @@ function exitAt(sx, sy) {
   return best;
 }
 function showCoord(c, ex) {
-  const el = $('#mz-coord');
+  const el = $st('#mz-coord');
   if (!c && !ex) { el.hidden = true; return; }
   el.hidden = false;
   el.textContent = ex ? `${T('mz.k.' + KIND_NAME(ex.kind))}${ex.mark?.note ? ' · ' + ex.mark.note : ''} · ${xy(ex.e, ex.s)}` : R.place ? `${T('mz.placeHint', { t: T('mz.k.' + R.place) })} · ${xy(c.e, c.s)}` : xy(c.e, c.s);
