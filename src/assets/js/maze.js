@@ -107,16 +107,35 @@ function fingerprint(u8) {
 }
 function dirSource(root, info) {
   const diag = { dirs: [], errors: [], at: 0, read: 0 };
-  const meta = new Map();   // key → { lm, size, fp, bytes }
+  const meta = new Map();   // key → { dn, n, handle, lm, size, fp, hash, bytes }
+  // 很久沒寫入的資料夾每幾輪才看一次：露比魔力 map\1\1～3 是安裝時附的一千多個檔，每輪都查會拖慢
+  const COLD_MS = 2 * 864e5, COLD_EVERY = 8, cold = new Set();
+  let round = 0;
+  const load = async (key, m, file) => {
+    let bytes;
+    try { bytes = new Uint8Array(await (file || await m.handle.getFile()).arrayBuffer()); diag.read++; }
+    catch (err) { diag.errors.push(`${key}: ${err.name} ${err.message || ''}`); return m.bytes; }
+    const h = fingerprint(bytes);
+    if (!m.bytes && m.hash == null) { m.hash = h; m.bytes = bytes; }   // 第一次讀：內容沒變，指紋照舊
+    else if (m.hash !== h) { m.hash = h; m.bytes = bytes; m.fp = h; }
+    return m.bytes;
+  };
+  const entry = (key, m) => ({ key, name: m.n.replace(/\.dat$/i, ''), shard: shardOf(m.dn), live: true, lm: m.lm, bytes: m.bytes, fp: m.fp, read: async () => m.bytes || load(key, m) });
   return {
     kind: 'dir', label: root.name, handle: root, diag,
-    // 只看分流資料夾；只有新出現、大小／時間有變、或正在看的檔案才讀內容，其他只看目錄資訊
+    // 只看分流資料夾；檔案第一次看到只記時間與大小，大小／時間有變、或正在看的檔案才讀內容
     async scan(want = new Set()) {
-      const out = [];
+      const out = [], keep = new Set();
+      round++;
       diag.dirs = []; diag.errors = []; diag.at = Date.now(); diag.read = 0;
       for (const [dn, dir] of info.shards) {
         const row = { path: dn, files: 0, dat: 0 };
         diag.dirs.push(row);
+        if (cold.has(dn) && round % COLD_EVERY && ![...want].some(k => k.startsWith(dn + '/'))) {
+          row.cold = true;
+          for (const [k, m] of meta) if (m.dn === dn) { keep.add(k); out.push(entry(k, m)); row.dat++; }
+          continue;
+        }
         let entries;
         try { entries = []; for await (const en of dir.entries()) entries.push(en); }
         catch (e) { diag.errors.push(`${dn}: ${e.name}`); continue; }
@@ -126,24 +145,21 @@ function dirSource(root, info) {
         row.dat = dats.length;
         // 並行查詢目錄資訊（一個一個問在 Windows 上很慢）
         const stats = await Promise.all(dats.map(async ([n, e]) => { try { return [n, e, await e.getFile()]; } catch (err) { diag.errors.push(`${dn}/${n}: ${err.name}`); return null; } }));
+        let newest = 0;
         await Promise.all(stats.filter(Boolean).map(async ([n, e, file]) => {
           const key = `${dn}/${n}`;
           let m = meta.get(key);
-          if (!m || m.lm !== file.lastModified || m.size !== file.size || want.has(key)) {
-            let bytes;
-            try { bytes = new Uint8Array(await file.arrayBuffer()); diag.read++; }
-            catch (err) { diag.errors.push(`${key}: ${err.name} ${err.message || ''}`); return; }
-            const fp = fingerprint(bytes);
-            if (!m) m = { fp, bytes };
-            else if (m.fp !== fp) { m.fp = fp; m.bytes = bytes; }
-            m.lm = file.lastModified; m.size = file.size;
-            meta.set(key, m);
-          }
-          const bytes = m.bytes;
-          out.push({ key, name: n.replace(/\.dat$/i, ''), shard: shardOf(dn), live: true, lm: m.lm, bytes, fp: m.fp, read: async () => bytes });
+          const changed = !!m && (m.lm !== file.lastModified || m.size !== file.size);
+          if (!m) { m = { dn, n, lm: file.lastModified, size: file.size, fp: `~${file.lastModified.toString(36)}:${file.size}`, hash: null, bytes: null }; meta.set(key, m); }
+          m.handle = e;
+          if (changed || want.has(key)) await load(key, m, file);
+          m.lm = file.lastModified; m.size = file.size;
+          if (m.lm > newest) newest = m.lm;
+          keep.add(key); out.push(entry(key, m));
         }));
+        if (newest && Date.now() - newest > COLD_MS) cold.add(dn); else cold.delete(dn);
       }
-      for (const k of [...meta.keys()]) if (!out.some(o => o.key === k)) meta.delete(k);
+      for (const k of [...meta.keys()]) if (!keep.has(k)) meta.delete(k);
       return out;
     },
   };
@@ -367,7 +383,9 @@ const RUNS_MAX = 8;
 async function snapshotBase(skipKey) {
   const entries = S.source ? await S.source.scan() : [];
   const base = {};
-  for (const en of entries) if (en.live && en.key !== skipKey) base[en.key] = en.bytes || await en.read();
+  // 只留最近寫過的檔當「舊記錄」的底：map\1 裡安裝時附的舊檔（露比魔力一千多個）全存會又慢又佔空間
+  const live = entries.filter(en => en.live && en.key !== skipKey).sort((a, b) => (b.lm || 0) - (a.lm || 0));
+  for (const [i, en] of live.entries()) { if (i >= 40 && Date.now() - (en.lm || 0) > 864e5) break; base[en.key] = en.bytes || await en.read(); }
   return base;
 }
 async function startRun(mode, start) {
