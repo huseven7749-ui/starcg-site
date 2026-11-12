@@ -1,4 +1,4 @@
-// 迷宮找樓梯：連結一次遊戲的 StarCG_Data 資料夾，之後自動讀取 map\分流\*.dat，
+// 迷宮找樓梯：連結一次遊戲的 StarCG_Data（或露比魔力的 RubyCG_Data）資料夾，之後自動讀取 map\分流\*.dat，
 // 邊走邊畫出地圖、標出樓梯與座標。全部在使用者電腦上讀取，不上傳、不修改遊戲檔案。
 import { $, $$, T, LANG, esc, fmt, store, toast, copy, emptyState, clamp, spriteImg, openSheet } from './core.js';
 import { parseDat, freshMask, shardOf, demoMaze, KIND_NAMES, isFloor, MARK_EXIT } from './mazedat.js';
@@ -48,7 +48,7 @@ const idb = (() => {
 // ───── 狀態 ─────
 const S = {
   source: null, saved: null,
-  floors: new Map(),          // key → { key, name, shard, lastModified, size, read, map, mask, dirty, manual }
+  floors: new Map(),          // key → { key, name, shard, live, lastModified, size, read, map, mask, dirty, manual }
   manual: new Map(),
   cur: null, liveKey: null, liveStamp: 0, pendingShow: null,
   follow: pref.follow !== false,
@@ -64,16 +64,23 @@ const $st = sel => (R.pip?.document || document).querySelector(sel);
 
 // ───── 資料來源 ─────
 const sub = async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } };
-// 遊戲結構：StarCG_Data\map\0\（固定地圖，幾千個檔，不用看）、StarCG_Data\map\1\<分流>\<編號>.dat（迷宮樓層）
+// 遊戲結構：<遊戲>_Data\map\0\（固定地圖，幾千個檔，不用看）、<遊戲>_Data\map\1\<資料夾>\<編號>.dat（迷宮樓層）
+// 星詠魔力（StarCG_Data）迷宮寫在 map\1\<分流 1、2、3…>；露比魔力（RubyCG_Data）寫在 map\1\0，1～3 是安裝時附的舊檔
+const DATA_DIRS = ['StarCG_Data', 'RubyCG_Data'];
+const numDir = n => /^\d{1,4}$/.test(n || '');
 async function resolveMapDir(h) {
   const name = h.name.toLowerCase();
   let mapDir = null;
   if (name === 'map') mapDir = h;
-  else mapDir = (await sub(h, 'map')) || (await sub((await sub(h, 'StarCG_Data')) || h, 'map'));
+  else {
+    mapDir = await sub(h, 'map');
+    for (const d of DATA_DIRS) { if (mapDir) break; const dd = await sub(h, d); if (dd) mapDir = await sub(dd, 'map'); }
+    if (!mapDir) for await (const [n, e] of h.entries()) if (e.kind === 'directory' && /_Data$/i.test(n) && (mapDir = await sub(e, 'map'))) break;
+  }
   if (!mapDir) {
     // 可能直接選了 map\1 或 map\1\1
     const dirs = [], hasDat = await hasDatFiles(h);
-    for await (const [n, e] of h.entries()) if (e.kind === 'directory' && shardOf(n)) dirs.push([n, e]);
+    for await (const [n, e] of h.entries()) if (e.kind === 'directory' && numDir(n)) dirs.push([n, e]);
     if (dirs.length) return { shards: dirs };
     if (hasDat) return { shards: [[shardOf(h.name) ? h.name : '', h]] };
     return null;
@@ -81,7 +88,7 @@ async function resolveMapDir(h) {
   const one = await sub(mapDir, '1');
   if (one) {
     const dirs = [];
-    for await (const [n, e] of one.entries()) if (e.kind === 'directory' && shardOf(n)) dirs.push([n, e]);
+    for await (const [n, e] of one.entries()) if (e.kind === 'directory' && numDir(n)) dirs.push([n, e]);
     if (dirs.length) return { shards: dirs };
     if (await hasDatFiles(one)) return { shards: [['1', one]] };
   }
@@ -133,7 +140,7 @@ function dirSource(root, info) {
             meta.set(key, m);
           }
           const bytes = m.bytes;
-          out.push({ key, name: n.replace(/\.dat$/i, ''), shard: shardOf(dn), lm: m.lm, bytes, fp: m.fp, read: async () => bytes });
+          out.push({ key, name: n.replace(/\.dat$/i, ''), shard: shardOf(dn), live: true, lm: m.lm, bytes, fp: m.fp, read: async () => bytes });
         }));
       }
       for (const k of [...meta.keys()]) if (!out.some(o => o.key === k)) meta.delete(k);
@@ -160,7 +167,7 @@ function demoSource() {
         const prog = i < fi ? len(i) : Math.min(len(i), k - start[i]);
         let bytes = done.get(i);
         if (!bytes) { bytes = demoMaze({ ...f, explored: 0.1 + 0.9 * prog / len(i) }); if (prog >= len(i)) done.set(i, bytes); }
-        return { key: `1/${30101 + i}.dat`, name: String(30101 + i), shard: 'S1', lm: t0 + (start[i] + prog) * STEP, bytes, fp: fingerprint(bytes), read: async () => bytes };
+        return { key: `1/${30101 + i}.dat`, name: String(30101 + i), shard: 'S1', live: true, lm: t0 + (start[i] + prog) * STEP, bytes, fp: fingerprint(bytes), read: async () => bytes };
       });
     },
   };
@@ -213,7 +220,7 @@ async function poll() {
       seen.add(en.key);
       let f = S.floors.get(en.key);
       let born = false;
-      if (!f) { f = { key: en.key, name: en.name, shard: en.shard, manual: !!en.manual, fp: '', lm: 0, changedAt: 0, seq: 0, map: null }; S.floors.set(en.key, f); changed = true; born = !first; }
+      if (!f) { f = { key: en.key, name: en.name, shard: en.shard, live: !!en.live, manual: !!en.manual, fp: '', lm: 0, changedAt: 0, seq: 0, map: null }; S.floors.set(en.key, f); changed = true; born = !first; }
       f.read = en.read;
       if (f.fp !== en.fp) {                                       // 內容有變：重新解析
         f.fp = en.fp; f.dirty = true; changed = true;
@@ -224,13 +231,13 @@ async function poll() {
         f.lm = en.lm || 0; f.seq = ++S.seq; changed = true; touched = true;
         if (!first) f.changedAt = now;
       }
-      const event = !first && !en.manual && f.shard && touched;    // 這一輪剛被寫入
+      const event = !first && !en.manual && f.live && touched;     // 這一輪剛被寫入（露比魔力的 map\1\0 沒有分流編號，不能用 shard 判斷）
       if (event && S.source?.kind === 'dir' && !S.run && f.key !== S.endedKey) tryResume(f, en);   // 沒在探索：看看是不是上次那座迷宮
       if (event && S.run && !S.run.floors[f.key]) assignFloor(f, en);      // 探索中：新樓層
       // 目前樓層：探索中只看這次探索的樓層；同一輪裡新建立的檔優先（離開上一層時遊戲會順手存一次舊樓層）
       f.score = f.seq + (born ? 1e6 : 0);
       const inRun = !S.run || !!S.run.floors[f.key] || en.manual;
-      const better = !newest || (!!newest.shard < !!f.shard) || (!!newest.shard === !!f.shard && (f.score > newest.score || (f.score === newest.score && f.lm > newest.lm)));
+      const better = !newest || (!!newest.live < !!f.live) || (!!newest.live === !!f.live && (f.score > newest.score || (f.score === newest.score && f.lm > newest.lm)));
       if (!en.manual && inRun && better) newest = f;
     }
     for (const k of [...S.floors.keys()]) if (!seen.has(k)) { S.floors.delete(k); changed = true; }
@@ -360,7 +367,7 @@ const RUNS_MAX = 8;
 async function snapshotBase(skipKey) {
   const entries = S.source ? await S.source.scan() : [];
   const base = {};
-  for (const en of entries) if (en.shard && en.key !== skipKey) base[en.key] = en.bytes || await en.read();
+  for (const en of entries) if (en.live && en.key !== skipKey) base[en.key] = en.bytes || await en.read();
   return base;
 }
 async function startRun(mode, start) {
