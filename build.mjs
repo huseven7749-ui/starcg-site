@@ -157,6 +157,16 @@ function buildAssets() {
     return (done[f] = name);
   };
   files.forEach(visit);
+  // 每支腳本一路 import 下去會用到的所有模組（給 modulepreload 用）
+  const all = (f, seen = new Set()) => { for (const d of deps(f)) if (!seen.has(d)) { seen.add(d); all(d, seen); } return seen; };
+  for (const f of files) jsDeps[f] = [...all(f)];
+}
+// 頁面進入點以外、會被 import 進來的模組：先在 <head> 宣告，瀏覽器就能一次平行下載，不用等上一層載完才發現下一層
+const jsDeps = {};
+function modulePreload(entries, fromPath) {
+  const need = new Set(entries.flatMap(f => jsDeps[f] || []));
+  for (const f of entries) need.delete(f);
+  return [...need].sort().map(f => `<link rel="modulepreload" href="${asset(`js/${f}`, fromPath)}">`).join('');
 }
 function minifyCss(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/\s*([{};:,>])\s*/g, '$1').replace(/;}/g, '}').trim();
@@ -470,7 +480,7 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
       const other = lang === 'zh' ? 'ko' : 'zh';
       const v = ctx.vars;
       const langsAvail = page.langs || Object.keys(LANGS);
-      const otherPath = langsAvail.includes(other) ? page.path : '/posts/';
+      const otherPath = page.id === '404' ? '/' : langsAvail.includes(other) ? page.path : '/posts/';   // 404 只有一份，切換語言就回另一個語言的首頁
       Object.assign(v, {
         lang, htmlLang: t('lang.code'), pageId: page.id,
         title: esc(page.post ? ((page.post.title + '｜' + t('site.name')).length > 65 ? page.post.title : `${page.post.title}｜${t('site.name')}`) : page.cat ? t('posts.catTitle').replace('{c}', t('posts.cat.' + page.cat)) : t(`page.${page.id}.title`)),
@@ -496,6 +506,7 @@ const DICT_GROUPS = { market: 'market\\.type|pet|mk|bk|dm|eqc', pets: 'pet|eqc|p
         pageScript: page.js ? `<script type="module" src="${asset(`js/${page.js}.js`, fromPath)}"></script>` : '',
         // 星野導覽只在有導覽的工具頁載入（其他頁不需要多下載、執行 tour.js）
         tourScript: TOUR_PAGES.has(page.id) ? `<script type="module" src="${asset('js/tour.js', fromPath)}"></script>` : '',
+        modulePreload: modulePreload(['core.js', 'game.js', ...(TOUR_PAGES.has(page.id) ? ['tour.js'] : []), ...(page.js ? [`${page.js}.js`] : [])], fromPath),
         base: PREVIEW ? relPath(fromPath, '/') : '/',
         fontHref: asset(`fonts/round-${lang}.woff2`, fromPath),
         spritesJson: esc(spritesJson(fromPath)),
